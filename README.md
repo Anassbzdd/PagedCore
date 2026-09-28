@@ -13,7 +13,6 @@ PagedCore is in Phase 0 (repository and contract baseline). The implementation h
 - [MVP specification](docs/SPEC.md)
 - [Technical design](docs/DESIGN.md)
 - [Validation plan](docs/VALIDATION_PLAN.md)
-- [Implementation roadmap](docs/task.md)
 
 ## Contributing
 

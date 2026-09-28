@@ -42,3 +42,5 @@ benchmark-results/
 .obsidian/
 .DS_Store
 Thumbs.db
+
+docs/task
