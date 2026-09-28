@@ -6,7 +6,7 @@ The v0.1.0 scope is intentionally narrow: a pinned TinyLlama checkpoint, a Llama
 
 ## Status
 
-PagedCore is in Phase 0 (repository and contract baseline). The implementation has not started, so this repository does not yet provide an installable package or runnable service.
+PagedCore is in Phase 0 (repository and contract baseline). Package metadata is present, but the inference engine and service are not implemented yet.
 
 ## Project documents
 
