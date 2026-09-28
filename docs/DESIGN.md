@@ -1,4 +1,4 @@
-Purpose: Record the architecture, memory rules, and technical decisions that implementation must preserve. See the [documentation reconciliation decisions](DECISIONS.md) for deliberate contract choices.
+Purpose: Record the architecture, memory rules, and technical decisions that implementation must preserve.
 
 # PagedCore Technical Design
 

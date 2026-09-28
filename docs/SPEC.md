@@ -1,4 +1,4 @@
-Purpose: Define what the MVP must do, its public interface, and what counts as finished. See the [documentation reconciliation decisions](DECISIONS.md) for deliberate contract choices.
+Purpose: Define what the MVP must do, its public interface, and what counts as finished.
 
 # PagedCore MVP Specification
 

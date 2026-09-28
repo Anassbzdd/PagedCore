@@ -1,5 +1,5 @@
 
-Purpose: Turn the design into an ordered build, test, benchmark, and publication plan. See the [documentation reconciliation decisions](DECISIONS.md) for deliberate contract choices.
+Purpose: Turn the design into an ordered build, test, benchmark, and publication plan.
 
 # PagedCore Implementation and Validation Plan
 
