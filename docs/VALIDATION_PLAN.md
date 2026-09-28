@@ -1,5 +1,5 @@
 
-Purpose: Turn the design into an ordered build, test, benchmark, and publication plan. 
+Purpose: Turn the design into an ordered build, test, benchmark, and publication plan. See the [documentation reconciliation decisions](DECISIONS.md) for deliberate contract choices.
 
 # PagedCore Implementation and Validation Plan
 
@@ -13,7 +13,7 @@ Complete each gate before starting the next substantial feature.
 |2. Model parity|Implement the one-model decoder without paging. Compare layer outputs, final logits, and greedy tokens with the pinned reference.|Automated GPU parity tests with documented tolerances.|
 |3. Paged cache|Add GPU pool, free list, block tables, append/read/release operations.|Boundary, reuse, isolation, and capacity tests.|
 |4. Paged attention|Replace decode attention with block-table traversal and blockwise online softmax.|Parity tests at lengths 1, 15, 16, 17, and multiple blocks; no full-history gather.|
-|5. Scheduler|Add credits, strict FIFO pending queue, 32-slot active limit, one serial prefill per iteration, iteration-level decode batch, and cleanup.|Interleaved-request, head-of-line, active-limit, and cancellation tests; invariants hold after each iteration.|
+|5. Scheduler|Add credits, strict FIFO pending queue, 32-slot active limit, one serial prefill per iteration, iteration-level decode batch, and cleanup. Reserve `ceil((prompt_tokens + max_new_tokens - 1) / block_tokens)` blocks per admitted request.|Interleaved-request, head-of-line, active-limit, and cancellation tests; invariants hold after each iteration.|
 |6. HTTP service|Add validation, SSE, overload responses, readiness, and metrics.|Streaming client tests, disconnect tests, and concurrent requests.|
 |7. Delivery|Add CI, Docker, setup instructions, benchmark runner, and report.|Clean-clone checks and reproducible T4 run.|
 
@@ -23,11 +23,11 @@ Keep each gate in a reviewable commit or small series of commits. Do not optimiz
 
 **CPU unit tests:** Exercise the allocator and scheduler with a fake model. Test empty/full pools, exact block boundaries, strict FIFO and head-of-line behavior, the active-sequence limit, credit release, cancellation at every state, double-free prevention, requests too large for the pool, and recovery after a failed request. Assert invariants after each state transition.
 
-**GPU correctness tests:** On the pinned checkpoint, compare PagedCore with Hugging Face using the same token IDs and FP16 weights. Cover one and multiple sequences, short and long prompts, page boundaries, EOS, maximum output length, and reused physical blocks. Force a multi-block sequence onto shuffled physical IDs and poison unrelated blocks so an implementation that ignores the page table fails. Compare intermediate outputs and logits with explicit absolute/relative tolerances; also check greedy token equality on deterministic fixtures. Investigate mismatches rather than widening tolerances until a failing case passes.
+**GPU correctness tests:** On the pinned checkpoint, compare PagedCore with Hugging Face using the same token IDs and FP16 weights. Cover one and multiple sequences, short and long prompts, block boundaries, EOS, maximum output length, and reused physical blocks. Force a multi-block sequence onto shuffled physical block IDs and poison unrelated blocks so an implementation that ignores the block table fails. Compare intermediate outputs and logits with explicit absolute/relative tolerances; also check greedy token equality on deterministic fixtures. Investigate mismatches rather than widening tolerances until a failing case passes.
 
-**Service tests:** Verify status codes, SSE framing, one token event per emitted token, incremental decoding with incomplete byte sequences, final text flushing, first-step EOS, queue overload, the active limit, simultaneous clients, disconnect during pending/prefill/decode, and readiness after an injected worker failure. Fill a token queue deliberately and prove the out-of-band terminal signal closes the stream. Confirm cancellation eventually returns all blocks, credits, and active slots.
+**Service tests:** Verify `POST /v1/generate`, `GET /healthz`, `GET /readyz`, and `GET /metrics`, including status codes, the default 64-request pending bound, the `262144`-byte body limit, and stable error codes. Verify SSE framing, one token event per emitted token, incremental decoding with incomplete byte sequences, final text flushing, first-step EOS, queue overload, the default 32-sequence active limit, simultaneous clients, disconnect during pending/prefill/decode, and readiness after an injected worker failure. Fill a token queue deliberately and prove the out-of-band terminal signal closes the stream. Confirm cancellation eventually returns all blocks, credits, and active slots.
 
-**Memory and lifecycle tests:** Run repeated mixed-length requests and cancellations, then assert zero allocated blocks, zero reserved credits, and zero occupied active slots. Track device VRAM to detect unexplained growth. Test the maximum supported prompt/output combination at the 32-sequence active limit before setting the final workspace margin.
+**Memory and lifecycle tests:** Run repeated mixed-length requests and cancellations, then assert zero allocated blocks, zero reserved credits, and zero occupied active slots. Track device VRAM to detect unexplained growth. Test the maximum supported prompt/output combination at the default 32-sequence active limit before setting the final workspace margin. Verify graceful shutdown completes within the default 10-second bound or reports forced cleanup.
 
 Run CPU checks, `ruff`, and `mypy` on every CI push. Run GPU tests on an actual T4 before release; a CPU-only CI pass does not certify the engine.
 
@@ -52,7 +52,7 @@ For each workload:
 5. Save raw per-request event times, token counts, device VRAM samples, configuration, and environment metadata.
     
 
-Report client-measured TTFT p50/p95, pooled ITL p50/p95, per-request TPOT p50/p95, end-to-end latency p50/p95, output tokens per second, achieved request rate, error/rejection rate, and peak device VRAM. Emit p99 fields and sample counts for every metric, but set a p99 value to `null` with `insufficient_sample` when fewer than 1,000 relevant observations exist. Calculate a 95% bootstrap confidence interval across repetition-level throughput values. Do not treat individual tokens from one run as independent repetitions.
+Report client-measured TTFT p50/p95, pooled ITL p50/p95, per-request TPOT p50/p95, end-to-end latency p50/p95, `output_tok_per_s`, achieved request rate, error/rejection rate, and peak device VRAM. Use `output_tok_per_s = total completed emitted tokens / benchmark interval seconds` and `achieved_req_per_s = completed requests / benchmark interval seconds`. Emit p99 fields and sample counts for every metric, but set a p99 value to `null` with `insufficient_sample` when fewer than 1,000 relevant observations exist. Calculate a 95% bootstrap confidence interval across repetition-level throughput values. Do not treat individual tokens from one run as independent repetitions.
 
 Sample total device-used memory through NVML every 50 ms, with no other GPU processes, and subtract the idle-device baseline recorded immediately before server startup. Device-level sampling includes vLLM child processes. A server’s internal KV utilization is valid for its own diagnosis; mark the comparison table `N/A` where an equivalent vLLM or Hugging Face measure is unavailable. For PagedCore, `KV utilization` is peak occupied blocks divided by total blocks; separately report reservation ratio, slot fill, and effective pool fill.
 

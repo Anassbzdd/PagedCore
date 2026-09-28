@@ -14,6 +14,7 @@ PagedCore is in Phase 0 (repository and contract baseline). Package metadata is 
 - [Technical design](docs/DESIGN.md)
 - [Validation plan](docs/VALIDATION_PLAN.md)
 - [Resolved implementation constants](docs/CONSTANTS.md)
+- [Documentation reconciliation decisions](docs/DECISIONS.md)
 
 ## Repository layout
 

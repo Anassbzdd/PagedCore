@@ -1,4 +1,4 @@
-Purpose: Define what the MVP must do, its public interface, and what counts as finished.
+Purpose: Define what the MVP must do, its public interface, and what counts as finished. See the [documentation reconciliation decisions](DECISIONS.md) for deliberate contract choices.
 
 # PagedCore MVP Specification
 
@@ -16,20 +16,23 @@ PagedCore is a learning and portfolio engine. Its result is an explainable imple
 | Architecture        | Llama-compatible decoder only                                                             |
 | GPU                 | One NVIDIA T4                                                                             |
 | Weight and KV dtype | FP16                                                                                      |
-| Model context limit | 2,048 tokens                                                                              |
-| KV block size       | 16 token slots                                                                            |
+| Model context limit | 2,048 tokens total (prompt plus requested output)                                          |
+| KV block size       | 16 token slots (`block_tokens`)                                                           |
 | API                 | Local FastAPI service; one model worker                                                   |
 | Generation          | Greedy decoding; one completion per request                                               |
 | Output limit        | 1–256 tokens; default 128                                                                 |
-| Pending queue       | At most 64 requests; configurable                                                         |
-| Active sequences    | At most 32 sequences; configurable and frozen for benchmarks                              |
-| Output queue        | At most 32 token events per request                                                       |
-| Deployment          | Linux with CUDA; Docker image and direct install                                          |
+| Pending queue       | 64 requests by default; configurable and frozen at 64 for benchmarks                       |
+| Active sequences    | 32 by default; configurable and frozen at 32 for benchmarks                              |
+| Per-request token queue | 32 token events by default; always bounded                                             |
+| Request body        | 262,144 bytes maximum (`max_request_body_bytes`)                                          |
+| KV pool             | 8,192 MiB initial pool; 1,024 MiB workspace margin                                        |
+| Deployment          | Linux with CUDA; Docker image and direct install; bind to `localhost` by default           |
+| Graceful shutdown   | 10 seconds maximum (`shutdown_timeout_seconds`)                                           |
 
 The model configuration lists 22 layers, 32 attention heads, four KV heads, hidden size 2,048, and a 2,048-token context. The checkpoint and tokenizer both use revision `af8e934848d8dd00074cc2cd8a40a9b05c3b011e`. [Source: TinyLlama configuration](https://huggingface.co/TinyLlama/TinyLlama-1.1B-Chat-v1.0/blob/af8e934848d8dd00074cc2cd8a40a9b05c3b011e/config.json). See [resolved implementation constants](CONSTANTS.md) for the software baseline and API error codes.
 
 **Derived capacity check:** Head dimension is `2048 / 32 = 64`. 
-FP16 KV storage is `2 × 22 layers × 4 KV heads × 64 values × 2 bytes = 22 KiB` per cached token, or `352 KiB` per 16-token block. This excludes model weights, CUDA workspace, allocator overhead, and temporary tensors. Measure available memory at startup; do not infer a safe block count from the T4’s nominal memory alone.
+FP16 KV storage is `2 × 22 layers × 4 KV heads × 64 values × 2 bytes = 22 KiB` per cached token, or `352 KiB` per 16-token block. This excludes model weights, CUDA workspace, allocator overhead, and temporary tensors. Measure available memory at startup; do not infer a safe block count from the T4’s nominal memory alone. These names are used throughout the source documents: `context_limit=2048` and `block_tokens=16`.
 
 ## MVP behavior
 
@@ -37,13 +40,13 @@ FP16 KV storage is `2 × 22 layers × 4 KV heads × 64 values × 2 bytes = 22 Ki
 
 2. **Continuous batching.** Each worker iteration performs cleanup, considers the FIFO head for admission, prefills at most one newly admitted request, and runs one model decode step for the active batch. Admission requires both a free active-sequence slot and enough KV credits. Newly admitted requests can join without waiting for the previous batch to finish.
 
-3. **Prefill**. For the MVP, process one prompt at a time. During prefill, the system can use normal temporary tensors, then copy the generated KV cache into paged memory. A very long prompt may block or slow down decoding for requests that are already running.
+3. **Prefill**. For the MVP, process one prompt at a time. During prefill, the system can use normal temporary tensors, then copy the generated KV cache into its physical KV blocks. A very long prompt may block or slow down decoding for requests that are already running.
 
 4. **Bounded service.** Put limits on how many requests can wait, how many can run at the same time, and how many output tokens can wait to be sent to each client. When a request is accepted, reserve enough KV-cache memory for it to finish. If the waiting queue is full, reject new requests. If a client disconnects or stops reading the output, eventually free its reserved memory and active slot.
 
 5. **Streaming.** Send each generated token to the client as soon as it is produced. When generation finishes, send a final completion message. Keep token messages in a limited-size queue, but send completion or error signals through a separate path so they can still be delivered even if the token queue is full.
 
-6. **Measurements.** Track when each request arrives, starts running, produces its first token, produces later tokens, and finishes. Do not store the prompt or generated text. Also track basic server stats such as waiting requests, active requests, KV-cache usage, and cancellations. Use these measurements to calculate latency percentiles such as p50, p95, and p99, and always report how many requests were measured.
+6. **Measurements.** Track when each request arrives, starts running, produces its first token, produces later tokens, and finishes. Do not store the prompt or generated text. Also track basic server stats such as waiting requests, active sequences, KV-cache usage, and cancellations. Use these measurements to calculate latency percentiles such as p50, p95, and p99, and always report how many requests were measured.
 
 ## HTTP contract
 
@@ -59,7 +62,15 @@ Request body:
 }
 ```
 
-`prompt` is nonempty UTF-8 text. The service applies the pinned tokenizer without truncation. `max_new_tokens` is an integer from 1 to 256. `ignore_eos` is `false` by default, so generation normally stops when the model produces the EOS token. Set it to `true` only for benchmarks where you want every request to generate a fixed number of tokens. Reject any request where `prompt tokens + requested output tokens > 2048`.
+`prompt` is nonempty UTF-8 text. The complete request body must be at most `262144` bytes. The service applies the pinned tokenizer without truncation. `max_new_tokens` is an integer from 1 to 256 and defaults to 128 when omitted. `ignore_eos` is `false` by default, so generation normally stops when the model produces the EOS token. Set it to `true` only for benchmarks where you want every request to generate a fixed number of tokens. Reject any request where `prompt tokens + requested output tokens > 2048`.
+
+For an admitted request, reserve the maximum KV demand before prefill:
+
+```text
+required_blocks = ceil((prompt_tokens + max_new_tokens - 1) / block_tokens)
+```
+
+The `-1` accounts for the first output token selected from prefill logits; subsequent output tokens are appended during decode. Reject the request with `kv_capacity_exceeded` when this demand cannot fit in an idle pool.
 
 The response is `text/event-stream` over the POST request. A client uses an HTTP streaming client or `fetch`; native browser `EventSource` does not issue POST requests.
 
@@ -86,7 +97,7 @@ Before streaming starts, return `400` for malformed fields, `413` for a body-siz
 
 - `GET /readyz`: model, tokenizer, and KV pool are initialized.
 
-- `GET /metrics**`. Return local server statistics as JSON. Do not include prompt text or generated text. Track totals such as accepted, completed, failed, rejected, cancelled, and emitted tokens. Also report current values such as waiting requests, active sequences, KV-cache blocks in use or reserved, and cached token slots.
+- `GET /metrics`: Return local server statistics as JSON. Do not include prompt text or generated text. Track totals such as accepted, completed, failed, rejected, cancelled, and emitted tokens. Also report current values such as waiting requests, active sequences, KV-cache blocks in use or reserved, and cached token slots.
 
 Bind the server to `localhost` by default, so only the same computer can access it. For the MVP, do not add user authentication, public internet access, or isolation between multiple users.
 
