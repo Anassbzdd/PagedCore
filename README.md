@@ -14,6 +14,21 @@ PagedCore is in Phase 0 (repository and contract baseline). The implementation h
 - [Technical design](docs/DESIGN.md)
 - [Validation plan](docs/VALIDATION_PLAN.md)
 
+## Repository layout
+
+```text
+src/pagedcore/       importable runtime package
+tests/unit/           CPU unit tests
+tests/integration/    cross-component tests
+tests/gpu/            T4-backed correctness and lifecycle tests
+tests/service/        HTTP/SSE service tests
+benchmarks/           benchmark workloads and runners
+scripts/              developer and validation utilities
+results/              reviewed benchmark evidence
+```
+
+Commit only reviewed, reproducible evidence under `results/`. Generated local benchmark output belongs under `results/local/` and is ignored by Git; see [results/README.md](results/README.md) for the policy.
+
 ## Contributing
 
 Read [CONTRIBUTING.md](CONTRIBUTING.md) before proposing a change. Contributions must preserve the documented MVP boundaries and include evidence appropriate to the current implementation gate.
