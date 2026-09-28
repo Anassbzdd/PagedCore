@@ -83,7 +83,7 @@ This policy is conservative because a request may reserve more KV capacity than 
 Report reserved KV credits separately from blocks that are actually allocated and tokens that are currently stored.
 Preemption may improve this later, but do not add it to the MVP unless it is explicitly designed and implemented.
 
-When the server starts, load the model first and check how much GPU memory is still free. Create the KV-cache pool using the configured `kv_pool_mib`, but keep about 1 GiB free for temporary model work.
+When the server starts, load the model first and check how much GPU memory is still free. Create the KV-cache pool using the configured `kv_pool_mib` (initial default: `8192` MiB), while keeping the `1024` MiB workspace margin free for temporary model work.
 Test this setup with 32 active sequences and the largest supported prompt. If it can still cause OOM, increase the safety margin. If you increase `max_active_sequences`, test the memory limit again.
 If the requested KV pool does not fit in GPU memory, stop startup and show a clear error.
 

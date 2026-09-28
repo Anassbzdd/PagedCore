@@ -76,7 +76,7 @@ Task status markers:
 - [x] **P0.1 Initialize the repository.** Create Git history, `.gitignore`, a concise `README.md`, `LICENSE`, and contribution instructions. Ignore local caches, model files, benchmark outputs that are not intended as evidence, virtual environments, and Obsidian state.
 - [x] **P0.2 Choose the package layout.** Use a `src/pagedcore/` package, `tests/` split by unit/integration/GPU/service, `benchmarks/`, `scripts/`, and `artifacts/` or `results/` with a documented checked-in policy.
 - [x] **P0.3 Add project metadata.** Create `pyproject.toml` with supported Python version, runtime dependencies, development extras, console entry points, Ruff, mypy strict mode, pytest markers, and package metadata.
-- [ ] **P0.4 Resolve and record open constants.** Pin the model/tokenizer revision, Python/PyTorch/Transformers versions, numeric parity tolerances, default `kv_pool_mib`, initial 1 GiB workspace margin, maximum request-body size, shutdown timeout, and stable error-code names.
+- [x] **P0.4 Resolve and record open constants.** Pin the model/tokenizer revision, Python/PyTorch/Transformers versions, numeric parity tolerances, default `kv_pool_mib`, initial 1 GiB workspace margin, maximum request-body size, shutdown timeout, and stable error-code names. See [resolved implementation constants](CONSTANTS.md).
 - [ ] **P0.5 Reconcile documentation defects.** Check endpoint names, formulas, defaults, and terminology across the three source documents before code copies them. Document deliberate changes in a short decision log.
 - [ ] **P0.6 Add a traceability table.** Map every MVP acceptance criterion to its implementation owner, test, and final evidence file. Start with `pending` links and fill them as phases complete.
 

@@ -10,23 +10,23 @@ PagedCore is a learning and portfolio engine. Its result is an explainable imple
 
 ## Fixed assumptions
 
-| Decision            | MVP value                                                                    |
-| ------------------- | ---------------------------------------------------------------------------- |
-| Model               | `TinyLlama/TinyLlama-1.1B-Chat-v1.0`, pinned to a tested repository revision |
-| Architecture        | Llama-compatible decoder only                                                |
-| GPU                 | One NVIDIA T4                                                                |
-| Weight and KV dtype | FP16                                                                         |
-| Model context limit | 2,048 tokens                                                                 |
-| KV block size       | 16 token slots                                                               |
-| API                 | Local FastAPI service; one model worker                                      |
-| Generation          | Greedy decoding; one completion per request                                  |
-| Output limit        | 1–256 tokens; default 128                                                    |
-| Pending queue       | At most 64 requests; configurable                                            |
-| Active sequences    | At most 32 sequences; configurable and frozen for benchmarks                 |
-| Output queue        | At most 32 token events per request                                          |
-| Deployment          | Linux with CUDA; Docker image and direct install                             |
+| Decision            | MVP value                                                                                 |
+| ------------------- | ----------------------------------------------------------------------------------------- |
+| Model               | `TinyLlama/TinyLlama-1.1B-Chat-v1.0`, revision `af8e934848d8dd00074cc2cd8a40a9b05c3b011e` |
+| Architecture        | Llama-compatible decoder only                                                             |
+| GPU                 | One NVIDIA T4                                                                             |
+| Weight and KV dtype | FP16                                                                                      |
+| Model context limit | 2,048 tokens                                                                              |
+| KV block size       | 16 token slots                                                                            |
+| API                 | Local FastAPI service; one model worker                                                   |
+| Generation          | Greedy decoding; one completion per request                                               |
+| Output limit        | 1–256 tokens; default 128                                                                 |
+| Pending queue       | At most 64 requests; configurable                                                         |
+| Active sequences    | At most 32 sequences; configurable and frozen for benchmarks                              |
+| Output queue        | At most 32 token events per request                                                       |
+| Deployment          | Linux with CUDA; Docker image and direct install                                          |
 
-The model configuration lists 22 layers, 32 attention heads, four KV heads, hidden size 2,048, and a 2,048-token context. Pin the exact checkpoint and tokenizer revision together when implementation begins. [Source: TinyLlama configuration](https://huggingface.co/TinyLlama/TinyLlama-1.1B-Chat-v1.0/blob/af8e934848d8dd00074cc2cd8a40a9b05c3b011e/config.json).
+The model configuration lists 22 layers, 32 attention heads, four KV heads, hidden size 2,048, and a 2,048-token context. The checkpoint and tokenizer both use revision `af8e934848d8dd00074cc2cd8a40a9b05c3b011e`. [Source: TinyLlama configuration](https://huggingface.co/TinyLlama/TinyLlama-1.1B-Chat-v1.0/blob/af8e934848d8dd00074cc2cd8a40a9b05c3b011e/config.json). See [resolved implementation constants](CONSTANTS.md) for the software baseline and API error codes.
 
 **Derived capacity check:** Head dimension is `2048 / 32 = 64`. 
 FP16 KV storage is `2 × 22 layers × 4 KV heads × 64 values × 2 bytes = 22 KiB` per cached token, or `352 KiB` per 16-token block. This excludes model weights, CUDA workspace, allocator overhead, and temporary tensors. Measure available memory at startup; do not infer a safe block count from the T4’s nominal memory alone.
@@ -78,7 +78,7 @@ When `ignore_eos=false`, EOS stops generation but is not sent as a token event. 
 - `eos` — generation stopped because EOS was reached.
 - `length` — generation stopped because the requested token limit was reached.
 
-Before streaming starts, return `400` for malformed fields, `413` for a context-limit violation, `422` for a request whose maximum KV demand cannot fit even in an idle pool, `429` when the pending queue is full, and `503` when the model is unavailable. After streaming starts, send `event: error` with a stable error code and close the stream when delivery is possible. If the 32-event token queue fills, cancel the request with reason `slow_consumer` and close its stream through the out-of-band terminal signal without requiring a final SSE event; the GPU worker must not wait for the client to read. Client disconnect is recorded internally and requires no final event.
+Before streaming starts, return `400` for malformed fields, `413` for a body-size or context-limit violation, `422` for a request whose maximum KV demand cannot fit even in an idle pool, `429` when the pending queue is full, and `503` when the model is unavailable. Use the stable error codes in [resolved implementation constants](CONSTANTS.md). After streaming starts, send `event: error` with a stable error code and close the stream when delivery is possible. If the 32-event token queue fills, cancel the request with reason `slow_consumer` and close its stream through the out-of-band terminal signal without requiring a final SSE event; the GPU worker must not wait for the client to read. Client disconnect is recorded internally and requires no final event.
 
 ### Operational endpoints
 
