@@ -1,0 +1,44 @@
+# Python bytecode and tool caches
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# Virtual environments and local configuration
+.venv/
+venv/
+env/
+.env
+!.env.example
+
+# Build and packaging outputs
+build/
+dist/
+*.egg-info/
+
+# Downloaded model weights and local model caches
+.cache/
+models/
+checkpoints/
+*.ckpt
+*.onnx
+*.pt
+*.pth
+*.safetensors
+pytorch_model*.bin
+
+# Local benchmark runs; curated evidence will be checked in separately
+artifacts/local/
+results/local/
+benchmark-results/
+
+# Logs, editors, and operating-system state
+*.log
+.idea/
+.vscode/
+.obsidian/
+.DS_Store
+Thumbs.db
