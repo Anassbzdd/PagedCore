@@ -6,7 +6,23 @@ The v0.1.0 scope is intentionally narrow: a pinned TinyLlama checkpoint, a Llama
 
 ## Status
 
-PagedCore is in Phase 0 (repository and contract baseline). Package metadata is present, but the inference engine and service are not implemented yet.
+PagedCore is in the reproducible-environment gate. Package metadata and dependency locks are present, but the inference engine and service are not implemented yet.
+
+## Development setup
+
+Use Python 3.11.15 and the committed `uv.lock` file. For the x86-64 Linux/CUDA 12.6 target (glibc 2.28 or newer):
+
+```bash
+uv sync --frozen --extra cuda
+```
+
+For CPU-only development and the allocator/scheduler test toolchain:
+
+```bash
+uv sync --frozen --extra cpu --extra dev
+```
+
+The `cpu` and `cuda` extras are mutually exclusive. CPU-only checks do not validate GPU correctness, memory safety, or performance.
 
 ## Project documents
 

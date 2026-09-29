@@ -13,11 +13,14 @@ passed its later T4 validation gate.
 | Tokenizer revision     | `af8e934848d8dd00074cc2cd8a40a9b05c3b011e` |
 | Reference Python       | `3.11.15`                                  |
 | Reference PyTorch      | `2.7.1`                                    |
+| CUDA wheel runtime     | `12.6` (`cu126`)                           |
 | Reference Transformers | `4.52.4`                                   |
 
 The model and tokenizer must both be loaded with the immutable revision above. The
-reference Python version is a 3.11.x environment; `pyproject.toml` remains the
-supported-version contract until dependency locking is completed in Phase 1.
+reference Python version is recorded in `.python-version`; `pyproject.toml` keeps
+the supported 3.11.x package range, and `uv.lock` freezes the resolved CPU and CUDA
+dependency graphs. The `cuda` extra selects PyTorch `2.7.1+cu126`; the `cpu` extra
+selects PyTorch `2.7.1+cpu` for non-GPU development.
 
 ## Memory and lifecycle defaults
 
