@@ -105,6 +105,9 @@ Bind the server to `localhost` by default, so only the same computer can access 
 
 The MVP is ready to benchmark when:
 
+Planned implementation, test, and evidence ownership is tracked in the
+[MVP acceptance traceability table](TRACEABILITY.md).
+
 - For greedy decoding, the model should produce the same tokens as the pinned Hugging Face reference. Also compare some internal logits and make sure the differences stay within an allowed FP16 numerical tolerance.
 
 - Tests should prove that KV blocks are allocated and reused correctly, requests stay isolated from each other, and resources are freed when a request is cancelled. They should also check that queue limits and active-request limits work, and that a slow client cannot make output memory grow forever or prevent the stream from eventually ending.

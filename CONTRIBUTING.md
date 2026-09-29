@@ -1,6 +1,6 @@
 # Contributing to PagedCore
 
-PagedCore is built in ordered validation gates. Before making a change, read `docs/SPEC.md`, `docs/DESIGN.md`, the relevant section of `docs/VALIDATION_PLAN.md`, and the current gate in `docs/task.md`.
+PagedCore is built in ordered validation gates. Before making a change, read `docs/SPEC.md`, `docs/DESIGN.md`, the relevant section of `docs/VALIDATION_PLAN.md`.
 
 ## Contribution rules
 
