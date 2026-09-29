@@ -34,6 +34,34 @@ selects PyTorch `2.7.1+cpu` for non-GPU development.
 The pool size is checked against actual free device memory at startup. It is not a
 guarantee that the configuration is safe before the Phase 8 worst-case workspace test.
 
+## Configuration loading
+
+`load_config()` returns an immutable `PagedCoreConfig` and reads optional process
+environment values with the `PAGEDCORE_` prefix. It does not load a `.env` file.
+
+| Setting | Environment variable | Default |
+|---|---|---:|
+| Model ID | `PAGEDCORE_MODEL_ID` | `TinyLlama/TinyLlama-1.1B-Chat-v1.0` |
+| Model revision | `PAGEDCORE_MODEL_REVISION` | `af8e934848d8dd00074cc2cd8a40a9b05c3b011e` |
+| Context limit | `PAGEDCORE_CONTEXT_LIMIT` | `2048` |
+| Minimum requested output | `PAGEDCORE_MIN_NEW_TOKENS` | `1` |
+| Default requested output | `PAGEDCORE_DEFAULT_MAX_NEW_TOKENS` | `128` |
+| Maximum requested output | `PAGEDCORE_MAX_NEW_TOKENS` | `256` |
+| Tokens per KV block | `PAGEDCORE_BLOCK_TOKENS` | `16` |
+| KV pool size in MiB | `PAGEDCORE_KV_POOL_MIB` | `8192` |
+| Workspace margin in MiB | `PAGEDCORE_WORKSPACE_MARGIN_MIB` | `1024` |
+| Pending request limit | `PAGEDCORE_MAX_PENDING_REQUESTS` | `64` |
+| Active sequence limit | `PAGEDCORE_MAX_ACTIVE_SEQUENCES` | `32` |
+| Per-request token queue size | `PAGEDCORE_TOKEN_QUEUE_SIZE` | `32` |
+| Bind address | `PAGEDCORE_BIND_ADDRESS` | `localhost` |
+| Log level | `PAGEDCORE_LOG_LEVEL` | `INFO` |
+
+Model identity, context and output bounds, and block size are fixed by the MVP
+contract. Setting their environment variables to another value fails configuration
+loading. Pool, queue, active-sequence, bind, and log settings are configurable; numeric
+capacity settings must be greater than zero. Accepted log levels are `DEBUG`, `INFO`,
+`WARNING`, `ERROR`, and `CRITICAL`.
+
 ## Numerical parity thresholds
 
 Use `torch.testing.assert_close` with these initial thresholds when comparing the

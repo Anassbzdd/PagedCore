@@ -6,7 +6,7 @@ The v0.1.0 scope is intentionally narrow: a pinned TinyLlama checkpoint, a Llama
 
 ## Status
 
-PagedCore is in the reproducible-environment gate. Package metadata and dependency locks are present, but the inference engine and service are not implemented yet.
+PagedCore is in the reproducible-environment gate. Package metadata, dependency locks, and typed configuration loading are present, but the inference engine and service are not implemented yet.
 
 ## Development setup
 
