@@ -34,6 +34,20 @@ selects PyTorch `2.7.1+cpu` for non-GPU development.
 The pool size is checked against actual free device memory at startup. It is not a
 guarantee that the configuration is safe before the Phase 8 worst-case workspace test.
 
+## Reproducibility controls
+
+`pagedcore.determinism.seed_everything(seed)` seeds Python's `random` generator and
+the available PyTorch CPU and CUDA generators. Inference code should run its forward
+pass inside `pagedcore.determinism.inference_mode()` so autograd state and its memory
+bookkeeping are disabled.
+
+The test suite applies seed `0` before every test. Seeding does not guarantee bitwise
+identical CUDA results across GPU models, drivers, CUDA versions, or PyTorch versions.
+CUDA kernels can also have no deterministic implementation or can change numerical
+results through FP16 reductions. GPU parity evidence must therefore record the full
+environment and compare the documented tensor/logit tolerances; these controls are
+not a performance or cross-machine determinism guarantee.
+
 ## Configuration loading
 
 `load_config()` returns an immutable `PagedCoreConfig` and reads optional process

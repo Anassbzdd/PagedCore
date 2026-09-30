@@ -6,7 +6,7 @@ The v0.1.0 scope is intentionally narrow: a pinned TinyLlama checkpoint, a Llama
 
 ## Status
 
-PagedCore is in the reproducible-environment gate. Package metadata, dependency locks, and typed configuration loading are present, but the inference engine and service are not implemented yet.
+PagedCore is in the reproducible-environment gate. Package metadata, dependency locks, typed configuration loading, and safe environment diagnostics are present, but the inference engine and service are not implemented yet.
 
 ## Development setup
 
@@ -23,6 +23,12 @@ uv sync --frozen --extra cpu --extra dev
 ```
 
 The `cpu` and `cuda` extras are mutually exclusive. CPU-only checks do not validate GPU correctness, memory safety, or performance.
+
+Print the resolved, non-sensitive environment and PagedCore settings with:
+
+```bash
+uv run pagedcore env
+```
 
 ## Project documents
 
