@@ -4,11 +4,14 @@ import argparse
 import json
 import platform
 import subprocess
+import sys
 from collections.abc import Sequence
 from dataclasses import fields
 from importlib import metadata
+from pathlib import Path
 
 from pagedcore.config import PagedCoreConfig, load_config
+from pagedcore.verification import TargetVerificationError, verify_target
 
 
 def _package_version(distribution: str) -> str | None:
@@ -132,6 +135,16 @@ def _build_parser() -> argparse.ArgumentParser:
         "env",
         help="print safe Python, package, CUDA, GPU, model, and configuration diagnostics",
     )
+    verify = commands.add_parser(
+        "verify",
+        help="load the pinned checkpoint and run one T4 reference forward pass",
+    )
+    verify.add_argument(
+        "--manifest-path",
+        type=Path,
+        default=Path("results/local/environment-manifest.json"),
+        help="where to write the prompt-free verification manifest",
+    )
     return parser
 
 
@@ -139,6 +152,19 @@ def main(argv: Sequence[str] | None = None) -> int:
     arguments = _build_parser().parse_args(argv)
     if arguments.command == "env":
         print(json.dumps(collect_environment_diagnostics(), indent=2, sort_keys=True))
+        return 0
+    if arguments.command == "verify":
+        try:
+            manifest = verify_target()
+            arguments.manifest_path.parent.mkdir(parents=True, exist_ok=True)
+            arguments.manifest_path.write_text(
+                json.dumps(manifest, indent=2, sort_keys=True) + "\n",
+                encoding="utf-8",
+            )
+        except TargetVerificationError as error:
+            print(json.dumps({"status": "failed", "error": str(error)}), file=sys.stderr)
+            return 1
+        print(json.dumps(manifest, indent=2, sort_keys=True))
         return 0
     raise AssertionError(f"unsupported command: {arguments.command}")
 

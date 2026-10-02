@@ -50,3 +50,33 @@ def test_env_command_prints_json_without_unrelated_environment_values(monkeypatc
     output = capsys.readouterr().out
     assert json.loads(output) == {"settings": {"log_level": "INFO"}}
     assert "do-not-print" not in output
+
+
+def test_verify_command_writes_manifest(monkeypatch, tmp_path, capsys) -> None:
+    manifest = {
+        "manifest_version": 1,
+        "status": "passed",
+        "forward_pass": {"status": "passed"},
+    }
+    monkeypatch.setattr(cli, "verify_target", lambda: manifest)
+    manifest_path = tmp_path / "nested" / "manifest.json"
+
+    assert cli.main(["verify", "--manifest-path", str(manifest_path)]) == 0
+
+    assert json.loads(manifest_path.read_text(encoding="utf-8")) == manifest
+    assert json.loads(capsys.readouterr().out) == manifest
+
+
+def test_verify_command_reports_target_failure(monkeypatch, capsys) -> None:
+    monkeypatch.setattr(
+        cli,
+        "verify_target",
+        lambda: (_ for _ in ()).throw(cli.TargetVerificationError("requires T4")),
+    )
+
+    assert cli.main(["verify"]) == 1
+
+    assert json.loads(capsys.readouterr().err) == {
+        "status": "failed",
+        "error": "requires T4",
+    }

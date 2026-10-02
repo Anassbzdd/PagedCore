@@ -30,6 +30,17 @@ Print the resolved, non-sensitive environment and PagedCore settings with:
 uv run pagedcore env
 ```
 
+On the target T4, verify the pinned model/tokenizer and capture a prompt-free
+environment manifest with:
+
+```bash
+uv run pagedcore verify
+```
+
+The manifest is written to `results/local/environment-manifest.json` by default.
+This command requires CUDA device 0 to be an NVIDIA T4 and performs one reference
+forward pass; a CPU-only run does not satisfy the target-machine gate.
+
 ## Project documents
 
 - [MVP specification](docs/SPEC.md)

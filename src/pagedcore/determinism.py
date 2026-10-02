@@ -8,12 +8,6 @@ from contextlib import contextmanager
 
 
 def seed_everything(seed: int) -> None:
-    """Seed Python and the available PyTorch CPU/CUDA generators.
-
-    PyTorch is an optional package for the base installation, so it is imported
-    only when this control is used. A missing PyTorch installation still gets a
-    reproducible Python random stream.
-    """
     if not isinstance(seed, int) or isinstance(seed, bool) or seed < 0:
         raise ValueError("seed must be a non-negative integer")
 
