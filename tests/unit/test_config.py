@@ -1,4 +1,5 @@
 from dataclasses import FrozenInstanceError
+from math import nan
 
 import pytest
 
@@ -80,6 +81,22 @@ def test_load_config_rejects_non_positive_operational_limits(name: str, value: s
 @pytest.mark.parametrize(
     ("name", "value"),
     [
+        ("kv_pool_mib", True),
+        ("workspace_margin_mib", 1.5),
+        ("max_pending_requests", nan),
+        ("max_active_sequences", 2.0),
+        ("token_queue_size", False),
+        ("context_limit", 2048.0),
+    ],
+)
+def test_config_rejects_non_integer_numeric_values(name: str, value: object) -> None:
+    with pytest.raises(ConfigurationError, match=name):
+        PagedCoreConfig(**{name: value})
+
+
+@pytest.mark.parametrize(
+    ("name", "value"),
+    [
         ("PAGEDCORE_MODEL_ID", "another/model"),
         ("PAGEDCORE_MODEL_REVISION", "main"),
         ("PAGEDCORE_CONTEXT_LIMIT", "4096"),
@@ -102,6 +119,12 @@ def test_load_config_rejects_non_integer_values() -> None:
 def test_load_config_rejects_invalid_bind_address() -> None:
     with pytest.raises(ConfigurationError, match="bind_address"):
         load_config({"PAGEDCORE_BIND_ADDRESS": " localhost "})
+
+
+@pytest.mark.parametrize("bind_address", [None, 127])
+def test_config_rejects_non_string_bind_address(bind_address: object) -> None:
+    with pytest.raises(ConfigurationError, match="bind_address"):
+        PagedCoreConfig(bind_address=bind_address)
 
 
 def test_load_config_rejects_unknown_log_level() -> None:

@@ -1,11 +1,13 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import platform
 import subprocess
 import sys
 from collections.abc import Sequence
+from contextlib import suppress
 from dataclasses import fields
 from importlib import metadata
 from pathlib import Path
@@ -125,6 +127,54 @@ def collect_environment_diagnostics(
             "revision": resolved_config.model_revision,
         },
         "settings": _resolved_settings(resolved_config),
+    }
+
+
+def collect_validation_provenance() -> dict[str, object]:
+    project_root = next(
+        (
+            parent
+            for parent in Path(__file__).resolve().parents
+            if (parent / "pyproject.toml").is_file()
+        ),
+        None,
+    )
+    lock_hash: str | None = None
+    revision: str | None = None
+    working_tree_clean: bool | None = None
+    if project_root is not None:
+        lock_path = project_root / "uv.lock"
+        with suppress(OSError):
+            lock_hash = hashlib.sha256(lock_path.read_bytes()).hexdigest()
+        try:
+            revision_result = subprocess.run(
+                ["git", "rev-parse", "HEAD"],
+                cwd=project_root,
+                capture_output=True,
+                check=True,
+                text=True,
+                timeout=2,
+            )
+            status_result = subprocess.run(
+                ["git", "status", "--porcelain"],
+                cwd=project_root,
+                capture_output=True,
+                check=True,
+                text=True,
+                timeout=2,
+            )
+        except (OSError, subprocess.SubprocessError):
+            pass
+        else:
+            revision = revision_result.stdout.strip()
+            working_tree_clean = not status_result.stdout.strip()
+
+    return {
+        "setup_command": "uv sync --frozen --extra cuda --extra dev",
+        "command": "uv run pagedcore verify",
+        "git_revision": revision,
+        "working_tree_clean": working_tree_clean,
+        "uv_lock_sha256": lock_hash,
     }
 
 

@@ -24,4 +24,7 @@ def test_pinned_checkpoint_loads_and_runs_one_reference_forward_pass() -> None:
     assert manifest["checkpoint"]["tokenizer"]["revision"] == (
         "af8e934848d8dd00074cc2cd8a40a9b05c3b011e"
     )
+    assert manifest["checkpoint"]["tokenizer"]["resolved_revision"] == (
+        "af8e934848d8dd00074cc2cd8a40a9b05c3b011e"
+    )
     assert manifest["forward_pass"]["status"] == "passed"

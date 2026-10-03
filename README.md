@@ -37,7 +37,9 @@ environment manifest with:
 uv run pagedcore verify
 ```
 
-The manifest is written to `results/local/environment-manifest.json` by default.
+The manifest is written to `results/local/environment-manifest.json` by default. It
+records the resolved snapshot revision and, when run from a Git checkout, the commit,
+working-tree status, and SHA-256 of `uv.lock`.
 This command requires CUDA device 0 to be an NVIDIA T4 and performs one reference
 forward pass; a CPU-only run does not satisfy the target-machine gate.
 

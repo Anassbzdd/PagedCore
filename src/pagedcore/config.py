@@ -39,6 +39,22 @@ class PagedCoreConfig:
     log_level: LogLevel = LogLevel.INFO
 
     def __post_init__(self) -> None:
+        integer_values = (
+            ("context_limit", self.context_limit),
+            ("min_new_tokens", self.min_new_tokens),
+            ("default_max_new_tokens", self.default_max_new_tokens),
+            ("max_new_tokens", self.max_new_tokens),
+            ("block_tokens", self.block_tokens),
+            ("kv_pool_mib", self.kv_pool_mib),
+            ("workspace_margin_mib", self.workspace_margin_mib),
+            ("max_pending_requests", self.max_pending_requests),
+            ("max_active_sequences", self.max_active_sequences),
+            ("token_queue_size", self.token_queue_size),
+        )
+        for name, integer_value in integer_values:
+            if not isinstance(integer_value, int) or isinstance(integer_value, bool):
+                raise ConfigurationError(f"{name} must be an integer")
+
         fixed_values = (
             ("model_id", self.model_id, MODEL_ID),
             ("model_revision", self.model_revision, MODEL_REVISION),
@@ -48,8 +64,8 @@ class PagedCoreConfig:
             ("max_new_tokens", self.max_new_tokens, 256),
             ("block_tokens", self.block_tokens, 16),
         )
-        for name, value, expected in fixed_values:
-            if value != expected:
+        for name, fixed_value, expected in fixed_values:
+            if fixed_value != expected:
                 raise ConfigurationError(f"{name} is fixed at {expected!r}")
 
         positive_values = (
@@ -59,10 +75,12 @@ class PagedCoreConfig:
             ("max_active_sequences", self.max_active_sequences),
             ("token_queue_size", self.token_queue_size),
         )
-        for name, value in positive_values:
-            if value <= 0:
+        for name, positive_value in positive_values:
+            if positive_value <= 0:
                 raise ConfigurationError(f"{name} must be greater than zero")
 
+        if not isinstance(self.bind_address, str):
+            raise ConfigurationError("bind_address must be a string")
         if not self.bind_address or self.bind_address != self.bind_address.strip():
             raise ConfigurationError(
                 "bind_address must be a non-empty value without whitespace padding"

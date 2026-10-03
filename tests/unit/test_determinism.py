@@ -28,7 +28,6 @@ def test_seed_everything_rejects_invalid_seeds(seed: object) -> None:
 
 def test_inference_mode_disables_gradients_and_restores_state() -> None:
     assert torch.is_grad_enabled()
-
     with inference_mode():
         assert not torch.is_grad_enabled()
         assert torch.is_inference_mode_enabled()
@@ -36,3 +35,16 @@ def test_inference_mode_disables_gradients_and_restores_state() -> None:
         assert result.is_inference()
 
     assert torch.is_grad_enabled()
+
+
+@pytest.mark.gpu
+def test_seed_everything_repeats_cuda_random_streams() -> None:
+    if not torch.cuda.is_available():
+        pytest.skip("requires CUDA")
+
+    seed_everything(17)
+    first = torch.rand(4, device="cuda")
+    seed_everything(17)
+    second = torch.rand(4, device="cuda")
+
+    torch.testing.assert_close(second, first)

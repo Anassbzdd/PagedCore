@@ -677,6 +677,7 @@ version = "0.1.0"
 source = { editable = "." }
 dependencies = [
     { name = "fastapi" },
+    { name = "huggingface-hub" },
     { name = "transformers" },
     { name = "uvicorn", extra = ["standard"] },
 ]
@@ -704,6 +705,7 @@ requires-dist = [
     { name = "build", marker = "extra == 'dev'" },
     { name = "fastapi" },
     { name = "httpx", marker = "extra == 'dev'" },
+    { name = "huggingface-hub" },
     { name = "hypothesis", marker = "extra == 'dev'" },
     { name = "mypy", marker = "extra == 'dev'" },
     { name = "pytest", marker = "extra == 'dev'" },
