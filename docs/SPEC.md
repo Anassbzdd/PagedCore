@@ -8,6 +8,8 @@ Build a single-GPU LLM inference service that implements its own paged KV cache,
 
 PagedCore is a learning and portfolio engine. Its result is an explainable implementation and measurement, not a claim that it is a production alternative to vLLM.
 
+This document defines required MVP behavior. It does not describe everything as already implemented. See [implementation and evidence status](STATUS.md) for the current gate.
+
 ## Fixed assumptions
 
 | Decision            | MVP value                                                                                 |
@@ -24,14 +26,16 @@ PagedCore is a learning and portfolio engine. Its result is an explainable imple
 | Pending queue       | 64 requests by default; configurable and frozen at 64 for benchmarks                       |
 | Active sequences    | 32 by default; configurable and frozen at 32 for benchmarks                              |
 | Per-request token queue | 32 token events by default; always bounded                                             |
+| Preprocessing capacity | Four concurrent body-read/validation/tokenization operations by default; no waiting queue |
+| Stream write deadline | 10 seconds per transport write by default; a stalled writer is a slow consumer |
 | Request body        | 262,144 bytes maximum (`max_request_body_bytes`)                                          |
 | KV pool             | 8,192 MiB initial pool; 1,024 MiB workspace margin                                        |
 | Deployment          | Linux with CUDA; Docker image and direct install; bind to `localhost` by default           |
-| Graceful shutdown   | 10 seconds maximum (`shutdown_timeout_seconds`)                                           |
+| Graceful shutdown   | 10-second graceful waiting budget; process termination is the escalation path             |
 
 The model configuration lists 22 layers, 32 attention heads, four KV heads, hidden size 2,048, and a 2,048-token context. The checkpoint and tokenizer both use revision `af8e934848d8dd00074cc2cd8a40a9b05c3b011e`. [Source: TinyLlama configuration](https://huggingface.co/TinyLlama/TinyLlama-1.1B-Chat-v1.0/blob/af8e934848d8dd00074cc2cd8a40a9b05c3b011e/config.json). See [resolved implementation constants](CONSTANTS.md) for the software baseline and API error codes.
 
-**Derived capacity check:** Head dimension is `2048 / 32 = 64`. 
+**Derived capacity check:** Head dimension is `2048 / 32 = 64`.
 FP16 KV storage is `2 × 22 layers × 4 KV heads × 64 values × 2 bytes = 22 KiB` per cached token, or `352 KiB` per 16-token block. This excludes model weights, CUDA workspace, allocator overhead, and temporary tensors. Measure available memory at startup; do not infer a safe block count from the T4’s nominal memory alone. These names are used throughout the source documents: `context_limit=2048` and `block_tokens=16`.
 
 ## MVP behavior
@@ -42,7 +46,7 @@ FP16 KV storage is `2 × 22 layers × 4 KV heads × 64 values × 2 bytes = 22 Ki
 
 3. **Prefill**. For the MVP, process one prompt at a time. During prefill, the system can use normal temporary tensors, then copy the generated KV cache into its physical KV blocks. A very long prompt may block or slow down decoding for requests that are already running.
 
-4. **Bounded service.** Put limits on how many requests can wait, how many can run at the same time, and how many output tokens can wait to be sent to each client. When a request is accepted, reserve enough KV-cache memory for it to finish. If the waiting queue is full, reject new requests. If a client disconnects or stops reading the output, eventually free its reserved memory and active slot.
+4. **Bounded service.** Bound preprocessing, pending requests, active requests, and token delivery. Reserve maximum KV credits at worker admission, before prefill; pending requests own no KV blocks, credits, or active slots. Reject new requests when preprocessing or pending capacity is full. Disconnects and slow consumers trigger cleanup at a safe worker boundary.
 
 5. **Streaming.** Send each generated token to the client as soon as it is produced. When generation finishes, send a final completion message. Keep token messages in a limited-size queue, but send completion or error signals through a separate path so they can still be delivered even if the token queue is full.
 
@@ -62,7 +66,13 @@ Request body:
 }
 ```
 
-`prompt` is nonempty UTF-8 text. The complete request body must be at most `262144` bytes. The service applies the pinned tokenizer without truncation. `max_new_tokens` is an integer from 1 to 256 and defaults to 128 when omitted. `ignore_eos` is `false` by default, so generation normally stops when the model produces the EOS token. Set it to `true` only for benchmarks where you want every request to generate a fixed number of tokens. Reject any request where `prompt tokens + requested output tokens > 2048`.
+Require an `application/json` body containing one object with only `prompt`, `max_new_tokens`, and `ignore_eos`. Reject unknown fields and explicit `null` values. `prompt` is a required nonempty string whose decoded contents can be encoded as UTF-8; preserve whitespace, including a whitespace-only nonempty prompt. `max_new_tokens` is a strict JSON integer from 1 to 256, excluding booleans, floats, and numeric strings; it defaults to 128. `ignore_eos` is a strict JSON boolean and defaults to `false`.
+
+Enforce the `262144`-byte limit while reading the body, including when `Content-Length` is absent or incorrect. Acquire a preprocessing slot before accumulating a body or tokenizing; do not queue additional preprocessing jobs. Release that slot on every exit. Body reading, validation, and tokenization remain bounded separately from the pending queue.
+
+Tokenize the raw prompt with the pinned tokenizer using `add_special_tokens=true` and `truncation=false`, retaining its pinned BOS/EOS settings. Do not apply a chat template, normalize the prompt, or manually add special tokens. Count the resulting IDs, including special tokens, when rejecting `prompt tokens + requested output tokens > 2048`. The oracle and benchmark adapters must verify identical prompt IDs and effective special-token settings.
+
+With `ignore_eos=false`, stop when EOS is selected. Use `true` for fixed-length benchmark generation. Decode emitted IDs with `skip_special_tokens=true` and `clean_up_tokenization_spaces=false`; incremental text plus the final flush must match that full-sequence decode. Ignored EOS IDs still count as emitted tokens even when their text delta is empty.
 
 For an admitted request, reserve the maximum KV demand before prefill:
 
@@ -85,11 +95,20 @@ data: {"request_id":"...","output_tokens":1,"finish_reason":"eos","text_delta":"
 There is one `token` event for every model token that is actually emitted. Sometimes `text_delta` can be empty because the tokenizer needs to wait for more tokens before it can safely produce text.
 The final `done` event sends any remaining buffered text. If you join all `text_delta` values from the token events and the final `done` event, you should get exactly the same text as decoding the full token sequence at once.
 When `ignore_eos=false`, EOS stops generation but is not sent as a token event. If EOS is produced immediately, then no token event is sent, `output_tokens=0`, and TTFT is not recorded.
+Token indices are zero-based and consecutive. On successful completion, drain all accepted token events in order before sending exactly one `done` event. A terminal signal must never overtake those tokens. On cancellation or failure, queued tokens may be discarded; no subsequent `done` event is permitted.
 `finish_reason` is either:
 - `eos` — generation stopped because EOS was reached.
 - `length` — generation stopped because the requested token limit was reached.
 
-Before streaming starts, return `400` for malformed fields, `413` for a body-size or context-limit violation, `422` for a request whose maximum KV demand cannot fit even in an idle pool, `429` when the pending queue is full, and `503` when the model is unavailable. Use the stable error codes in [resolved implementation constants](CONSTANTS.md). After streaming starts, send `event: error` with a stable error code and close the stream when delivery is possible. If the 32-event token queue fills, cancel the request with reason `slow_consumer` and close its stream through the out-of-band terminal signal without requiring a final SSE event; the GPU worker must not wait for the client to read. Client disconnect is recorded internally and requires no final event.
+Before streaming starts, return `400` for invalid JSON, media type, UTF-8, or fields; `413` for a body-size or context-limit violation; `422` for maximum KV demand that cannot fit an idle pool; `429` for exhausted preprocessing or pending capacity; and `503` for an unavailable model. Readiness and preprocessing-capacity checks precede body parsing. Enforce body size before parsing, then schema, context, idle-pool capacity, and atomic pending insertion. Use the stable codes in [resolved implementation constants](CONSTANTS.md).
+
+Pre-stream failures use `application/json` and this envelope:
+
+```json
+{"error":{"code":"invalid_request","message":"Request validation failed."}}
+```
+
+Codes are stable; messages must not echo request content or credentials. After streaming starts, an error event uses `{"request_id":"...","error":{"code":"worker_failure","message":"Generation failed."}}` and closes the stream when delivery is possible. A full token mailbox or transport write exceeding the configured deadline cancels the request as `slow_consumer`. Close through the separate terminal path without requiring a final SSE event or waiting for a blocked send. Client disconnect is recorded internally and requires no final event.
 
 ### Operational endpoints
 
@@ -101,9 +120,11 @@ Before streaming starts, return `400` for malformed fields, `413` for a body-siz
 
 Bind the server to `localhost` by default, so only the same computer can access it. For the MVP, do not add user authentication, public internet access, or isolation between multiple users.
 
+Shutdown makes readiness false, stops admission, and signals pending/active work. The ten-second budget bounds cooperative waiting, not guaranteed interruption of a running thread or CUDA operation. If safe worker termination is impossible within that budget, fail closed and report that process termination is required. A supervisor/operator terminates the process; do not reuse the live worker's resources or claim graceful cleanup succeeded. Test graceful shutdown and forced escalation separately.
+
 ## Acceptance criteria
 
-The MVP is ready to benchmark when:
+The final MVP acceptance criteria are:
 
 Planned implementation, test, and evidence ownership is tracked in the
 [MVP acceptance traceability table](TRACEABILITY.md).
@@ -125,6 +146,14 @@ Planned implementation, test, and evidence ownership is tracked in the
 - The public report states measured results, configuration, limitations, and at least one investigated performance gap.
 
 There is no speed target. Correct behavior and honest measurement are the release gates.
+
+### Official measurement entry
+
+Before official comparative runs, prove decoder/paging parity, ownership and lifecycle invariants, HTTP behavior, current CPU CI and T4 checks, and worst-case memory safety. The direct Linux/T4 setup and benchmark harness must pass their smoke/synthetic checks; freeze the protocol, inputs, and settings. Docker validation, the completed comparison/report, and published artifacts belong to final delivery and do not block earlier diagnostic pilots. Pilots must remain labeled as exploratory evidence.
+
+### Portfolio evidence and artifact release
+
+The technical demonstration is complete after all correctness gates and the frozen measurements support an inspectable report. Artifact release additionally requires Docker/clean-install checks and the exact tested tag, distributions, and checksums. See [validation milestones](VALIDATION_PLAN.md#completion-milestones). Neither milestone is satisfied by documentation alone.
 
 ## Outside the MVP
 

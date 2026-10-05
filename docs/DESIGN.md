@@ -2,6 +2,8 @@ Purpose: Record the architecture, memory rules, and technical decisions that imp
 
 # PagedCore Technical Design
 
+This is the required target architecture. The decoder, paging, worker, and HTTP components are not implemented yet; [STATUS.md](STATUS.md) distinguishes delivered code from evidence and planned work.
+
 ## Core design decision
 
 The KV-cache allocator and the attention code must both use the same block table. It is not enough to track free blocks separately while Hugging Face attention still reads from a normal contiguous KV cache. In real paged inference, attention must read the KV data through the block-table mapping created by the allocator.
@@ -30,19 +32,25 @@ HTTP / SSE
        bounded per-request token queues and measurements
 ```
 
-FastAPI handles HTTP connections, streaming, and request queues. A separate thread runs the GPU model and manages the scheduler, KV blocks, and block tables, so GPU work never blocks FastAPI's event loop.
+FastAPI handles HTTP connections, streaming, and request validation. A separate thread runs the GPU model and owns scheduler/KV mutations. Body reading and validation hold one of four preprocessing slots; acquire without waiting and reject overflow before accumulating a body. Enforce body size during reads. Tokenization runs outside the event loop in a bounded executor, with at most one submitted job per occupied preprocessing slot. Cancellation cannot release a slot while its tokenizer job is still running. Pending insertion is nonblocking; a cancelled preprocessing job cannot later enqueue a request.
 
 When a new request arrives, the HTTP handler tries to add it to the pending FIFO queue, whose default bound is 64 requests. This operation is atomic, so the server can safely reject the request if the queue is already full.
 
 Each request has:
 
 - a cancellation flag,
-- a bounded token queue that holds up to 32 token events by default,
+- one thread-safe bounded token mailbox that holds up to 32 events by default,
 - a separate terminal signal for `done`, `error`, or cancellation.
 
-The GPU worker cannot directly modify FastAPI's event-loop objects, so it uses `loop.call_soon_threadsafe(...)` to safely send tokens and completion signals back to the event loop.
+The worker publishes into the mailbox with nonblocking `put_nowait`. Detect fullness there, before scheduling callbacks, and cancel that request as `slow_consumer`. Event-loop callbacks contain notifications, not token payloads. Coalesce wakeups so each request has at most one queued notification; guard the notification flag/mailbox handoff against lost wakeups. Cancellation is a thread-safe signal, and HTTP handlers never mutate allocator or scheduler state.
+
+Use `loop.call_soon_threadsafe(...)` only to notify the loop and resolve its terminal future. Scheduling one payload callback per token would bypass the mailbox bound while the loop is stalled. A closed event loop is a publication failure: signal cancellation and retain worker-owned cleanup. Test stalled-loop behavior, closed-loop publication, and notification races.
+
+The scheduling API supplies thread safety, not a bounded payload queue: [Python event-loop reference](https://docs.python.org/3.11/library/asyncio-eventloop.html#asyncio.loop.call_soon_threadsafe).
 
 The terminal signal is separate from the token queue. Therefore, even if the token queue becomes full because the client is slow, the server can still mark the request as completed, failed, or cancelled.
+
+Resolve one generation terminal outcome exactly once. Successful completion drains accepted tokens before `done` and the final text flush. Cancellation/failure can discard remaining tokens and never emits `done`. A separate stream supervisor watches disconnect/terminal cancellation while transport writes are pending; it cancels a stalled send rather than waiting for the generator to resume. Each send has the configured ten-second deadline. A delivery failure after generation completed does not rewrite the generation outcome or release resources twice; record it separately as a transport failure.
 
 ## KV layout and invariants
 
@@ -60,10 +68,26 @@ Invariants:
 2. Logical token position `p` maps to `block_table[p // block_tokens]` and slot `p % block_tokens`.
 3. Allocate a new physical block before writing position `p` when `p % block_tokens == 0`.
 4. Attention reads only valid slots, including the partially filled final block.
-5. Release every block and every capacity credit exactly once on EOS, length limit, cancellation, or failure.
+5. Release acquired blocks, credits and slots exactly once at safe boundaries on EOS, length, cancellation and recoverable failure. Unsafe CUDA/ownership failures require fail-closed process termination as described below.
 6. No request reads another request’s blocks.
 7. One worker mutates allocator and scheduler state; HTTP handlers never mutate it directly.
 8. The active sequence count never exceeds the configured `max_active_sequences`; the MVP default and benchmark value are 32.
+
+At every quiescent worker boundary, assert:
+
+```text
+free_blocks + owned_blocks = total_blocks
+owned_blocks <= reserved_blocks <= total_blocks
+reserved_blocks = sum(active_request.maximum_block_credits)
+owned_blocks = sum(active_request.assigned_blocks)
+active_slots = number_of_admitted_requests_not_yet_cleaned_up
+```
+
+Reserved credits include already-owned blocks. Unassigned reserved capacity is `reserved_blocks - owned_blocks`; it overlaps the physical free list and must not be counted as a third disjoint block category. Pending requests own none of these resources. Verify per-request ownership, not just aggregate sums.
+
+The metrics name `occupied_blocks` means the same count as ledger `owned_blocks`; it is not an additional resource category.
+
+Releasing a block requires all previously launched accesses to it to be ordered before any reuse. Keep model work on one worker-owned CUDA stream; order reuse on that stream and use completion events where host-side publication or shutdown requires completion. Never return pages for unsynchronized use by another stream. CUDA-context failure makes continued serving unsafe: mark readiness false and terminate rather than issuing speculative recovery operations on the broken context.
 
 The physical pool is allocated at startup. “Allocate on demand” means assigning a free physical block to a sequence when needed, not asking CUDA for a new tensor per token. Track both pool occupancy and live token-slot utilization; they answer different questions.
 
@@ -84,8 +108,10 @@ Report reserved KV credits separately from blocks that are actually allocated an
 Preemption may improve this later, but do not add it to the MVP unless it is explicitly designed and implemented.
 
 When the server starts, load the model first and check how much GPU memory is still free. Create the KV-cache pool using the configured `kv_pool_mib` (initial default: `8192` MiB), while keeping the `workspace_margin_mib` default of `1024` MiB free for temporary model work. These are configuration defaults, not proof that the final margin is safe.
-Test this setup with the default 32 active sequences and the largest supported prompt. If it can still cause OOM, increase the safety margin or reduce configured capacity. If `max_active_sequences` is changed from 32, test the memory limit again before using that setting for a benchmark.
+Measure dense prefill workspace before adding the pool, paged/batched workspace when decode is implemented, and the final end-to-end maximum-context/32-active workload. Increase the margin or reduce capacity if unsafe, documenting changes before freezing benchmarks. If `max_active_sequences` changes, repeat relevant memory tests.
 If the requested KV pool does not fit in GPU memory, stop startup and show a clear error.
+
+The initial pool has 23,831 whole blocks. Thirty-two maximum-context reservations use at most 4,096 blocks (1,408 MiB), so the default active-slot limit binds before KV credits. The two fixed workloads reserve about 110 and 440 MiB at 32 active requests. These are derived upper bounds, not GPU measurements. Keep defaults provisional until measured; use separately labeled smaller-pool/mixed-length experiments to exercise credit pressure and FIFO blocking.
 
 ## Scheduler iteration
 
@@ -100,7 +126,7 @@ If there is no active or pending work, the worker waits without polling. Serial 
 
 ## Forward-pass sequence
 
-**Prefill:** Tokenize the prompt and run the whole prompt through the model with causal attention. Store each layer’s K and V values in the request’s paged KV cache. Use the final logits to choose the first output token. Temporary contiguous tensors are allowed during this step.
+**Prefill:** Consume prompt IDs already validated by preprocessing and run the whole prompt with causal attention. Store each layer's K and V in the request's paged cache. Use final logits to choose the first output token. Temporary contiguous tensors are allowed here; the worker does not retokenize or apply a chat template.
 
 **First token:** Choose the highest-probability token from the prefill logits. If it is EOS and `ignore_eos=false`, stop immediately and emit nothing. Otherwise, send the token to the client. If only one output token was requested, stop without adding that token to the KV cache.
 
@@ -123,25 +149,27 @@ received → validated → pending → admitted → prefilling
          → decoding → completed
 ```
 
-From pending, prefilling, or decoding, a request may become cancelled or failed. Cancellation is checked before prefill, between decode iterations, and before publishing an event. An already launched GPU operation cannot be interrupted; cleanup occurs at the next worker boundary. Graceful shutdown stops admission and waits at most the configured `shutdown_timeout_seconds` default of 10 seconds before reporting forced cleanup.
+From pending, prefilling, or decoding, a request may become cancelled or failed. Check cancellation before prefill, between iterations, and before publication. A launched GPU operation cannot be interrupted; release occurs at the next safe worker boundary. Shutdown first clears readiness and stops admission, then cancels work and wakes an idle worker. Wait at most `shutdown_timeout_seconds=10` for cooperative cleanup and worker exit. A timed join cannot kill a thread. If it remains alive, report failed graceful shutdown and require supervisor/operator process termination; do not free or reuse its live GPU resources. Process termination reclaims resources through the OS/driver and is not evidence of release-once graceful cleanup.
+
+Python threads cannot be forcibly stopped by a timed join: [Python thread reference](https://docs.python.org/3.11/library/threading.html#thread-objects). The external termination path preserves the one-process/one-model-worker MVP; it adds no second serving worker.
 
 If a request’s token queue is full, mark that request as `slow_consumer` and cancel it. On the next worker loop, free its KV blocks, reserved capacity, and active slot, then close the request. Do not wait for space in the queue, because the client may not be reading anymore. The HTTP stream should watch both the token queue and the terminal signal so it can stop cleanly after cancellation. Benchmark clients should always read streamed tokens quickly.
 
-If the pending queue is full, reject the request before starting the stream. If the GPU worker fails, fail the affected requests, free their resources, record the error, and mark the server as not ready if the model cannot safely continue. Never keep serving if you are unsure which request owns which KV blocks.
+If the pending queue is full, reject the request before starting the stream. If the worker fails, fail affected requests and release safely recoverable resources. Mark the server not ready if ownership or CUDA state is uncertain; terminate when safe in-process cleanup is impossible. Never continue serving with uncertain ownership.
 
 ## Measurements
 
-Use monotonic timestamps. Record:
+Use monotonic timestamps and distinguish generation from delivery:
 
-- `arrival`: request accepted by the service.
-- `admission`: capacity credits granted.
-- `first_token`: first token event produced.
-- `completion`: final token event or EOS decision completed.
-- Each token event timestamp.
+- `arrival`: validated request accepted into pending state.
+- `admission`: capacity credits and an active slot granted.
+- `first_token`, `last_token`, and per-token times: successful publication into the bounded mailbox, including empty text deltas.
+- `generation_terminal`: worker decides EOS, length, cancellation, or failure.
+- `transport_terminal`: stream finishes or its delivery fails.
 
-An admitted request owns one active sequence. `arrival` is the service acceptance time after validation and before pending-queue wait. `TTFT = first_token - arrival`, including queue and prefill. `ITL` is each interval between consecutive generated-token events; pooled ITL combines those intervals across requests. It is undefined for a response with fewer than two emitted tokens. End-to-end latency is `completion - arrival`. Per-request `TPOT = (completion - arrival - TTFT) / (output_tokens - 1)` when at least two output tokens were emitted. For a benchmark interval, `output_tok_per_s = total completed emitted tokens / interval_seconds` and `achieved_req_per_s = completed requests / interval_seconds`. Also report errors and rejections.
+Internal `TTFT = first_token - arrival`, including pending wait and prefill. Internal ITL pools consecutive token-publication gaps. `TPOT = (last_token - first_token) / (output_tokens - 1)` for at least two emitted tokens. Generation latency is `generation_terminal - arrival`; stream latency is `transport_terminal - arrival`. EOS decisions and terminal transport overhead must not be silently included in TPOT. Track transport status separately from the generation finish reason.
 
-If EOS happens before any token is emitted, do not record TTFT or ITL; leave them missing instead of setting them to zero. TPOT is undefined for responses with fewer than two output tokens. Each request record should store timestamps, token counts, finish reason, and any cancellation or error code, but never store the prompt or generated text.
+For zero-token EOS, TTFT/ITL/TPOT are missing. ITL and TPOT are undefined below two emitted tokens. Export counts, times, statuses, and stable reasons; never retain prompt/generated text or token IDs in metrics or benchmark records. Keep aggregate server metrics and bounded diagnostic retention. The benchmark client owns full public-run timing records; do not retain an unbounded server-side request history.
 
 KV metrics use these exact definitions:
 
@@ -152,7 +180,7 @@ KV metrics use these exact definitions:
 
 The benchmark table's `KV utilization` column means peak `block_occupancy`. Report the other three values separately for PagedCore and use `N/A` for another system when an equivalent measurement is unavailable.
 
-The service records per-request data. The benchmark client measures the same events from outside the server; client measurements are the primary comparison with vLLM because they include transport effects.
+Define timestamp types with core interfaces and add instrumentation while implementing the worker and service. Internal token-publication times and client-observed output times are different measurements. Client comparisons follow the [validation protocol](VALIDATION_PLAN.md#client-timing-and-accounting); never subtract timestamps from different clock domains.
 
 ## Decisions and known limits
 
