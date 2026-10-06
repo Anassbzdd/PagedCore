@@ -1,0 +1,508 @@
+{
+  "captured_at_utc": "2026-10-05T14:26:08.744367Z",
+  "checks": [
+    {
+      "argv": [
+        ".venv\\Scripts\\python.exe",
+        "-m",
+        "ruff",
+        "check",
+        "."
+      ],
+      "exit_code": 0,
+      "name": "ruff",
+      "output": "All checks passed!\n"
+    },
+    {
+      "argv": [
+        ".venv\\Scripts\\python.exe",
+        "-m",
+        "ruff",
+        "format",
+        "--check",
+        "."
+      ],
+      "exit_code": 0,
+      "name": "format",
+      "output": "20 files already formatted\n"
+    },
+    {
+      "argv": [
+        ".venv\\Scripts\\python.exe",
+        "-m",
+        "mypy",
+        "--strict",
+        "src/pagedcore"
+      ],
+      "exit_code": 0,
+      "name": "mypy",
+      "output": "Success: no issues found in 5 source files\r\n"
+    },
+    {
+      "argv": [
+        "uv",
+        "lock",
+        "--check",
+        "--offline"
+      ],
+      "exit_code": 0,
+      "name": "lock",
+      "output": "Resolved 77 packages in 2ms\n"
+    },
+    {
+      "argv": [
+        ".venv\\Scripts\\python.exe",
+        "-m",
+        "pytest",
+        "-m",
+        "not gpu and not benchmark",
+        "-ra",
+        "--junitxml=results/local/p1.6-cpu.xml"
+      ],
+      "counts": {
+        "collected": 67,
+        "deselected": 2,
+        "executed": 65,
+        "failed": 0,
+        "passed": 65,
+        "selected": 65,
+        "skipped": 0
+      },
+      "exit_code": 0,
+      "junit_xml": "<?xml version=\"1.0\" encoding=\"utf-8\"?><testsuites name=\"pytest tests\"><testsuite name=\"pytest\" errors=\"0\" failures=\"0\" skipped=\"0\" tests=\"65\" time=\"19.388\" timestamp=\"2026-10-05T14:21:21.657177+00:00\" hostname=\"<hostname>\"><testcase classname=\"tests.unit.test_cli\" name=\"test_collect_environment_diagnostics_reports_safe_resolved_values\" time=\"0.046\" /><testcase classname=\"tests.unit.test_cli\" name=\"test_env_command_prints_json_without_unrelated_environment_values\" time=\"0.084\" /><testcase classname=\"tests.unit.test_cli\" name=\"test_nvidia_smi_diagnostic_falls_back_when_command_fails[failure0]\" time=\"0.011\" /><testcase classname=\"tests.unit.test_cli\" name=\"test_nvidia_smi_diagnostic_falls_back_when_command_fails[failure1]\" time=\"0.011\" /><testcase classname=\"tests.unit.test_cli\" name=\"test_environment_diagnostics_fall_back_to_torch_gpu_list\" time=\"0.037\" /><testcase classname=\"tests.unit.test_cli\" name=\"test_torch_diagnostic_handles_an_unavailable_dependency\" time=\"0.011\" /><testcase classname=\"tests.unit.test_cli\" name=\"test_validation_provenance_contains_the_lock_file_hash\" time=\"0.272\" /><testcase classname=\"tests.unit.test_cli\" name=\"test_validation_provenance_identifies_changed_source_without_git\" time=\"0.092\" /><testcase classname=\"tests.unit.test_cli\" name=\"test_validation_provenance_does_not_guess_outside_a_checkout\" time=\"0.021\" /><testcase classname=\"tests.unit.test_cli\" name=\"test_verify_command_writes_manifest\" time=\"0.085\" /><testcase classname=\"tests.unit.test_cli\" name=\"test_verify_command_reports_target_failure\" time=\"0.062\" /><testcase classname=\"tests.unit.test_cli\" name=\"test_verify_command_records_only_arguments_that_were_supplied\" time=\"0.091\" /><testcase classname=\"tests.unit.test_cli\" name=\"test_commands_report_invalid_configuration[env]\" time=\"0.075\" /><testcase classname=\"tests.unit.test_cli\" name=\"test_commands_report_invalid_configuration[verify]\" time=\"0.070\" /><testcase classname=\"tests.unit.test_cli\" name=\"test_verify_command_reports_manifest_io_failure[PermissionError-mkdir]\" time=\"0.110\" /><testcase classname=\"tests.unit.test_cli\" name=\"test_verify_command_reports_manifest_io_failure[PermissionError-write_text]\" time=\"0.096\" /><testcase classname=\"tests.unit.test_cli\" name=\"test_verify_command_reports_manifest_io_failure[ValueError-mkdir]\" time=\"0.098\" /><testcase classname=\"tests.unit.test_cli\" name=\"test_verify_command_reports_manifest_io_failure[ValueError-write_text]\" time=\"0.084\" /><testcase classname=\"tests.unit.test_cli\" name=\"test_verify_command_captures_process_arguments_without_private_paths\" time=\"0.071\" /><testcase classname=\"tests.unit.test_config\" name=\"test_load_config_uses_documented_defaults\" time=\"0.014\" /><testcase classname=\"tests.unit.test_config\" name=\"test_load_config_applies_operational_overrides\" time=\"0.009\" /><testcase classname=\"tests.unit.test_config\" name=\"test_config_is_immutable\" time=\"0.010\" /><testcase classname=\"tests.unit.test_config\" name=\"test_load_config_rejects_non_positive_operational_limits[PAGEDCORE_KV_POOL_MIB-0]\" time=\"0.011\" /><testcase classname=\"tests.unit.test_config\" name=\"test_load_config_rejects_non_positive_operational_limits[PAGEDCORE_WORKSPACE_MARGIN_MIB--1]\" time=\"0.011\" /><testcase classname=\"tests.unit.test_config\" name=\"test_load_config_rejects_non_positive_operational_limits[PAGEDCORE_MAX_PENDING_REQUESTS-0]\" time=\"0.010\" /><testcase classname=\"tests.unit.test_config\" name=\"test_load_config_rejects_non_positive_operational_limits[PAGEDCORE_MAX_ACTIVE_SEQUENCES-0]\" time=\"0.010\" /><testcase classname=\"tests.unit.test_config\" name=\"test_load_config_rejects_non_positive_operational_limits[PAGEDCORE_TOKEN_QUEUE_SIZE-0]\" time=\"0.011\" /><testcase classname=\"tests.unit.test_config\" name=\"test_config_rejects_non_integer_numeric_values[kv_pool_mib-True]\" time=\"0.011\" /><testcase classname=\"tests.unit.test_config\" name=\"test_config_rejects_non_integer_numeric_values[workspace_margin_mib-1.5]\" time=\"0.010\" /><testcase classname=\"tests.unit.test_config\" name=\"test_config_rejects_non_integer_numeric_values[max_pending_requests-nan]\" time=\"0.011\" /><testcase classname=\"tests.unit.test_config\" name=\"test_config_rejects_non_integer_numeric_values[max_active_sequences-2.0]\" time=\"0.010\" /><testcase classname=\"tests.unit.test_config\" name=\"test_config_rejects_non_integer_numeric_values[token_queue_size-False]\" time=\"0.011\" /><testcase classname=\"tests.unit.test_config\" name=\"test_config_rejects_non_integer_numeric_values[context_limit-2048.0]\" time=\"0.014\" /><testcase classname=\"tests.unit.test_config\" name=\"test_load_config_rejects_changes_to_fixed_contract[PAGEDCORE_MODEL_ID-another/model]\" time=\"0.015\" /><testcase classname=\"tests.unit.test_config\" name=\"test_load_config_rejects_changes_to_fixed_contract[PAGEDCORE_MODEL_REVISION-main]\" time=\"0.011\" /><testcase classname=\"tests.unit.test_config\" name=\"test_load_config_rejects_changes_to_fixed_contract[PAGEDCORE_CONTEXT_LIMIT-4096]\" time=\"0.011\" /><testcase classname=\"tests.unit.test_config\" name=\"test_load_config_rejects_changes_to_fixed_contract[PAGEDCORE_MIN_NEW_TOKENS-0]\" time=\"0.013\" /><testcase classname=\"tests.unit.test_config\" name=\"test_load_config_rejects_changes_to_fixed_contract[PAGEDCORE_DEFAULT_MAX_NEW_TOKENS-64]\" time=\"0.014\" /><testcase classname=\"tests.unit.test_config\" name=\"test_load_config_rejects_changes_to_fixed_contract[PAGEDCORE_MAX_NEW_TOKENS-512]\" time=\"0.011\" /><testcase classname=\"tests.unit.test_config\" name=\"test_load_config_rejects_changes_to_fixed_contract[PAGEDCORE_BLOCK_TOKENS-32]\" time=\"0.010\" /><testcase classname=\"tests.unit.test_config\" name=\"test_load_config_rejects_non_integer_values\" time=\"0.010\" /><testcase classname=\"tests.unit.test_config\" name=\"test_load_config_rejects_invalid_bind_address\" time=\"0.013\" /><testcase classname=\"tests.unit.test_config\" name=\"test_config_rejects_non_string_bind_address[None]\" time=\"0.012\" /><testcase classname=\"tests.unit.test_config\" name=\"test_config_rejects_non_string_bind_address[127]\" time=\"0.010\" /><testcase classname=\"tests.unit.test_config\" name=\"test_load_config_rejects_unknown_log_level\" time=\"0.010\" /><testcase classname=\"tests.unit.test_determinism\" name=\"test_seed_everything_repeats_python_and_torch_streams\" time=\"0.072\" /><testcase classname=\"tests.unit.test_determinism\" name=\"test_seed_everything_rejects_invalid_seeds[-1]\" time=\"0.012\" /><testcase classname=\"tests.unit.test_determinism\" name=\"test_seed_everything_rejects_invalid_seeds[True]\" time=\"0.013\" /><testcase classname=\"tests.unit.test_determinism\" name=\"test_seed_everything_rejects_invalid_seeds[17]\" time=\"0.018\" /><testcase classname=\"tests.unit.test_determinism\" name=\"test_inference_mode_disables_gradients_and_restores_state\" time=\"0.024\" /><testcase classname=\"tests.unit.test_verification\" name=\"test_checkpoint_validation_records_the_resolved_snapshot_revision\" time=\"0.013\" /><testcase classname=\"tests.unit.test_verification\" name=\"test_snapshot_download_uses_the_pinned_model_and_revision\" time=\"0.022\" /><testcase classname=\"tests.unit.test_verification\" name=\"test_snapshot_download_rejects_a_different_revision\" time=\"0.019\" /><testcase classname=\"tests.unit.test_verification\" name=\"test_checkpoint_validation_rejects_a_different_snapshot_revision\" time=\"0.012\" /><testcase classname=\"tests.unit.test_verification\" name=\"test_checkpoint_validation_rejects_a_tokenizer_with_the_wrong_vocabulary\" time=\"0.013\" /><testcase classname=\"tests.unit.test_verification\" name=\"test_checkpoint_validation_rejects_architecture_or_dtype_mismatches[GPT2LMHeadModel-parameter_dtype0-model_class]\" time=\"0.013\" /><testcase classname=\"tests.unit.test_verification\" name=\"test_checkpoint_validation_rejects_architecture_or_dtype_mismatches[LlamaForCausalLM-parameter_dtype1-parameter_dtype]\" time=\"0.014\" /><testcase classname=\"tests.unit.test_verification\" name=\"test_checkpoint_validation_rejects_a_tokenizer_from_another_revision\" time=\"0.016\" /><testcase classname=\"tests.unit.test_verification\" name=\"test_verify_target_rejects_a_machine_without_cuda\" time=\"0.013\" /><testcase classname=\"tests.unit.test_verification\" name=\"test_verify_target_rejects_a_non_t4_gpu\" time=\"0.013\" /><testcase classname=\"tests.unit.test_verification\" name=\"test_forward_validation_rejects_bad_logits[wrong-dtype]\" time=\"0.013\" /><testcase classname=\"tests.unit.test_verification\" name=\"test_forward_validation_rejects_bad_logits[wrong-shape]\" time=\"0.013\" /><testcase classname=\"tests.unit.test_verification\" name=\"test_forward_validation_rejects_bad_logits[non-finite]\" time=\"0.014\" /><testcase classname=\"tests.unit.test_verification\" name=\"test_forward_validation_accepts_finite_fp16_logits_with_expected_shape\" time=\"0.013\" /><testcase classname=\"tests.unit.test_verification\" name=\"test_verify_target_loads_both_files_from_the_pinned_snapshot\" time=\"0.028\" /></testsuite></testsuites>",
+      "name": "cpu",
+      "output": "============================= test session starts =============================\r\nplatform win32 -- Python 3.11.15, pytest-9.1.1, pluggy-1.6.0\r\nrootdir: <checkout>\r\nconfigfile: pyproject.toml\r\ntestpaths: tests\r\nplugins: anyio-4.15.1, hypothesis-6.168.3, asyncio-1.4.0\r\nasyncio: mode=Mode.STRICT, debug=False, asyncio_default_fixture_loop_scope=None, asyncio_default_test_loop_scope=function\r\ncollected 67 items / 2 deselected / 65 selected\r\n\r\ntests\\unit\\test_cli.py ...................                               [ 29%]\r\ntests\\unit\\test_config.py ..........................                     [ 69%]\r\ntests\\unit\\test_determinism.py .....                                     [ 76%]\r\ntests\\unit\\test_verification.py ...............                          [100%]\r\n\r\n- generated xml file: <checkout>\\results\\local\\p1.6-cpu.xml -\r\n====================== 65 passed, 2 deselected in 20.22s ======================\r\n",
+      "skip_reasons": []
+    },
+    {
+      "argv": [
+        ".venv\\Scripts\\python.exe",
+        "-m",
+        "pytest",
+        "-m",
+        "gpu",
+        "-ra",
+        "--junitxml=results/local/p1.6-gpu.xml"
+      ],
+      "counts": {
+        "collected": 67,
+        "deselected": 65,
+        "executed": 0,
+        "failed": 0,
+        "passed": 0,
+        "selected": 2,
+        "skipped": 2
+      },
+      "exit_code": 0,
+      "junit_xml": "<?xml version=\"1.0\" encoding=\"utf-8\"?><testsuites name=\"pytest tests\"><testsuite name=\"pytest\" errors=\"0\" failures=\"0\" skipped=\"2\" tests=\"2\" time=\"16.824\" timestamp=\"2026-10-05T14:21:21.992234+00:00\" hostname=\"<hostname>\"><testcase classname=\"tests.gpu.test_target_verification\" name=\"test_pinned_checkpoint_loads_and_runs_one_reference_forward_pass\" time=\"0.024\"><skipped type=\"pytest.skip\" message=\"requires CUDA\"><checkout>\\tests\\gpu\\test_target_verification.py:13: requires CUDA</skipped></testcase><testcase classname=\"tests.unit.test_determinism\" name=\"test_seed_everything_repeats_cuda_random_streams\" time=\"0.012\"><skipped type=\"pytest.skip\" message=\"requires CUDA\"><checkout>\\tests\\unit\\test_determinism.py:43: requires CUDA</skipped></testcase></testsuite></testsuites>",
+      "name": "gpu",
+      "output": "============================= test session starts =============================\r\nplatform win32 -- Python 3.11.15, pytest-9.1.1, pluggy-1.6.0\r\nrootdir: <checkout>\r\nconfigfile: pyproject.toml\r\ntestpaths: tests\r\nplugins: anyio-4.15.1, hypothesis-6.168.3, asyncio-1.4.0\r\nasyncio: mode=Mode.STRICT, debug=False, asyncio_default_fixture_loop_scope=None, asyncio_default_test_loop_scope=function\r\ncollected 67 items / 65 deselected / 2 selected\r\n\r\ntests\\gpu\\test_target_verification.py s                                  [ 50%]\r\ntests\\unit\\test_determinism.py s                                         [100%]\r\n\r\n- generated xml file: <checkout>\\results\\local\\p1.6-gpu.xml -\r\n=========================== short test summary info ===========================\r\nSKIPPED [1] tests\\gpu\\test_target_verification.py:13: requires CUDA\r\nSKIPPED [1] tests\\unit\\test_determinism.py:43: requires CUDA\r\n===================== 2 skipped, 65 deselected in 17.64s ======================\r\n",
+      "skip_reasons": [
+        "requires CUDA",
+        "requires CUDA"
+      ]
+    }
+  ],
+  "cli_smoke": [
+    {
+      "argv": [
+        ".venv\\Scripts\\python.exe",
+        "-m",
+        "pagedcore.cli",
+        "env"
+      ],
+      "exit_code": 0,
+      "stderr": "",
+      "stdout": "{\n  \"cuda\": {\n    \"available\": false,\n    \"runtime\": null\n  },\n  \"dependencies\": {\n    \"torch\": \"2.7.1+cpu\",\n    \"transformers\": \"4.52.4\"\n  },\n  \"driver\": null,\n  \"gpu\": [],\n  \"model\": {\n    \"id\": \"TinyLlama/TinyLlama-1.1B-Chat-v1.0\",\n    \"revision\": \"af8e934848d8dd00074cc2cd8a40a9b05c3b011e\"\n  },\n  \"package\": {\n    \"name\": \"pagedcore\",\n    \"version\": \"0.1.0\"\n  },\n  \"python\": \"3.11.15\",\n  \"settings\": {\n    \"bind_address\": \"localhost\",\n    \"block_tokens\": 16,\n    \"context_limit\": 2048,\n    \"default_max_new_tokens\": 128,\n    \"kv_pool_mib\": 8192,\n    \"log_level\": \"INFO\",\n    \"max_active_sequences\": 32,\n    \"max_new_tokens\": 256,\n    \"max_pending_requests\": 64,\n    \"min_new_tokens\": 1,\n    \"model_id\": \"TinyLlama/TinyLlama-1.1B-Chat-v1.0\",\n    \"model_revision\": \"af8e934848d8dd00074cc2cd8a40a9b05c3b011e\",\n    \"token_queue_size\": 32,\n    \"workspace_margin_mib\": 1024\n  }\n}\n"
+    },
+    {
+      "argv": [
+        ".venv\\Scripts\\python.exe",
+        "-m",
+        "pagedcore.cli",
+        "verify"
+      ],
+      "exit_code": 1,
+      "stderr": "{\"status\": \"failed\", \"error\": \"target verification requires an available CUDA device\"}\n",
+      "stdout": ""
+    }
+  ],
+  "cpu_checks_passed": true,
+  "environment": {
+    "cuda": {
+      "available": false,
+      "runtime": null
+    },
+    "dependencies": {
+      "torch": "2.7.1+cpu",
+      "transformers": "4.52.4"
+    },
+    "driver": null,
+    "gpu": [],
+    "model": {
+      "id": "TinyLlama/TinyLlama-1.1B-Chat-v1.0",
+      "revision": "af8e934848d8dd00074cc2cd8a40a9b05c3b011e"
+    },
+    "package": {
+      "name": "pagedcore",
+      "version": "0.1.0"
+    },
+    "python": "3.11.15",
+    "settings": {
+      "bind_address": "localhost",
+      "block_tokens": 16,
+      "context_limit": 2048,
+      "default_max_new_tokens": 128,
+      "kv_pool_mib": 8192,
+      "log_level": "INFO",
+      "max_active_sequences": 32,
+      "max_new_tokens": 256,
+      "max_pending_requests": 64,
+      "min_new_tokens": 1,
+      "model_id": "TinyLlama/TinyLlama-1.1B-Chat-v1.0",
+      "model_revision": "af8e934848d8dd00074cc2cd8a40a9b05c3b011e",
+      "token_queue_size": 32,
+      "workspace_margin_mib": 1024
+    }
+  },
+  "gate": "P1.6 environment evidence closure",
+  "gate_satisfied": false,
+  "installed_dependencies": [
+    {
+      "name": "annotated-doc",
+      "version": "0.0.5"
+    },
+    {
+      "name": "annotated-types",
+      "version": "0.8.0"
+    },
+    {
+      "name": "anyio",
+      "version": "4.15.1"
+    },
+    {
+      "name": "ast_serialize",
+      "version": "0.11.2"
+    },
+    {
+      "name": "build",
+      "version": "1.6.1"
+    },
+    {
+      "name": "certifi",
+      "version": "2026.7.22"
+    },
+    {
+      "name": "charset-normalizer",
+      "version": "3.5.1"
+    },
+    {
+      "name": "click",
+      "version": "8.5.0"
+    },
+    {
+      "name": "colorama",
+      "version": "0.4.6"
+    },
+    {
+      "name": "fastapi",
+      "version": "0.141.1"
+    },
+    {
+      "name": "filelock",
+      "version": "4.0.6"
+    },
+    {
+      "name": "fsspec",
+      "version": "2026.9.0"
+    },
+    {
+      "name": "h11",
+      "version": "0.16.0"
+    },
+    {
+      "name": "httpcore",
+      "version": "1.0.9"
+    },
+    {
+      "name": "httptools",
+      "version": "0.8.0"
+    },
+    {
+      "name": "httpx",
+      "version": "0.28.1"
+    },
+    {
+      "name": "huggingface_hub",
+      "version": "0.36.2"
+    },
+    {
+      "name": "hypothesis",
+      "version": "6.168.3"
+    },
+    {
+      "name": "idna",
+      "version": "3.20"
+    },
+    {
+      "name": "iniconfig",
+      "version": "2.3.0"
+    },
+    {
+      "name": "Jinja2",
+      "version": "3.1.6"
+    },
+    {
+      "name": "librt",
+      "version": "0.16.0"
+    },
+    {
+      "name": "MarkupSafe",
+      "version": "3.0.3"
+    },
+    {
+      "name": "mpmath",
+      "version": "1.3.0"
+    },
+    {
+      "name": "mypy",
+      "version": "2.3.1"
+    },
+    {
+      "name": "mypy_extensions",
+      "version": "1.1.0"
+    },
+    {
+      "name": "networkx",
+      "version": "3.6.1"
+    },
+    {
+      "name": "numpy",
+      "version": "2.4.6"
+    },
+    {
+      "name": "packaging",
+      "version": "26.3"
+    },
+    {
+      "name": "pagedcore",
+      "version": "0.1.0"
+    },
+    {
+      "name": "pagedcore",
+      "version": "0.1.0"
+    },
+    {
+      "name": "pathspec",
+      "version": "1.1.1"
+    },
+    {
+      "name": "pip",
+      "version": "24.0"
+    },
+    {
+      "name": "pluggy",
+      "version": "1.6.0"
+    },
+    {
+      "name": "pydantic",
+      "version": "2.13.5"
+    },
+    {
+      "name": "pydantic_core",
+      "version": "2.46.5"
+    },
+    {
+      "name": "Pygments",
+      "version": "2.21.0"
+    },
+    {
+      "name": "pyproject_hooks",
+      "version": "1.3.3"
+    },
+    {
+      "name": "pytest",
+      "version": "9.1.1"
+    },
+    {
+      "name": "pytest-asyncio",
+      "version": "1.4.0"
+    },
+    {
+      "name": "python-dotenv",
+      "version": "1.2.3"
+    },
+    {
+      "name": "PyYAML",
+      "version": "6.0.3"
+    },
+    {
+      "name": "regex",
+      "version": "2026.9.29"
+    },
+    {
+      "name": "requests",
+      "version": "2.34.2"
+    },
+    {
+      "name": "ruff",
+      "version": "0.16.9"
+    },
+    {
+      "name": "safetensors",
+      "version": "0.8.0"
+    },
+    {
+      "name": "setuptools",
+      "version": "79.0.1"
+    },
+    {
+      "name": "sortedcontainers",
+      "version": "2.4.0"
+    },
+    {
+      "name": "starlette",
+      "version": "1.7.0"
+    },
+    {
+      "name": "sympy",
+      "version": "1.14.0"
+    },
+    {
+      "name": "tokenizers",
+      "version": "0.21.4"
+    },
+    {
+      "name": "torch",
+      "version": "2.7.1+cpu"
+    },
+    {
+      "name": "tqdm",
+      "version": "4.70.1"
+    },
+    {
+      "name": "transformers",
+      "version": "4.52.4"
+    },
+    {
+      "name": "typing-inspection",
+      "version": "0.4.4"
+    },
+    {
+      "name": "typing_extensions",
+      "version": "4.16.0"
+    },
+    {
+      "name": "urllib3",
+      "version": "2.8.0"
+    },
+    {
+      "name": "uvicorn",
+      "version": "0.54.0"
+    },
+    {
+      "name": "watchfiles",
+      "version": "1.3.0"
+    },
+    {
+      "name": "websockets",
+      "version": "17.1"
+    }
+  ],
+  "limitations": [
+    "The CPU environment was synchronized from the frozen lock, not created as a fresh Linux environment.",
+    "Both selected GPU tests skipped because CUDA is unavailable; zero GPU tests executed.",
+    "The verify CLI correctly failed without CUDA; there is no fresh reference-forward manifest.",
+    "Fresh Linux/T4 setup, source-attributed reference-forward evidence and CUDA repeatability remain required.",
+    "Source was dirty. Runtime/test and install-metadata hashes plus the sanitized source patch identify tested source; Git revision alone is insufficient.",
+    "The older ignored T4 manifest is not reused as evidence for this changed verifier."
+  ],
+  "platform": {
+    "machine": "AMD64",
+    "python": "3.11.15",
+    "system": "Windows"
+  },
+  "pre_fix_regression_observation": {
+    "argv": [
+      "uv",
+      "run",
+      "--frozen",
+      "--extra",
+      "cpu",
+      "--extra",
+      "dev",
+      "python",
+      "-m",
+      "pytest",
+      "tests/unit/test_cli.py",
+      "-q"
+    ],
+    "counts": {
+      "collected": 14,
+      "executed": 14,
+      "failed": 7,
+      "passed": 7,
+      "selected": 14,
+      "skipped": 0
+    },
+    "exit_code": 1,
+    "note": "Diagnostic reproduction before the fix; initial test-source hashes were not retained. Raw tracebacks contained environment representations and are excluded. This observation does not certify the final source."
+  },
+  "provenance": {
+    "command_arguments": null,
+    "git_revision": "ab05602e721beb6b0fc4266a9642b09f89eee6c1",
+    "setup_command": null,
+    "source_sha256": {
+      ".python-version": "db82937e1f1830581a9553c7814f5c5fcacb6dfdef8310b43e9a812c887acaf5",
+      "pyproject.toml": "4f655c261767b2542aabb3137274797b30939431b19a5f19f9274cfd41919f84",
+      "src/pagedcore/__init__.py": "42b1e9884f56caa6de42f8177eedcc2f9b81ae2df2f9db28e45114117e8f3d29",
+      "src/pagedcore/cli.py": "06be9ce92693bfea420d9870021dc5ee17eba2538fed46b75da2bf2fb418a047",
+      "src/pagedcore/config.py": "1d53260eb14a72385186915dbf28e30c4a13180cff54c3769e872874d3736ac8",
+      "src/pagedcore/determinism.py": "2fdcba5697c59b4f68942fb7d3a14baff46cc4d0d70470c7f23e5c56a437afa2",
+      "src/pagedcore/verification.py": "4e6b77ea1e88b81ae96047b59b4e5fa859c4237251d9e674a6ee27c2fbd75044",
+      "tests/conftest.py": "9af7001d775975ae833aa8b278569b03b593192a66e9e04fff20672f59461b18",
+      "tests/gpu/test_target_verification.py": "c40e8cf67d0b972f6737b71787a8d2c8ce4231538ca9b1503da6d65722c5e554",
+      "tests/unit/test_cli.py": "af8fbfb773632497aca945c2ad5fc0209e354b53f9537a7ad74a5c117b03520f",
+      "tests/unit/test_config.py": "7f96e750e9835d84cb2f3596871cd9846ab0a119675dc5bba5200604b576e854",
+      "tests/unit/test_determinism.py": "b4f63d4a3ad45388d9d9e23ffa3901c724a98c86866095b7016667b2ff2052da",
+      "tests/unit/test_verification.py": "146f3486311d483da0e30f90521c2eabcf0e6dbed2837d382c9b925a702fb846"
+    },
+    "uv_lock_sha256": "ae7561ac683bfa084defe747ef8aa9380b65a42f7ed7b245ecf3fb9fe0e3df01",
+    "working_tree_clean": false
+  },
+  "report_version": 1,
+  "scope": "Windows CPU validation only; no Linux/T4 setup or executed GPU validation",
+  "seeds": {
+    "pytest_autouse": 0,
+    "repeatability_tests": 17
+  },
+  "setup": {
+    "argv": [
+      "uv",
+      "sync",
+      "--frozen",
+      "--extra",
+      "cpu",
+      "--extra",
+      "dev"
+    ],
+    "exit_code": 0,
+    "fresh_environment": false,
+    "output": "Uninstalled 7 packages in 411ms\n - git-filter-repo==2.47.0\n - hf-xet==1.6.0\n - markdown-it-py==4.2.0\n - mdurl==0.1.2\n - rich==15.0.0\n - shellingham==1.5.4\n - typer==0.27.2\n"
+  },
+  "source_diff": {
+    "argv": [
+      "git",
+      "diff",
+      "--no-ext-diff",
+      "--",
+      "src/pagedcore",
+      "tests",
+      "pyproject.toml",
+      ".python-version",
+      "uv.lock"
+    ],
+    "patch": "diff --git a/src/pagedcore/cli.py b/src/pagedcore/cli.py\nindex 443c283..1b03a44 100644\n--- a/src/pagedcore/cli.py\n+++ b/src/pagedcore/cli.py\n@@ -12,7 +12,7 @@ from dataclasses import fields\n from importlib import metadata\n from pathlib import Path\n \n-from pagedcore.config import PagedCoreConfig, load_config\n+from pagedcore.config import ConfigurationError, PagedCoreConfig, load_config\n from pagedcore.verification import TargetVerificationError, verify_target\n \n \n@@ -140,9 +140,18 @@ def collect_validation_provenance() -> dict[str, object]:\n         None,\n     )\n     lock_hash: str | None = None\n+    source_hashes: dict[str, str | None] = {}\n     revision: str | None = None\n     working_tree_clean: bool | None = None\n     if project_root is not None:\n+        source_paths = [project_root / \"pyproject.toml\", project_root / \".python-version\"]\n+        for directory in (\"src/pagedcore\", \"tests\"):\n+            source_paths.extend((project_root / directory).rglob(\"*.py\"))\n+        for path in sorted(source_paths):\n+            relative_path = path.relative_to(project_root).as_posix()\n+            source_hashes[relative_path] = None\n+            with suppress(OSError):\n+                source_hashes[relative_path] = hashlib.sha256(path.read_bytes()).hexdigest()\n         lock_path = project_root / \"uv.lock\"\n         with suppress(OSError):\n             lock_hash = hashlib.sha256(lock_path.read_bytes()).hexdigest()\n@@ -170,11 +179,12 @@ def collect_validation_provenance() -> dict[str, object]:\n             working_tree_clean = not status_result.stdout.strip()\n \n     return {\n-        \"setup_command\": \"uv sync --frozen --extra cuda --extra dev\",\n-        \"command\": \"uv run pagedcore verify\",\n+        \"setup_command\": None,\n+        \"command_arguments\": None,\n         \"git_revision\": revision,\n         \"working_tree_clean\": working_tree_clean,\n         \"uv_lock_sha256\": lock_hash,\n+        \"source_sha256\": source_hashes,\n     }\n \n \n@@ -199,23 +209,36 @@ def _build_parser() -> argparse.ArgumentParser:\n \n \n def main(argv: Sequence[str] | None = None) -> int:\n-    arguments = _build_parser().parse_args(argv)\n-    if arguments.command == \"env\":\n-        print(json.dumps(collect_environment_diagnostics(), indent=2, sort_keys=True))\n-        return 0\n-    if arguments.command == \"verify\":\n-        try:\n+    actual_arguments = list(sys.argv[1:] if argv is None else argv)\n+    arguments = _build_parser().parse_args(actual_arguments)\n+    try:\n+        if arguments.command == \"env\":\n+            print(json.dumps(collect_environment_diagnostics(), indent=2, sort_keys=True))\n+            return 0\n+        if arguments.command == \"verify\":\n             manifest = verify_target()\n-            arguments.manifest_path.parent.mkdir(parents=True, exist_ok=True)\n-            arguments.manifest_path.write_text(\n-                json.dumps(manifest, indent=2, sort_keys=True) + \"\\n\",\n-                encoding=\"utf-8\",\n-            )\n-        except TargetVerificationError as error:\n-            print(json.dumps({\"status\": \"failed\", \"error\": str(error)}), file=sys.stderr)\n-            return 1\n-        print(json.dumps(manifest, indent=2, sort_keys=True))\n-        return 0\n+            # Only parsed options are retained; paths may contain private data.\n+            sanitized_arguments = [actual_arguments[0]]\n+            for argument in actual_arguments[1:]:\n+                if argument.startswith(\"-\"):\n+                    option, separator, _ = argument.partition(\"=\")\n+                    sanitized_arguments.append(option + (\"=<manifest-path>\" if separator else \"\"))\n+                else:\n+                    sanitized_arguments.append(\"<manifest-path>\")\n+            manifest.setdefault(\"provenance\", {})[\"command_arguments\"] = sanitized_arguments\n+            try:\n+                arguments.manifest_path.parent.mkdir(parents=True, exist_ok=True)\n+                arguments.manifest_path.write_text(\n+                    json.dumps(manifest, indent=2, sort_keys=True) + \"\\n\",\n+                    encoding=\"utf-8\",\n+                )\n+            except (OSError, ValueError) as error:\n+                raise TargetVerificationError(\"could not write verification manifest\") from error\n+            print(json.dumps(manifest, indent=2, sort_keys=True))\n+            return 0\n+    except (ConfigurationError, TargetVerificationError) as error:\n+        print(json.dumps({\"status\": \"failed\", \"error\": str(error)}), file=sys.stderr)\n+        return 1\n     raise AssertionError(f\"unsupported command: {arguments.command}\")\n \n \ndiff --git a/src/pagedcore/verification.py b/src/pagedcore/verification.py\nindex f0f352e..1c3d024 100644\n--- a/src/pagedcore/verification.py\n+++ b/src/pagedcore/verification.py\n@@ -28,9 +28,7 @@ def _load_runtime() -> tuple[Any, Any, Any]:\n \n \n def _download_pinned_snapshot(hub: Any, config: PagedCoreConfig) -> Path:\n-    snapshot = Path(\n-        hub.snapshot_download(repo_id=config.model_id, revision=config.model_revision)\n-    )\n+    snapshot = Path(hub.snapshot_download(repo_id=config.model_id, revision=config.model_revision))\n     if snapshot.name != config.model_revision or not snapshot.is_dir():\n         raise TargetVerificationError(\n             \"Hugging Face Hub did not return a local snapshot for the pinned revision\"\n@@ -88,10 +86,7 @@ def _validate_checkpoint(\n             \"actual\": resolved_model_revision,\n         }\n     resolved_tokenizer_revision = _resolved_revision(tokenizer)\n-    if (\n-        resolved_tokenizer_revision is not None\n-        and resolved_tokenizer_revision != resolved_revision\n-    ):\n+    if resolved_tokenizer_revision is not None and resolved_tokenizer_revision != resolved_revision:\n         mismatches[\"tokenizer_revision\"] = {\n             \"expected\": resolved_revision,\n             \"actual\": resolved_tokenizer_revision,\n@@ -200,7 +195,9 @@ def verify_target(config: PagedCoreConfig | None = None) -> dict[str, Any]:\n     except TargetVerificationError:\n         raise\n     except (OSError, RuntimeError, TypeError, ValueError) as error:\n-        raise TargetVerificationError(f\"reference checkpoint verification failed: {error}\") from error\n+        raise TargetVerificationError(\n+            f\"reference checkpoint verification failed: {error}\"\n+        ) from error\n \n     logits = getattr(outputs, \"logits\", None)\n     if logits is None:\n@@ -214,7 +211,7 @@ def verify_target(config: PagedCoreConfig | None = None) -> dict[str, Any]:\n     diagnostics = collect_environment_diagnostics(resolved_config)\n     provenance = collect_validation_provenance()\n     return {\n-        \"manifest_version\": 1,\n+        \"manifest_version\": 2,\n         \"status\": \"passed\",\n         \"captured_at_utc\": datetime.now(UTC).isoformat().replace(\"+00:00\", \"Z\"),\n         \"environment\": diagnostics,\ndiff --git a/tests/conftest.py b/tests/conftest.py\nindex 1e67ea1..2396136 100644\n--- a/tests/conftest.py\n+++ b/tests/conftest.py\n@@ -4,6 +4,7 @@ from pagedcore.determinism import seed_everything\n \n TEST_SEED = 0\n \n+\n @pytest.fixture(autouse=True)\n def deterministic_test_state() -> None:\n     \"\"\"Start every test with the same Python and PyTorch RNG state.\"\"\"\ndiff --git a/tests/gpu/test_target_verification.py b/tests/gpu/test_target_verification.py\nindex d9a96ee..225c58f 100644\n--- a/tests/gpu/test_target_verification.py\n+++ b/tests/gpu/test_target_verification.py\n@@ -16,9 +16,7 @@ def test_pinned_checkpoint_loads_and_runs_one_reference_forward_pass() -> None:\n \n     assert manifest[\"status\"] == \"passed\"\n     assert manifest[\"target\"][\"name\"].casefold().find(\"t4\") >= 0\n-    assert manifest[\"checkpoint\"][\"revision\"] == (\n-        \"af8e934848d8dd00074cc2cd8a40a9b05c3b011e\"\n-    )\n+    assert manifest[\"checkpoint\"][\"revision\"] == (\"af8e934848d8dd00074cc2cd8a40a9b05c3b011e\")\n     assert manifest[\"checkpoint\"][\"dtype\"] == \"torch.float16\"\n     assert manifest[\"checkpoint\"][\"config\"][\"max_position_embeddings\"] == 2048\n     assert manifest[\"checkpoint\"][\"tokenizer\"][\"revision\"] == (\ndiff --git a/tests/unit/test_cli.py b/tests/unit/test_cli.py\nindex da6f668..c4cd09b 100644\n--- a/tests/unit/test_cli.py\n+++ b/tests/unit/test_cli.py\n@@ -111,9 +111,49 @@ def test_validation_provenance_contains_the_lock_file_hash() -> None:\n     provenance = cli.collect_validation_provenance()\n     expected_hash = hashlib.sha256(Path(\"uv.lock\").read_bytes()).hexdigest()\n \n-    assert provenance[\"setup_command\"] == \"uv sync --frozen --extra cuda --extra dev\"\n-    assert provenance[\"command\"] == \"uv run pagedcore verify\"\n+    assert provenance[\"setup_command\"] is None\n+    assert provenance[\"command_arguments\"] is None\n     assert provenance[\"uv_lock_sha256\"] == expected_hash\n+    assert (\n+        provenance[\"source_sha256\"][\"src/pagedcore/cli.py\"]\n+        == hashlib.sha256(Path(\"src/pagedcore/cli.py\").read_bytes()).hexdigest()\n+    )\n+\n+\n+def test_validation_provenance_identifies_changed_source_without_git(monkeypatch, tmp_path) -> None:\n+    source_path = tmp_path / \"src/pagedcore/cli.py\"\n+    source_path.parent.mkdir(parents=True)\n+    source_path.write_text(\"original\", encoding=\"utf-8\")\n+    (tmp_path / \"pyproject.toml\").write_text(\"\", encoding=\"utf-8\")\n+    (tmp_path / \"uv.lock\").write_text(\"lock\", encoding=\"utf-8\")\n+    monkeypatch.setattr(cli, \"__file__\", str(source_path))\n+\n+    def missing_git(*args, **kwargs):\n+        raise FileNotFoundError(\"git\")\n+\n+    monkeypatch.setattr(cli.subprocess, \"run\", missing_git)\n+    before = cli.collect_validation_provenance()\n+    source_path.write_text(\"changed\", encoding=\"utf-8\")\n+    after = cli.collect_validation_provenance()\n+\n+    assert before[\"git_revision\"] is None\n+    assert before[\"working_tree_clean\"] is None\n+    assert before[\"uv_lock_sha256\"] == hashlib.sha256(b\"lock\").hexdigest()\n+    assert (\n+        before[\"source_sha256\"][\"src/pagedcore/cli.py\"]\n+        != after[\"source_sha256\"][\"src/pagedcore/cli.py\"]\n+    )\n+    assert after[\"source_sha256\"][\".python-version\"] is None\n+\n+\n+def test_validation_provenance_does_not_guess_outside_a_checkout(monkeypatch, tmp_path) -> None:\n+    monkeypatch.setattr(cli, \"__file__\", str(tmp_path / \"cli.py\"))\n+\n+    provenance = cli.collect_validation_provenance()\n+\n+    assert provenance[\"git_revision\"] is None\n+    assert provenance[\"uv_lock_sha256\"] is None\n+    assert provenance[\"source_sha256\"] == {}\n \n \n def test_verify_command_writes_manifest(monkeypatch, tmp_path, capsys) -> None:\n@@ -127,6 +167,11 @@ def test_verify_command_writes_manifest(monkeypatch, tmp_path, capsys) -> None:\n \n     assert cli.main([\"verify\", \"--manifest-path\", str(manifest_path)]) == 0\n \n+    assert manifest[\"provenance\"][\"command_arguments\"] == [\n+        \"verify\",\n+        \"--manifest-path\",\n+        \"<manifest-path>\",\n+    ]\n     assert json.loads(manifest_path.read_text(encoding=\"utf-8\")) == manifest\n     assert json.loads(capsys.readouterr().out) == manifest\n \n@@ -144,3 +189,69 @@ def test_verify_command_reports_target_failure(monkeypatch, capsys) -> None:\n         \"status\": \"failed\",\n         \"error\": \"requires T4\",\n     }\n+\n+\n+def test_verify_command_records_only_arguments_that_were_supplied(\n+    monkeypatch, tmp_path, capsys\n+) -> None:\n+    monkeypatch.chdir(tmp_path)\n+    monkeypatch.setattr(cli, \"verify_target\", lambda: {\"status\": \"passed\"})\n+\n+    assert cli.main([\"verify\"]) == 0\n+\n+    manifest = json.loads(capsys.readouterr().out)\n+    assert manifest[\"provenance\"][\"command_arguments\"] == [\"verify\"]\n+\n+\n+@pytest.mark.parametrize(\"command\", [\"env\", \"verify\"])\n+def test_commands_report_invalid_configuration(monkeypatch, capsys, command) -> None:\n+    monkeypatch.setenv(\"PAGEDCORE_KV_POOL_MIB\", \"invalid-private-value\")\n+\n+    assert cli.main([command]) == 1\n+\n+    captured = capsys.readouterr()\n+    assert captured.out == \"\"\n+    assert json.loads(captured.err) == {\n+        \"status\": \"failed\",\n+        \"error\": \"PAGEDCORE_KV_POOL_MIB must be an integer\",\n+    }\n+    assert \"invalid-private-value\" not in captured.err\n+\n+\n+@pytest.mark.parametrize(\"operation\", [\"mkdir\", \"write_text\"])\n+@pytest.mark.parametrize(\"error_type\", [PermissionError, ValueError])\n+def test_verify_command_reports_manifest_io_failure(\n+    monkeypatch, tmp_path, capsys, operation, error_type\n+) -> None:\n+    monkeypatch.setattr(cli, \"verify_target\", lambda: {\"status\": \"passed\"})\n+\n+    def fail(*args, **kwargs):\n+        raise error_type(\"private-path-sentinel\")\n+\n+    monkeypatch.setattr(Path, operation, fail)\n+    assert cli.main([\"verify\", \"--manifest-path\", str(tmp_path / \"manifest.json\")]) == 1\n+\n+    captured = capsys.readouterr()\n+    assert captured.out == \"\"\n+    assert json.loads(captured.err) == {\n+        \"status\": \"failed\",\n+        \"error\": \"could not write verification manifest\",\n+    }\n+    assert \"private-path-sentinel\" not in captured.err\n+\n+\n+def test_verify_command_captures_process_arguments_without_private_paths(\n+    monkeypatch, tmp_path, capsys\n+) -> None:\n+    monkeypatch.setattr(cli, \"verify_target\", lambda: {\"status\": \"passed\"})\n+    manifest_path = tmp_path / \"private-path-sentinel.json\"\n+    monkeypatch.setattr(sys, \"argv\", [\"pagedcore\", \"verify\", f\"--manifest-path={manifest_path}\"])\n+\n+    assert cli.main() == 0\n+\n+    manifest = json.loads(capsys.readouterr().out)\n+    assert manifest[\"provenance\"][\"command_arguments\"] == [\n+        \"verify\",\n+        \"--manifest-path=<manifest-path>\",\n+    ]\n+    assert \"private-path-sentinel\" not in json.dumps(manifest)\ndiff --git a/tests/unit/test_verification.py b/tests/unit/test_verification.py\nindex 23ab130..0ba6587 100644\n--- a/tests/unit/test_verification.py\n+++ b/tests/unit/test_verification.py\n@@ -244,9 +244,7 @@ def test_verify_target_loads_both_files_from_the_pinned_snapshot(\n         Tensor=torch.Tensor,\n         isfinite=torch.isfinite,\n     )\n-    hub = SimpleNamespace(\n-        snapshot_download=Mock(return_value=str(snapshot_path))\n-    )\n+    hub = SimpleNamespace(snapshot_download=Mock(return_value=str(snapshot_path)))\n     transformers = SimpleNamespace(\n         AutoTokenizer=SimpleNamespace(from_pretrained=tokenizer_loader),\n         AutoModelForCausalLM=SimpleNamespace(from_pretrained=model_loader),\n@@ -262,6 +260,7 @@ def test_verify_target_loads_both_files_from_the_pinned_snapshot(\n \n     manifest = verify_target(PagedCoreConfig())\n \n+    assert manifest[\"manifest_version\"] == 2\n     assert hub.snapshot_download.call_args.kwargs == {\n         \"repo_id\": \"TinyLlama/TinyLlama-1.1B-Chat-v1.0\",\n         \"revision\": MODEL_REVISION,\n",
+    "sha256": "56f4c72ea4af0a1ed7766f21286457bee2a053493f94a23d79d1bb346bfe6e61"
+  }
+}

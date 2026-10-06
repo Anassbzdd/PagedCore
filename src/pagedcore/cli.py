@@ -12,7 +12,7 @@ from dataclasses import fields
 from importlib import metadata
 from pathlib import Path
 
-from pagedcore.config import PagedCoreConfig, load_config
+from pagedcore.config import ConfigurationError, PagedCoreConfig, load_config
 from pagedcore.verification import TargetVerificationError, verify_target
 
 
@@ -140,9 +140,18 @@ def collect_validation_provenance() -> dict[str, object]:
         None,
     )
     lock_hash: str | None = None
+    source_hashes: dict[str, str | None] = {}
     revision: str | None = None
     working_tree_clean: bool | None = None
     if project_root is not None:
+        source_paths = [project_root / "pyproject.toml", project_root / ".python-version"]
+        for directory in ("src/pagedcore", "tests"):
+            source_paths.extend((project_root / directory).rglob("*.py"))
+        for path in sorted(source_paths):
+            relative_path = path.relative_to(project_root).as_posix()
+            source_hashes[relative_path] = None
+            with suppress(OSError):
+                source_hashes[relative_path] = hashlib.sha256(path.read_bytes()).hexdigest()
         lock_path = project_root / "uv.lock"
         with suppress(OSError):
             lock_hash = hashlib.sha256(lock_path.read_bytes()).hexdigest()
@@ -170,11 +179,12 @@ def collect_validation_provenance() -> dict[str, object]:
             working_tree_clean = not status_result.stdout.strip()
 
     return {
-        "setup_command": "uv sync --frozen --extra cuda --extra dev",
-        "command": "uv run pagedcore verify",
+        "setup_command": None,
+        "command_arguments": None,
         "git_revision": revision,
         "working_tree_clean": working_tree_clean,
         "uv_lock_sha256": lock_hash,
+        "source_sha256": source_hashes,
     }
 
 
@@ -199,23 +209,35 @@ def _build_parser() -> argparse.ArgumentParser:
 
 
 def main(argv: Sequence[str] | None = None) -> int:
-    arguments = _build_parser().parse_args(argv)
-    if arguments.command == "env":
-        print(json.dumps(collect_environment_diagnostics(), indent=2, sort_keys=True))
-        return 0
-    if arguments.command == "verify":
-        try:
+    actual_arguments = list(sys.argv[1:] if argv is None else argv)
+    arguments = _build_parser().parse_args(actual_arguments)
+    try:
+        if arguments.command == "env":
+            print(json.dumps(collect_environment_diagnostics(), indent=2, sort_keys=True))
+            return 0
+        if arguments.command == "verify":
             manifest = verify_target()
-            arguments.manifest_path.parent.mkdir(parents=True, exist_ok=True)
-            arguments.manifest_path.write_text(
-                json.dumps(manifest, indent=2, sort_keys=True) + "\n",
-                encoding="utf-8",
-            )
-        except TargetVerificationError as error:
-            print(json.dumps({"status": "failed", "error": str(error)}), file=sys.stderr)
-            return 1
-        print(json.dumps(manifest, indent=2, sort_keys=True))
-        return 0
+            sanitized_arguments = [actual_arguments[0]]
+            for argument in actual_arguments[1:]:
+                if argument.startswith("-"):
+                    option, separator, _ = argument.partition("=")
+                    sanitized_arguments.append(option + ("=<manifest-path>" if separator else ""))
+                else:
+                    sanitized_arguments.append("<manifest-path>")
+            manifest.setdefault("provenance", {})["command_arguments"] = sanitized_arguments
+            try:
+                arguments.manifest_path.parent.mkdir(parents=True, exist_ok=True)
+                arguments.manifest_path.write_text(
+                    json.dumps(manifest, indent=2, sort_keys=True) + "\n",
+                    encoding="utf-8",
+                )
+            except (OSError, ValueError) as error:
+                raise TargetVerificationError("could not write verification manifest") from error
+            print(json.dumps(manifest, indent=2, sort_keys=True))
+            return 0
+    except (ConfigurationError, TargetVerificationError) as error:
+        print(json.dumps({"status": "failed", "error": str(error)}), file=sys.stderr)
+        return 1
     raise AssertionError(f"unsupported command: {arguments.command}")
 
 

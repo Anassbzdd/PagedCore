@@ -28,9 +28,7 @@ def _load_runtime() -> tuple[Any, Any, Any]:
 
 
 def _download_pinned_snapshot(hub: Any, config: PagedCoreConfig) -> Path:
-    snapshot = Path(
-        hub.snapshot_download(repo_id=config.model_id, revision=config.model_revision)
-    )
+    snapshot = Path(hub.snapshot_download(repo_id=config.model_id, revision=config.model_revision))
     if snapshot.name != config.model_revision or not snapshot.is_dir():
         raise TargetVerificationError(
             "Hugging Face Hub did not return a local snapshot for the pinned revision"
@@ -88,10 +86,7 @@ def _validate_checkpoint(
             "actual": resolved_model_revision,
         }
     resolved_tokenizer_revision = _resolved_revision(tokenizer)
-    if (
-        resolved_tokenizer_revision is not None
-        and resolved_tokenizer_revision != resolved_revision
-    ):
+    if resolved_tokenizer_revision is not None and resolved_tokenizer_revision != resolved_revision:
         mismatches["tokenizer_revision"] = {
             "expected": resolved_revision,
             "actual": resolved_tokenizer_revision,
@@ -200,7 +195,9 @@ def verify_target(config: PagedCoreConfig | None = None) -> dict[str, Any]:
     except TargetVerificationError:
         raise
     except (OSError, RuntimeError, TypeError, ValueError) as error:
-        raise TargetVerificationError(f"reference checkpoint verification failed: {error}") from error
+        raise TargetVerificationError(
+            f"reference checkpoint verification failed: {error}"
+        ) from error
 
     logits = getattr(outputs, "logits", None)
     if logits is None:
@@ -214,7 +211,7 @@ def verify_target(config: PagedCoreConfig | None = None) -> dict[str, Any]:
     diagnostics = collect_environment_diagnostics(resolved_config)
     provenance = collect_validation_provenance()
     return {
-        "manifest_version": 1,
+        "manifest_version": 2,
         "status": "passed",
         "captured_at_utc": datetime.now(UTC).isoformat().replace("+00:00", "Z"),
         "environment": diagnostics,

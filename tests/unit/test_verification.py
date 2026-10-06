@@ -244,9 +244,7 @@ def test_verify_target_loads_both_files_from_the_pinned_snapshot(
         Tensor=torch.Tensor,
         isfinite=torch.isfinite,
     )
-    hub = SimpleNamespace(
-        snapshot_download=Mock(return_value=str(snapshot_path))
-    )
+    hub = SimpleNamespace(snapshot_download=Mock(return_value=str(snapshot_path)))
     transformers = SimpleNamespace(
         AutoTokenizer=SimpleNamespace(from_pretrained=tokenizer_loader),
         AutoModelForCausalLM=SimpleNamespace(from_pretrained=model_loader),
@@ -262,6 +260,7 @@ def test_verify_target_loads_both_files_from_the_pinned_snapshot(
 
     manifest = verify_target(PagedCoreConfig())
 
+    assert manifest["manifest_version"] == 2
     assert hub.snapshot_download.call_args.kwargs == {
         "repo_id": "TinyLlama/TinyLlama-1.1B-Chat-v1.0",
         "revision": MODEL_REVISION,

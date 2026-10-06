@@ -16,9 +16,7 @@ def test_pinned_checkpoint_loads_and_runs_one_reference_forward_pass() -> None:
 
     assert manifest["status"] == "passed"
     assert manifest["target"]["name"].casefold().find("t4") >= 0
-    assert manifest["checkpoint"]["revision"] == (
-        "af8e934848d8dd00074cc2cd8a40a9b05c3b011e"
-    )
+    assert manifest["checkpoint"]["revision"] == ("af8e934848d8dd00074cc2cd8a40a9b05c3b011e")
     assert manifest["checkpoint"]["dtype"] == "torch.float16"
     assert manifest["checkpoint"]["config"]["max_position_embeddings"] == 2048
     assert manifest["checkpoint"]["tokenizer"]["revision"] == (

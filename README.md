@@ -39,9 +39,17 @@ uv run pagedcore verify
 
 The manifest is written to `results/local/environment-manifest.json` by default. It
 records the resolved snapshot revision and, when run from a Git checkout, the commit,
-working-tree status, and SHA-256 of `uv.lock`.
+working-tree status, lock SHA-256, and hashes of runtime/test sources and install metadata.
+Manifest version 2 captures the actual CLI arguments with manifest paths redacted;
+programmatic verification leaves arguments unknown. Setup history is also unknown
+unless retained separately by the validation operator. Recommended commands above
+are not recorded as executed commands.
 This command requires CUDA device 0 to be an NVIDIA T4 and performs one reference
 forward pass; a CPU-only run does not satisfy the target-machine gate.
+
+Expected configuration or manifest-write failures return exit code 1 and JSON on
+stderr. Retain setup output and CPU/GPU test reports alongside the manifest, following
+the [evidence attribution contract](docs/VALIDATION_PLAN.md#evidence-attribution).
 
 ## Project documents
 
