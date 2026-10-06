@@ -1,0 +1,51 @@
+name: CPU CI
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  cpu:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    env:
+      HF_HUB_OFFLINE: "1"
+    steps:
+      - uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955 # v4.3.0
+        with:
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@37802adc94f370d6bfd71619e3f0bf239e1f3b78 # v7.6.0
+        with:
+          version: "0.11.27"
+          enable-cache: true
+      - name: Install frozen CPU and development environment
+        run: |
+          uv python install
+          uv lock --check
+          uv sync --frozen --extra cpu --extra dev
+      - name: Check formatting
+        run: uv run --no-sync python -m ruff format --check .
+      - name: Lint
+        run: uv run --no-sync python -m ruff check .
+      - name: Check types
+        run: uv run --no-sync python -m mypy --strict src/pagedcore
+      - name: Run CPU tests
+        run: uv run --no-sync python -m pytest -m "not gpu and not benchmark" -ra --junitxml=results/local/ci-cpu.xml
+      - name: Build distributions
+        run: uv run --no-sync python -m build
+      - name: Smoke-test installed wheel and CLI configuration
+        run: |
+          uv pip install --no-deps --reinstall dist/*.whl
+          uv run --no-sync python -I -c "from importlib.metadata import version; from pathlib import Path; import pagedcore; from pagedcore.config import load_config; assert version('pagedcore'); assert 'site-packages' in Path(pagedcore.__file__).parts; load_config()"
+          uv run --no-sync pagedcore --help
+          uv run --no-sync pagedcore env
+      - name: Retain CPU test report
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: cpu-test-report
+          path: results/local/ci-cpu.xml
+          if-no-files-found: warn
