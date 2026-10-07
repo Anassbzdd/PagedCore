@@ -1,0 +1,136 @@
+{
+  "gate": "P2.1",
+  "captured_at_utc": "2026-10-07T17:28:42.356715+00:00",
+  "scope": "Immutable shared engine contracts; CPU tests only. No worker, allocator, HTTP, instrumentation or GPU execution.",
+  "source": {
+    "git_revision": "211bb0cc4c213a084be89dea0d66b5f66d64f46f",
+    "dirty": true,
+    "identity": "Uncommitted source identified by SHA-256 hashes below; revision alone does not identify this change.",
+    "sha256": {
+      "src/pagedcore/__init__.py": "42b1e9884f56caa6de42f8177eedcc2f9b81ae2df2f9db28e45114117e8f3d29",
+      "src/pagedcore/cli.py": "f784ee61837748d535af569736f44e1150b6478dfe338b4b293efd368160eff3",
+      "src/pagedcore/config.py": "1d53260eb14a72385186915dbf28e30c4a13180cff54c3769e872874d3736ac8",
+      "src/pagedcore/determinism.py": "2fdcba5697c59b4f68942fb7d3a14baff46cc4d0d70470c7f23e5c56a437afa2",
+      "src/pagedcore/engine_types.py": "6d8219c878814ab2793c8c774b8764e72d5282d8f47aa31093ad3159d70ba3eb",
+      "src/pagedcore/verification.py": "4e6b77ea1e88b81ae96047b59b4e5fa859c4237251d9e674a6ee27c2fbd75044",
+      "tests/conftest.py": "8556b35104991d5ca9737627b0a2bc383076462f421a2d30ce6c1b97d2f11bbe",
+      "tests/gpu/test_target_verification.py": "c40e8cf67d0b972f6737b71787a8d2c8ce4231538ca9b1503da6d65722c5e554",
+      "tests/unit/test_cli.py": "af8fbfb773632497aca945c2ad5fc0209e354b53f9537a7ad74a5c117b03520f",
+      "tests/unit/test_config.py": "7f96e750e9835d84cb2f3596871cd9846ab0a119675dc5bba5200604b576e854",
+      "tests/unit/test_determinism.py": "b4f63d4a3ad45388d9d9e23ffa3901c724a98c86866095b7016667b2ff2052da",
+      "tests/unit/test_engine_types.py": "c30be2cfae03d7610add18bae50a20811ba7da21592dee6d9e6b18451408dddb",
+      "tests/unit/test_verification.py": "146f3486311d483da0e30f90521c2eabcf0e6dbed2837d382c9b925a702fb846",
+      "pyproject.toml": "4f655c261767b2542aabb3137274797b30939431b19a5f19f9274cfd41919f84",
+      "uv.lock": "ae7561ac683bfa084defe747ef8aa9380b65a42f7ed7b245ecf3fb9fe0e3df01"
+    }
+  },
+  "environment": {
+    "platform": "Windows-10-10.0.26200-SP0",
+    "python": "3.11.15 (main, Jun 23 2026, 15:20:37) [MSC v.1944 64 bit (AMD64)]",
+    "torch": "2.7.1+cpu",
+    "cuda_available": false,
+    "versions": {
+      "pytest": "9.1.1",
+      "ruff": "0.16.9",
+      "mypy": "2.3.1",
+      "transformers": "4.52.4"
+    },
+    "setup": "Existing local uv environment; commands used --no-sync. No fresh installation performed in this task.",
+    "test_seed": 0
+  },
+  "commands": [
+    {
+      "command": "uv run --no-sync python -m ruff check .",
+      "exit_code": 0,
+      "result": "All checks passed."
+    },
+    {
+      "command": "uv run --no-sync python -m ruff format --check .",
+      "exit_code": 1,
+      "result": "Pre-existing missing blank line in tests/conftest.py at line 7. File unchanged from HEAD; 21 other Python files formatted."
+    },
+    {
+      "command": "uv run --no-sync python -m ruff format --check src/pagedcore/engine_types.py tests/unit/test_engine_types.py",
+      "exit_code": 0,
+      "result": "2 files already formatted."
+    },
+    {
+      "command": "uv run --no-sync python -m mypy --strict src/pagedcore tests/unit/test_engine_types.py",
+      "exit_code": 0,
+      "result": "Success: no issues found in 7 source files."
+    },
+    {
+      "command": "uv run --no-sync python -m pytest -m \"not gpu and not benchmark\" -ra --junitxml=results/local/p2.1-cpu.xml",
+      "exit_code": 0
+    }
+  ],
+  "earlier_failure": {
+    "command": "uv run --no-sync python -m ruff check .",
+    "exit_code": 1,
+    "result": "Two B010 violations in new immutability tests: constant-name setattr calls. Replaced with direct assignment; final lint and strict types passed."
+  },
+  "tests": {
+    "collected": 76,
+    "selected": 74,
+    "executed": 74,
+    "passed": 74,
+    "failed": 0,
+    "skipped": 0,
+    "deselected": 2,
+    "deselected_reason": "GPU tests excluded by marker expression; no benchmark tests currently collected.",
+    "new_contract_tests": 9,
+    "gpu_executed": 0,
+    "cases": [
+      {
+        "name": "test_generation_completion_survives_later_delivery_failure",
+        "class": "tests.unit.test_engine_types",
+        "seconds": 0.003
+      },
+      {
+        "name": "test_immediate_eos_has_no_token_timestamps",
+        "class": "tests.unit.test_engine_types",
+        "seconds": 0.002
+      },
+      {
+        "name": "test_disconnect_can_precede_generation_terminal",
+        "class": "tests.unit.test_engine_types",
+        "seconds": 0.001
+      },
+      {
+        "name": "test_terminal_variants_have_distinct_payloads[terminal0]",
+        "class": "tests.unit.test_engine_types",
+        "seconds": 0.001
+      },
+      {
+        "name": "test_terminal_variants_have_distinct_payloads[terminal1]",
+        "class": "tests.unit.test_engine_types",
+        "seconds": 0.001
+      },
+      {
+        "name": "test_terminal_variants_have_distinct_payloads[terminal2]",
+        "class": "tests.unit.test_engine_types",
+        "seconds": 0.001
+      },
+      {
+        "name": "test_reservation_is_independent_of_physical_assignment",
+        "class": "tests.unit.test_engine_types",
+        "seconds": 0.001
+      },
+      {
+        "name": "test_measurement_schemas_do_not_retain_token_payloads_or_histories",
+        "class": "tests.unit.test_engine_types",
+        "seconds": 0.001
+      },
+      {
+        "name": "test_error_codes_match_public_contract",
+        "class": "tests.unit.test_engine_types",
+        "seconds": 0.002
+      }
+    ]
+  },
+  "limitations": [
+    "Repository-wide format gate remains unsatisfied by the unchanged conftest.py baseline.",
+    "Lifecycle validation and release-once/accounting enforcement remain P2.2/P4/P6 work.",
+    "No Phase 1 evidence re-audit, T4 test, custom decoder parity, service or performance claim."
+  ]
+}

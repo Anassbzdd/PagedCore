@@ -144,6 +144,37 @@ This implementation will use many small PyTorch operations, which may create sig
 
 ## Request lifecycle
 
+### Shared records
+
+[`engine_types.py`](../src/pagedcore/engine_types.py) defines immutable records
+without importing Torch, Transformers, or the HTTP layer. `RequestId` and `BlockId`
+are distinct static types; `MonotonicTimestamp` is integer nanoseconds from the
+server process's monotonic clock. These types do not perform runtime validation.
+
+`RequestState` names the lifecycle stages below. `GenerationTerminal` is a union
+of completed, cancelled, and failed records: only completion carries `eos` or
+`length`; cancellation carries its stable trigger; failure carries an `EngineError`.
+The separate `TransportTerminal` records normal closure, disconnect, or delivery
+failure. It does not change a resolved generation outcome or imply GPU cleanup.
+Transport may terminate before generation when cancellation awaits a safe worker
+boundary. Only the worker will resolve generation and release ownership.
+
+`TokenEvent` is a transient mailbox record with a zero-based index, token ID, and
+successful publication timestamp. It is not an SSE payload. The HTTP adapter will
+add incremental text deltas and the final completion flush; terminal records remain
+outside the bounded token mailbox. `EngineError` uses the stable codes in
+[CONSTANTS.md](CONSTANTS.md#stable-error-codes) and content-free public messages.
+
+`RequestTiming` defines the six server timestamps described under Measurements;
+unobserved events are `None`. `RequestCounts` separates prompt tokens (including
+special tokens), requested output limit, successfully published output tokens,
+and live cached positions. These measurement records retain no text, token IDs,
+or per-token history. `CapacityCounts` separates physical ownership, reserved
+credits, active slots, and live slots. `KVReservation` records maximum block
+credits; `BlockTable` records physical IDs in logical order. Runtime transition,
+accounting, publication, serialization, and instrumentation behavior is still to
+be implemented at its owning gate.
+
 ```
 received → validated → pending → admitted → prefilling
          → decoding → completed
