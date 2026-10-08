@@ -1,0 +1,193 @@
+{
+  "gate": "P2.3",
+  "scope": "Verified public raw-prompt fixtures and synthetic greedy stopping references. No runtime source changes, checkpoint output generation, oracle harness, decoder, allocator, worker or service implementation.",
+  "commands": [
+    {
+      "command": "uv run --no-sync python -m ruff check .",
+      "exit_code": 0,
+      "output": "All checks passed!\n"
+    },
+    {
+      "command": "uv run --no-sync python -m ruff format --check .",
+      "exit_code": 1,
+      "output": "unformatted: File would be reformatted\n  --> tests\\conftest.py:7:1\n  |\n6 |\n7 +\n8 | @pytest.fixture(autouse=True)\n  |\n\n1 file would be reformatted, 22 files already formatted\n"
+    },
+    {
+      "command": "uv run --no-sync python -m ruff format --check tests/unit/test_reference_fixtures.py",
+      "exit_code": 0,
+      "output": "1 file already formatted\n"
+    },
+    {
+      "command": "uv run --no-sync python -m mypy --strict src/pagedcore tests/unit/test_reference_fixtures.py",
+      "exit_code": 0,
+      "output": "Success: no issues found in 7 source files\r\n"
+    },
+    {
+      "command": "uv run --no-sync python -m pytest -m \"not gpu and not benchmark\" -ra --junitxml=results/local/2026-10-08-p2.3-cpu.xml",
+      "exit_code": 0,
+      "output": "============================= test session starts =============================\r\nplatform win32 -- Python 3.11.15, pytest-9.1.1, pluggy-1.6.0\r\nrootdir: C:\\Users\\user\\OneDrive\\Desktop\\PagedCore\r\nconfigfile: pyproject.toml\r\ntestpaths: tests\r\nplugins: anyio-4.15.1, hypothesis-6.168.3, asyncio-1.4.0\r\nasyncio: mode=Mode.STRICT, debug=False, asyncio_default_fixture_loop_scope=None, asyncio_default_test_loop_scope=function\r\ncollected 191 items / 2 deselected / 189 selected\r\n\r\ntests\\unit\\test_cli.py ...................                               [ 10%]\r\ntests\\unit\\test_config.py ..........................                     [ 23%]\r\ntests\\unit\\test_determinism.py .....                                     [ 26%]\r\ntests\\unit\\test_engine_types.py ........................................ [ 47%]\r\n....................................................................     [ 83%]\r\ntests\\unit\\test_reference_fixtures.py ................                   [ 92%]\r\ntests\\unit\\test_verification.py ...............                          [100%]\r\n\r\n- generated xml file: C:\\Users\\user\\OneDrive\\Desktop\\PagedCore\\results\\local\\2026-10-08-p2.3-cpu.xml -\r\n====================== 189 passed, 2 deselected in 5.70s ======================\r\n"
+    }
+  ],
+  "offline_empty_cache_check": {
+    "command": "@'\nimport os\nimport subprocess\nimport tempfile\n\nwith tempfile.TemporaryDirectory(prefix='pagedcore-tokenizer-cache-') as cache:\n    env = dict(os.environ, HF_HUB_CACHE=cache, HF_HUB_OFFLINE='1')\n    result = subprocess.run(\n        ['uv', 'run', '--no-sync', 'python', '-m', 'pytest',\n         'tests/unit/test_reference_fixtures.py', '-q', '-ra'],\n        env=env,\n        check=False,\n    )\n    raise SystemExit(result.returncode)\n'@ | uv run --no-sync python -",
+    "exit_code": 0,
+    "output": "........s.......                                                         [100%]\r\n=========================== short test summary info ===========================\r\nSKIPPED [1] tests\\unit\\test_reference_fixtures.py:90: Pinned tokenizer files are not cached; see the reference fixture procedure.\r\n15 passed, 1 skipped in 4.32s\r\n",
+    "passed": 15,
+    "skipped": 1,
+    "reason": "Pinned tokenizer files absent from an isolated cache; synthetic and fixture contract checks still execute."
+  },
+  "setup": {
+    "command": "uv run --no-sync python -c \"from huggingface_hub import snapshot_download; from pagedcore.config import MODEL_ID,MODEL_REVISION; p=snapshot_download(MODEL_ID,revision=MODEL_REVISION,allow_patterns=['config.json','tokenizer.json','tokenizer_config.json','special_tokens_map.json']); print(p)\"",
+    "exit_code": 0,
+    "files_fetched": 4,
+    "checkpoint_weights_downloaded": false,
+    "environment_install": "Existing local frozen CPU/dev environment; --no-sync checks. No fresh installation or dependency synchronization performed."
+  },
+  "tests": {
+    "collected": 191,
+    "selected": 189,
+    "executed": 189,
+    "passed": 189,
+    "failed": 0,
+    "skipped": 0,
+    "deselected": 2,
+    "new_fixture_tests": 16,
+    "synthetic_stopping_cases": 7,
+    "real_tokenizer_verification": "Executed and passed; compared every prompt ID and all pinned tokenizer/config file hashes.",
+    "t4_tests_executed": 0
+  },
+  "limitations": [
+    "Repository-wide formatting fails on the pre-existing missing blank line in unchanged tests/conftest.py; the new Python test module is formatted.",
+    "An uncached offline CI run explicitly skips real tokenization verification. Cache the pinned small files and require this test to execute when changing prompts or IDs.",
+    "Controlled logits use a tiny randomly initialized CPU Llama model. They establish HF synthetic stopping reference cases, not pinned-checkpoint or owned-generation-loop parity.",
+    "No T4, paging, batching, cleanup, streaming or performance claims. P2.4/P2.5 and the Phase 2 exit gate remain open; earlier environment evidence closure was not re-audited."
+  ],
+  "captured_at_utc": "2026-10-08T20:23:22.827755+00:00",
+  "source": {
+    "git_revision": "f813a555d6e54814839ccbe020b9cedcc2fada0b",
+    "dirty": true,
+    "identity": "Uncommitted tested source identified by SHA-256 hashes; revision alone does not identify this change.",
+    "sha256": {
+      "src/pagedcore/__init__.py": "42b1e9884f56caa6de42f8177eedcc2f9b81ae2df2f9db28e45114117e8f3d29",
+      "src/pagedcore/cli.py": "f784ee61837748d535af569736f44e1150b6478dfe338b4b293efd368160eff3",
+      "src/pagedcore/config.py": "1d53260eb14a72385186915dbf28e30c4a13180cff54c3769e872874d3736ac8",
+      "src/pagedcore/determinism.py": "2fdcba5697c59b4f68942fb7d3a14baff46cc4d0d70470c7f23e5c56a437afa2",
+      "src/pagedcore/engine_types.py": "db31cb04b5dd4e127d37f1b3a4b88bc20f2272520893a150428197713c6cae40",
+      "src/pagedcore/verification.py": "4e6b77ea1e88b81ae96047b59b4e5fa859c4237251d9e674a6ee27c2fbd75044",
+      "tests/conftest.py": "8556b35104991d5ca9737627b0a2bc383076462f421a2d30ce6c1b97d2f11bbe",
+      "tests/fixtures/reference_prompts.json": "143f89f62b0b85956ddd7ab94cd7b7ec559799725b947b5404409dcdf6365190",
+      "tests/gpu/test_target_verification.py": "c40e8cf67d0b972f6737b71787a8d2c8ce4231538ca9b1503da6d65722c5e554",
+      "tests/unit/test_cli.py": "af8fbfb773632497aca945c2ad5fc0209e354b53f9537a7ad74a5c117b03520f",
+      "tests/unit/test_config.py": "7f96e750e9835d84cb2f3596871cd9846ab0a119675dc5bba5200604b576e854",
+      "tests/unit/test_determinism.py": "b4f63d4a3ad45388d9d9e23ffa3901c724a98c86866095b7016667b2ff2052da",
+      "tests/unit/test_engine_types.py": "364debb27dfec1190b9d60f3f619afdfcd1db2fccbffd629429ad02ebd6dc6ae",
+      "tests/unit/test_reference_fixtures.py": "ea21b7be9d4837c4d1ad3e2453909e6c1e0c75aad83c67d4125af612fccf9a67",
+      "tests/unit/test_verification.py": "146f3486311d483da0e30f90521c2eabcf0e6dbed2837d382c9b925a702fb846",
+      "pyproject.toml": "4f655c261767b2542aabb3137274797b30939431b19a5f19f9274cfd41919f84",
+      "uv.lock": "ae7561ac683bfa084defe747ef8aa9380b65a42f7ed7b245ecf3fb9fe0e3df01",
+      ".python-version": "db82937e1f1830581a9553c7814f5c5fcacb6dfdef8310b43e9a812c887acaf5",
+      "docs/SPEC.md": "a4ea506c0ccfe8a7a676ef56cd14a4b33bd5c2c2e4023845c061957542ff751e",
+      "docs/DESIGN.md": "813d6beec300dbf36d885c7d61c796722f8b8c5db337ecd7f15e3de4a9a65858",
+      "docs/VALIDATION_PLAN.md": "ff42580d23b6dd8a60c55b4a616f73a7a3364dc84ccca76b63ac2179264819e7",
+      "docs/STATUS.md": "a9861260deee5ab2096a33aa04a57b2f2bc9e0b3b70322bc1a995e411fd6bdfc",
+      "docs/task.md": "361f37d21586dc77b5111fb724c12355bc2671d47518171bb34bc581bd7a9102",
+      ".github/workflows/ci.yml": "a64892c12887a3c7cf5df26a76b8047508cb723d2b854b4a7de67550c7d69004"
+    }
+  },
+  "environment": {
+    "platform": "Windows-10-10.0.26200-SP0",
+    "python": "3.11.15 (main, Jun 23 2026, 15:20:37) [MSC v.1944 64 bit (AMD64)]",
+    "device": "cpu",
+    "torch": "2.7.1+cpu",
+    "cuda_available": false,
+    "cuda_runtime": null,
+    "test_seed": 0,
+    "versions": {
+      "pytest": "9.1.1",
+      "ruff": "0.16.9",
+      "mypy": "2.3.1",
+      "transformers": "4.52.4",
+      "tokenizers": "0.21.4",
+      "huggingface-hub": "0.36.2"
+    }
+  },
+  "tokenizer_source_sha256": {
+    "config.json": "486bedda3a6988332e60d9638a09ca4b260d34ebcf1b19e22cf3b140b63d8fe9",
+    "tokenizer.json": "bcd04f0eadf90287bd26e1a183ac487d8a141b09b06aecb7725bbdd343640f2e",
+    "tokenizer_config.json": "7b41ba7d0eb91e77914ca3dafde559ea3e19878769b7e68409e89bed5222e77a",
+    "special_tokens_map.json": "82d96d7a9e6ced037f12394b7ea6a5b02e6ca87e0d11edaa8d60d9be857ce7db"
+  },
+  "junit": {
+    "sha256": "1780c784fb8a5313fe0f9f502a0411c9c4a4cc72b60fa8ecc9e2b3d09da8d840",
+    "tests": 189,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0,
+    "fixture_cases": [
+      {
+        "name": "test_public_prompt_contract[boundary_15]",
+        "status": "passed"
+      },
+      {
+        "name": "test_public_prompt_contract[boundary_16]",
+        "status": "passed"
+      },
+      {
+        "name": "test_public_prompt_contract[boundary_17]",
+        "status": "passed"
+      },
+      {
+        "name": "test_public_prompt_contract[multiple_full_blocks]",
+        "status": "passed"
+      },
+      {
+        "name": "test_public_prompt_contract[maximum_output]",
+        "status": "passed"
+      },
+      {
+        "name": "test_public_prompt_contract[eos_enabled]",
+        "status": "passed"
+      },
+      {
+        "name": "test_reference_tokenizer_contract",
+        "status": "passed"
+      },
+      {
+        "name": "test_public_prompts_cover_required_lengths",
+        "status": "passed"
+      },
+      {
+        "name": "test_public_prompt_ids_match_cached_pinned_tokenizer",
+        "status": "passed"
+      },
+      {
+        "name": "test_synthetic_stopping_reference[immediate_eos]",
+        "status": "passed"
+      },
+      {
+        "name": "test_synthetic_stopping_reference[immediate_eos_at_limit]",
+        "status": "passed"
+      },
+      {
+        "name": "test_synthetic_stopping_reference[delayed_eos]",
+        "status": "passed"
+      },
+      {
+        "name": "test_synthetic_stopping_reference[length]",
+        "status": "passed"
+      },
+      {
+        "name": "test_synthetic_stopping_reference[eos_at_limit]",
+        "status": "passed"
+      },
+      {
+        "name": "test_synthetic_stopping_reference[ignored_eos]",
+        "status": "passed"
+      },
+      {
+        "name": "test_synthetic_stopping_reference[maximum_output]",
+        "status": "passed"
+      }
+    ]
+  }
+}

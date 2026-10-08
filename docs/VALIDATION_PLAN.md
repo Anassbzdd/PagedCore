@@ -43,6 +43,37 @@ The P2 oracle explicitly loads the pinned HF model with `attn_implementation="ea
 
 Capture all decoder-relevant values from the loaded configuration, including RMSNorm epsilon, RoPE theta/scaling, intermediate size, head mapping, biases, weight tying, BOS/EOS IDs and vocabulary. Follow the [raw-prompt/decoding policy](SPEC.md#http-contract). Compare token IDs directly across oracle, owned decoder and benchmark adapters. Use public deterministic fixtures; immediate-EOS and stopping paths may also use controlled logits, with synthetic coverage labeled separately from actual checkpoint parity.
 
+### Public reference fixtures
+
+[Checked-in inputs](../tests/fixtures/reference_prompts.json) contain public raw
+prompts with verified special-token-inclusive IDs at 15/16/17 tokens, 32/49-token
+multi-block prompts, a 256-token output request, EOS-enabled generation and a
+mixed-length group. Fixed-length cases use `ignore_eos=true`. The 17-token prompt
+preserves leading spaces and a trailing newline. These are input fixtures, not
+saved checkpoint-generated outputs or evidence that batching/paging works.
+
+The [fixture tests](../tests/unit/test_reference_fixtures.py) check counts, context
+limits and maximum KV credits. Their offline tokenizer integration check compares
+every ID and the pinned tokenizer-file hashes; it explicitly skips when the files
+are absent from the local HF cache. Populate only the small tokenizer/config files
+before requiring this check (no checkpoint weights are downloaded):
+
+```bash
+uv run --no-sync python -c "from huggingface_hub import snapshot_download; from pagedcore.config import MODEL_ID, MODEL_REVISION; snapshot_download(MODEL_ID, revision=MODEL_REVISION, allow_patterns=['config.json', 'tokenizer.json', 'tokenizer_config.json', 'special_tokens_map.json'])"
+uv run --no-sync python -m pytest tests/unit/test_reference_fixtures.py -ra
+```
+
+An uncached offline CI run checks the fixture contracts and synthetic stopping
+cases but does not reverify tokenization. Require the tokenizer check to execute
+before accepting changed public prompts or IDs. Controlled logits on a tiny,
+randomly initialized CPU Llama model establish synthetic greedy stopping reference
+cases: immediate/delayed EOS, EOS at the output limit, length stopping, ignored EOS
+and 256-token output. HF returns a stopping EOS; the reference test excludes it
+from emitted IDs to match the public contract. These cases do not validate the
+pinned checkpoint, owned generation loop, streaming, timestamps or T4 parity.
+
+### Numerical comparisons
+
 Apply [CONSTANTS.md](CONSTANTS.md#numerical-parity-thresholds) tolerances, report maximum observed discrepancies and exact greedy equality. Diagnose deviations layer by layer. Changing a backend or tolerance requires new measured evidence, not merely updated expectations.
 
 ## Test strategy

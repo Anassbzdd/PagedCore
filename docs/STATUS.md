@@ -1,10 +1,10 @@
 # Implementation and evidence status
 
-Snapshot: 2026-10-08. Restored shared lifecycle/accounting validators and tests have fresh local CPU evidence in the [P2.2 report](../results/validation/2026-10-08-p2.2-cpu.json), attributed by source hashes against the uncommitted checkout based on `2eda7c07620e638b07270515517722bd783bab38`. The CPU CI workflow was added against commit `82102a3e55b995a0ab431a8f7a15417b29ba2421`; its first GitHub-hosted run remains unverified. Earlier environment evidence is attributed to commit `ab05602e721beb6b0fc4266a9642b09f89eee6c1` plus source hashes and a sanitized patch in the [CPU validation report](../results/validation/2026-10-05-p1.6-cpu.json). This page records observed state, not a release certificate.
+Snapshot: 2026-10-08. Public reference fixtures and synthetic stopping cases have fresh local CPU evidence in the [P2.3 report](../results/validation/2026-10-08-p2.3-cpu.json), attributed by source hashes against the uncommitted checkout based on `f813a555d6e54814839ccbe020b9cedcc2fada0b`. The real pinned tokenizer ID check executed successfully. The CPU CI workflow was added against commit `82102a3e55b995a0ab431a8f7a15417b29ba2421`; its first GitHub-hosted run remains unverified. Earlier environment evidence is attributed to commit `ab05602e721beb6b0fc4266a9642b09f89eee6c1` plus source hashes and a sanitized patch in the [CPU validation report](../results/validation/2026-10-05-p1.6-cpu.json). This page records observed state, not a release certificate.
 
 ## Current gate
 
-Phase 1 implementation is substantially delivered; its evidence closure remains open and was not re-audited for this change. P2.1 shared types and P2.2 lifecycle/accounting validators are implemented and CPU-tested; release-once rules are specified, with concrete ownership/cleanup assertions deferred to P4/P6. Reference fixtures, the oracle harness and test-command work remain next. The Phase 2 exit gate remains open, followed by dense parity -> allocator correctness -> paged attention -> lifecycle correctness -> HTTP. Early CI and validation procedures support that order without implementing later runtime features.
+Phase 1 implementation is substantially delivered; its evidence closure remains open and was not re-audited for this change. P2.1 shared types, P2.2 lifecycle/accounting validators and P2.3 public reference fixtures are implemented and CPU-tested; release-once rules are specified, with concrete ownership/cleanup assertions deferred to P4/P6. The oracle harness (P2.4) and test-command work (P2.5) remain next. The Phase 2 exit gate remains open, followed by dense parity -> allocator correctness -> paged attention -> lifecycle correctness -> HTTP. Early CI and validation procedures support that order without implementing later runtime features.
 
 | Surface | Observed implementation | Evidence limit |
 |---|---|---|
@@ -14,6 +14,7 @@ Phase 1 implementation is substantially delivered; its evidence closure remains 
 | Deterministic controls | Python/Torch seeds and inference mode | CPU repeatability checked; no retained CUDA repeatability report |
 | Target verifier | Pinned snapshot, FP16/config/logit checks, source hashes, sanitized actual CLI arguments, manifest-write error handling | CPU regressions pass; fresh T4 evidence for the changed verifier remains open |
 | Shared engine contracts | [Immutable records, legal-transition validator, positive reservation credits and nonnegative/accounted capacity snapshots](../src/pagedcore/engine_types.py); release-once contract specified | [108 CPU contract cases](../tests/unit/test_engine_types.py), including 99 added for P2.2; no request-state mutation, allocator/worker ownership checks, cleanup, instrumentation or T4 engine evidence |
+| Reference fixtures | [Six public raw-prompt cases](../tests/fixtures/reference_prompts.json) with exact pinned tokenizer IDs, 15/16/17 and 32/49-token lengths, maximum output, EOS settings and a mixed-length group; [seven controlled-logit stopping cases](../tests/unit/test_reference_fixtures.py) | CPU tokenizer verification and synthetic HF stopping reference only; tokenizer verification explicitly skips with an empty offline cache. No checkpoint-generated output IDs, owned stopping loop, batching/paging or T4 parity evidence |
 | Decoder, allocator, paged attention | Not implemented | No parity, ownership, or paged-read evidence |
 | Scheduler, worker, HTTP/SSE | Not implemented | No concurrency, cleanup, backpressure, or service evidence |
 | CPU CI | [Workflow](../.github/workflows/ci.yml) for every push/PR: frozen CPU/dev environment, lock check, format/lint/strict types, non-GPU/non-benchmark pytest, distribution build and installed-wheel/config/CLI smoke | Local Windows CPU checks; first GitHub-hosted Linux run pending |
@@ -21,16 +22,19 @@ Phase 1 implementation is substantially delivered; its evidence closure remains 
 
 ## Observed CPU checks
 
-On 2026-10-08, local Windows validation of the restored lifecycle/accounting contracts passed
-Ruff lint, strict mypy over six source modules plus the contract test module, and
-non-GPU/non-benchmark pytest: 175 collected, 173 selected/executed/passed, zero
-failed/skipped, two GPU tests deselected. Changed-file formatting passed.
+On 2026-10-08, local Windows validation of the reference fixtures passed Ruff
+lint, strict mypy over six source modules plus the new fixture test module, and
+non-GPU/non-benchmark pytest: 191 collected, 189 selected/executed/passed, zero
+failed/skipped, two GPU tests deselected. All 16 new tests passed, including exact
+IDs from the pinned tokenizer and seven synthetic stopping cases. Changed-file formatting passed.
 Repository-wide formatting still failed on a pre-existing missing blank line in
-unchanged `tests/conftest.py`. The [P2.2 report](../results/validation/2026-10-08-p2.2-cpu.json)
-retains actual commands/output, source/lock hashes, environment, test counts, and
-that limitation and the failed collection before restoring the missing validator.
-These checks establish shared validation rules,
-not release-once cleanup, per-request ownership, CUDA safety or lifecycle execution.
+unchanged `tests/conftest.py`. An isolated empty-cache/offline fixture run passed
+15 tests and explicitly skipped the real tokenizer check. The [P2.3 report](../results/validation/2026-10-08-p2.3-cpu.json)
+retains commands/output, source/lock hashes, environment, test counts and these
+limitations. Only small pinned tokenizer/config files were fetched; no checkpoint
+weights or T4 tests were executed. The [P2.2 report](../results/validation/2026-10-08-p2.2-cpu.json)
+retains the earlier shared-contract validation. None of these CPU checks proves
+owned-decoder parity, release-once cleanup, per-request ownership or CUDA safety.
 
 The [retained report](../results/validation/2026-10-05-p1.6-cpu.json) records Windows, Python 3.11.15, Torch 2.7.1+cpu, Transformers 4.52.4 and unavailable CUDA. The existing environment was synchronized with `uv sync --frozen --extra cpu --extra dev`; this was not a fresh Linux installation. Ruff lint/format, full-source strict mypy and the offline frozen-lock check passed. Non-GPU pytest collected 67 tests, selected and executed **65**, passed all 65, skipped none, and deselected two GPU tests. Expected CLI failures were reproduced before the fix and covered by regression tests.
 
