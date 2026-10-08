@@ -14,7 +14,7 @@ Complete each runtime gate before starting the next substantial runtime feature.
 | P0.1-P0.6: baseline | Package structure and reconciled public contracts | Parseable metadata and consistent constants/acceptance ownership |
 | P1.1-P1.6: environment | Frozen CPU/CUDA setup, configuration, diagnostics, controls, reference verifier and evidence closure | Attributable fresh Linux/T4 install, reference forward, CPU checks and CUDA repeatability report |
 | P9.1-P9.2: early automation | Schedule after environment implementation, before P2; retain IDs for traceability | CPU lint/format/strict typing/pytest automation and repeatable T4 job with test counts and artifacts |
-| P2.1-P2.5: types/reference | Minimal interfaces, timing schema, fixtures and frozen oracle | Deterministic reference IDs/tensors; documented special-token, attention, and numerical settings |
+| P2.1-P2.5: types/reference | Minimal interfaces, lifecycle/accounting validators, timing schema, fixtures and frozen oracle | CPU rejection of illegal transitions and invalid capacity snapshots; deterministic reference IDs/tensors; documented special-token, attention, and numerical settings |
 | P3.1-P3.7: dense parity | Owned TinyLlama forward without paging | Layer/logit/greedy T4 parity and dense-prefill workspace record |
 | P4.1-P4.6: allocator | One pool, free list, tables and capacity ledger | Boundary, rollback, isolation, reuse and independent property-model tests |
 | P5.1-P5.7: paged attention | Block-table traversal and FP32 online softmax | Poisoned fragmentation, no-full-gather traces, T4 parity and batched workspace record |
@@ -46,6 +46,15 @@ Capture all decoder-relevant values from the loaded configuration, including RMS
 Apply [CONSTANTS.md](CONSTANTS.md#numerical-parity-thresholds) tolerances, report maximum observed discrepancies and exact greedy equality. Diagnose deviations layer by layer. Changing a backend or tolerance requires new measured evidence, not merely updated expectations.
 
 ## Test strategy
+
+**Shared-contract CPU tests (P2.2):** Cover successful lifecycle paths with and
+without decode, cancellation/failure before and after admission, and rejection of
+skipped stages, backwards changes, self-transitions and every change from a terminal
+state. Reject nonpositive reservation credits, negative/noninteger capacity counts,
+and violations of `free + owned = total` or `owned <= reserved <= total`. Accept
+snapshots with reserved but unassigned capacity. These validators do not prove
+release-once cleanup, per-request ownership, or CUDA ordering; implement and test
+those assertions with the concrete allocator/worker in P4/P6.
 
 **CPU unit tests:** Exercise the allocator and scheduler with a fake model. Test empty/full pools, exact block boundaries, strict FIFO and head-of-line behavior, the active-sequence limit, credit release, cancellation at every state, double-free prevention, requests too large for the pool, and recovery after a failed request. Assert invariants after each state transition.
 

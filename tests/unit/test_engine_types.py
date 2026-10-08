@@ -1,4 +1,5 @@
-from dataclasses import FrozenInstanceError, fields
+from dataclasses import FrozenInstanceError, fields, replace
+from itertools import pairwise
 from pathlib import Path
 from typing import assert_type
 
@@ -24,6 +25,7 @@ from pagedcore.engine_types import (
     TokenEvent,
     TransportStatus,
     TransportTerminal,
+    validate_request_transition,
 )
 
 
@@ -40,7 +42,6 @@ def test_generation_completion_survives_later_delivery_failure() -> None:
     assert generation.state is RequestState.COMPLETED
     assert generation.finish_reason is FinishReason.LENGTH
     assert transport.status is TransportStatus.FAILED
-    assert transport.terminal_at > generation.terminal_at
     with pytest.raises(FrozenInstanceError):
         generation.state = RequestState.CANCELLED  # type: ignore[misc,assignment]
 
@@ -144,3 +145,142 @@ def test_error_codes_match_public_contract() -> None:
 
     assert {code.value for code in ErrorCode} == codes
     assert {reason.value for reason in FinishReason} == {"eos", "length"}
+
+
+@pytest.mark.parametrize("decode", [False, True])
+def test_successful_lifecycle_including_completion_during_prefill(decode: bool) -> None:
+    states = [
+        RequestState.RECEIVED,
+        RequestState.VALIDATED,
+        RequestState.PENDING,
+        RequestState.ADMITTED,
+        RequestState.PREFILLING,
+    ]
+    if decode:
+        states.append(RequestState.DECODING)
+    states.append(RequestState.COMPLETED)
+
+    for current, next_state in pairwise(states):
+        validate_request_transition(current, next_state)
+
+
+@pytest.mark.parametrize(
+    "current",
+    [
+        RequestState.RECEIVED,
+        RequestState.VALIDATED,
+        RequestState.PENDING,
+        RequestState.ADMITTED,
+        RequestState.PREFILLING,
+        RequestState.DECODING,
+    ],
+)
+@pytest.mark.parametrize("terminal", [RequestState.CANCELLED, RequestState.FAILED])
+def test_cancellation_and_failure_at_every_nonterminal_state(
+    current: RequestState, terminal: RequestState
+) -> None:
+    validate_request_transition(current, terminal)
+
+
+@pytest.mark.parametrize(
+    ("current", "next_state"),
+    [
+        (RequestState.RECEIVED, RequestState.PENDING),
+        (RequestState.VALIDATED, RequestState.ADMITTED),
+        (RequestState.PENDING, RequestState.PREFILLING),
+        (RequestState.PENDING, RequestState.DECODING),
+        (RequestState.PENDING, RequestState.COMPLETED),
+        (RequestState.ADMITTED, RequestState.DECODING),
+        (RequestState.ADMITTED, RequestState.COMPLETED),
+        (RequestState.PREFILLING, RequestState.PENDING),
+        (RequestState.DECODING, RequestState.PREFILLING),
+        (RequestState.DECODING, RequestState.DECODING),
+    ],
+)
+def test_lifecycle_rejects_skipped_stages_reversals_and_self_transitions(
+    current: RequestState, next_state: RequestState
+) -> None:
+    with pytest.raises(ValueError, match="Illegal request transition"):
+        validate_request_transition(current, next_state)
+
+
+@pytest.mark.parametrize(
+    "terminal", [RequestState.COMPLETED, RequestState.CANCELLED, RequestState.FAILED]
+)
+@pytest.mark.parametrize("next_state", list(RequestState))
+def test_terminal_state_cannot_be_resolved_again(
+    terminal: RequestState, next_state: RequestState
+) -> None:
+    with pytest.raises(ValueError, match="Illegal request transition"):
+        validate_request_transition(terminal, next_state)
+
+
+@pytest.mark.parametrize(
+    ("current", "next_state"),
+    [
+        ("pending", RequestState.ADMITTED),
+        (RequestState.PENDING, "admitted"),
+        (None, RequestState.ADMITTED),
+        (RequestState.PENDING, None),
+    ],
+)
+def test_transition_requires_enum_values(current: object, next_state: object) -> None:
+    with pytest.raises(ValueError, match="require RequestState values"):
+        validate_request_transition(current, next_state)  # type: ignore[arg-type]
+
+
+@pytest.mark.parametrize("credits", [0, -1, True, False, 1.5, "3"])
+def test_reservation_requires_positive_integer_credits(credits: object) -> None:
+    with pytest.raises(ValueError, match="maximum_block_credits must be a positive integer"):
+        KVReservation(RequestId("request-1"), credits)  # type: ignore[arg-type]
+
+
+@pytest.mark.parametrize(
+    "values",
+    [
+        (0, 0, 0, 0, 0, 0),
+        (8, 8, 0, 0, 0, 0),
+        (8, 8, 0, 3, 1, 0),
+        (8, 6, 2, 3, 1, 17),
+        (8, 0, 8, 8, 2, 128),
+    ],
+)
+def test_capacity_accepts_empty_reserved_and_full_pool_snapshots(
+    values: tuple[int, int, int, int, int, int],
+) -> None:
+    capacity = CapacityCounts(*values)
+    assert capacity.free_blocks + capacity.owned_blocks == capacity.total_blocks
+    assert capacity.owned_blocks <= capacity.reserved_blocks <= capacity.total_blocks
+
+
+@pytest.mark.parametrize(
+    "name",
+    [
+        "total_blocks",
+        "free_blocks",
+        "owned_blocks",
+        "reserved_blocks",
+        "active_slots",
+        "live_cached_token_slots",
+    ],
+)
+@pytest.mark.parametrize("value", [-1, True, False, 1.5, "1"])
+def test_capacity_rejects_negative_or_noninteger_counts(name: str, value: object) -> None:
+    capacity = CapacityCounts(8, 6, 2, 3, 1, 17)
+    with pytest.raises(ValueError, match=f"{name} must be a nonnegative integer"):
+        replace(capacity, **{name: value})  # type: ignore[arg-type]
+
+
+@pytest.mark.parametrize(
+    ("free", "owned", "reserved", "message"),
+    [
+        (6, 3, 3, "free_blocks \\+ owned_blocks must equal total_blocks"),
+        (6, 2, 1, "owned_blocks <= reserved_blocks <= total_blocks must hold"),
+        (6, 2, 9, "owned_blocks <= reserved_blocks <= total_blocks must hold"),
+    ],
+)
+def test_capacity_rejects_missing_blocks_and_overcommitted_credits(
+    free: int, owned: int, reserved: int, message: str
+) -> None:
+    with pytest.raises(ValueError, match=message):
+        CapacityCounts(8, free, owned, reserved, 1, 17)

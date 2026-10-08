@@ -85,6 +85,13 @@ active_slots = number_of_admitted_requests_not_yet_cleaned_up
 
 Reserved credits include already-owned blocks. Unassigned reserved capacity is `reserved_blocks - owned_blocks`; it overlaps the physical free list and must not be counted as a third disjoint block category. Pending requests own none of these resources. Verify per-request ownership, not just aggregate sums.
 
+`CapacityCounts` validates nonnegative integer counts and the first two equations
+when a consistent snapshot is constructed. It does not inspect free lists, block
+tables, request reservations, configured active limits, or valid cached positions.
+Add those concrete assertions in the allocator (P4) and worker (P6), including
+uniqueness of physical block ownership and zero ownership for pending requests.
+Here, active requests include admitted terminal requests awaiting cleanup.
+
 The metrics name `occupied_blocks` means the same count as ledger `owned_blocks`; it is not an additional resource category.
 
 Releasing a block requires all previously launched accesses to it to be ordered before any reuse. Keep model work on one worker-owned CUDA stream; order reuse on that stream and use completion events where host-side publication or shutdown requires completion. Never return pages for unsynchronized use by another stream. CUDA-context failure makes continued serving unsafe: mark readiness false and terminate rather than issuing speculative recovery operations on the broken context.
@@ -149,7 +156,8 @@ This implementation will use many small PyTorch operations, which may create sig
 [`engine_types.py`](../src/pagedcore/engine_types.py) defines immutable records
 without importing Torch, Transformers, or the HTTP layer. `RequestId` and `BlockId`
 are distinct static types; `MonotonicTimestamp` is integer nanoseconds from the
-server process's monotonic clock. These types do not perform runtime validation.
+server process's monotonic clock. These ID/timestamp wrappers do not perform
+runtime validation.
 
 `RequestState` names the lifecycle stages below. `GenerationTerminal` is a union
 of completed, cancelled, and failed records: only completion carries `eos` or
@@ -171,16 +179,55 @@ special tokens), requested output limit, successfully published output tokens,
 and live cached positions. These measurement records retain no text, token IDs,
 or per-token history. `CapacityCounts` separates physical ownership, reserved
 credits, active slots, and live slots. `KVReservation` records maximum block
-credits; `BlockTable` records physical IDs in logical order. Runtime transition,
-accounting, publication, serialization, and instrumentation behavior is still to
-be implemented at its owning gate.
+credits and rejects nonpositive or noninteger values, including booleans;
+`BlockTable` records physical IDs in logical order. `CapacityCounts` rejects
+negative or noninteger counts, including booleans, and broken aggregate block
+equations. `validate_request_transition` checks state changes without mutating
+state. Request mutation, per-request accounting, cleanup, publication,
+serialization, and instrumentation remain work for their owning gates.
 
 ```
-received → validated → pending → admitted → prefilling
-         → decoding → completed
+received → validated → pending → admitted → prefilling → decoding → completed
+                                              └────────────────→ completed
 ```
 
-From pending, prefilling, or decoding, a request may become cancelled or failed. Check cancellation before prefill, between iterations, and before publication. A launched GPU operation cannot be interrupted; release occurs at the next safe worker boundary. Shutdown first clears readiness and stops admission, then cancels work and wakes an idle worker. Wait at most `shutdown_timeout_seconds=10` for cooperative cleanup and worker exit. A timed join cannot kill a thread. If it remains alive, report failed graceful shutdown and require supervisor/operator process termination; do not free or reuse its live GPU resources. Process termination reclaims resources through the OS/driver and is not evidence of release-once graceful cleanup.
+Only the following state changes are legal:
+
+| Current state | Allowed next states |
+|---|---|
+| received | validated, cancelled, failed |
+| validated | pending, cancelled, failed |
+| pending | admitted, cancelled, failed |
+| admitted | prefilling, cancelled, failed |
+| prefilling | decoding, completed, cancelled, failed |
+| decoding | completed, cancelled, failed |
+| completed, cancelled, failed | none |
+
+Prefill can complete on immediate EOS or a one-token output limit. Cancellation
+and failure are allowed before admission and between admission and prefill;
+pre-pending rejection remains an HTTP error, not a streamed generation outcome.
+Skipped stages, backwards changes, and self-transitions raise `ValueError`.
+Another decode step keeps the existing state without a transition. A terminal
+generation outcome is resolved once and never rewritten by delivery failure.
+
+### Ownership and release-once contract
+
+Before admission, requests own no KV blocks, credits, or active slots. Admission
+grants maximum credits and one active slot before prefill assigns physical blocks.
+Moving to completed, cancelled, or failed does not itself release ownership:
+an admitted terminal request retains its remaining resources until worker cleanup.
+
+For EOS, length, disconnect, slow consumer, shutdown, or recoverable failure,
+worker cleanup returns each acquired block, reservation, and active slot once.
+Partial acquisition failure returns only resources actually acquired. Repeated
+cleanup signals after successful release are no-ops, not further counter decrements
+or free-list insertions. The allocator must detect a direct double-free or foreign
+release; request cleanup idempotence must not hide corrupted ownership. Transport
+closure neither performs GPU cleanup nor resets its release status. These are
+allocator/worker implementation and regression-test requirements for P4/P6;
+shared records and validators do not provide cleanup evidence.
+
+Check cancellation before prefill, between iterations, and before publication. A launched GPU operation cannot be interrupted; release occurs at the next safe worker boundary. Shutdown first clears readiness and stops admission, then cancels work and wakes an idle worker. Wait at most `shutdown_timeout_seconds=10` for cooperative cleanup and worker exit. A timed join cannot kill a thread. If it remains alive, report failed graceful shutdown and require supervisor/operator process termination; do not free or reuse its live GPU resources. Process termination reclaims resources through the OS/driver and is not evidence of release-once graceful cleanup.
 
 Python threads cannot be forcibly stopped by a timed join: [Python thread reference](https://docs.python.org/3.11/library/threading.html#thread-objects). The external termination path preserves the one-process/one-model-worker MVP; it adds no second serving worker.
 

@@ -1,0 +1,103 @@
+{
+  "gate": "P2.2",
+  "scope": "Restored shared lifecycle transition, reservation and capacity validators plus their CPU tests. Release-once contract is documented; no allocator, worker, cleanup or GPU implementation.",
+  "commands": [
+    {
+      "command": "uv run --no-sync python -m pytest tests/unit/test_engine_types.py -q",
+      "exit_code": 0,
+      "output": "........................................................................ [ 66%]\r\n....................................                                     [100%]\r\n108 passed in 17.39s\r\n"
+    },
+    {
+      "command": "uv run --no-sync python -m ruff check .",
+      "exit_code": 0,
+      "output": "All checks passed!\n"
+    },
+    {
+      "command": "uv run --no-sync python -m ruff format --check .",
+      "exit_code": 1,
+      "output": "unformatted: File would be reformatted\n  --> tests\\conftest.py:7:1\n  |\n6 |\n7 +\n8 | @pytest.fixture(autouse=True)\n  |\n\n1 file would be reformatted, 21 files already formatted\n"
+    },
+    {
+      "command": "uv run --no-sync python -m ruff format --check src/pagedcore/engine_types.py tests/unit/test_engine_types.py",
+      "exit_code": 0,
+      "output": "2 files already formatted\n"
+    },
+    {
+      "command": "uv run --no-sync python -m mypy --strict src/pagedcore tests/unit/test_engine_types.py",
+      "exit_code": 0,
+      "output": "Success: no issues found in 7 source files\r\n"
+    },
+    {
+      "command": "uv run --no-sync python -m pytest -m \"not gpu and not benchmark\" -ra --junitxml=results/local/2026-10-08-p2.2-cpu.xml",
+      "exit_code": 0,
+      "output": "============================= test session starts =============================\r\nplatform win32 -- Python 3.11.15, pytest-9.1.1, pluggy-1.6.0\r\nrootdir: C:\\Users\\user\\OneDrive\\Desktop\\PagedCore\r\nconfigfile: pyproject.toml\r\ntestpaths: tests\r\nplugins: anyio-4.15.1, hypothesis-6.168.3, asyncio-1.4.0\r\nasyncio: mode=Mode.STRICT, debug=False, asyncio_default_fixture_loop_scope=None, asyncio_default_test_loop_scope=function\r\ncollected 175 items / 2 deselected / 173 selected\r\n\r\ntests\\unit\\test_cli.py ...................                               [ 10%]\r\ntests\\unit\\test_config.py ..........................                     [ 26%]\r\ntests\\unit\\test_determinism.py .....                                     [ 28%]\r\ntests\\unit\\test_engine_types.py ........................................ [ 52%]\r\n....................................................................     [ 91%]\r\ntests\\unit\\test_verification.py ...............                          [100%]\r\n\r\n- generated xml file: C:\\Users\\user\\OneDrive\\Desktop\\PagedCore\\results\\local\\2026-10-08-p2.2-cpu.xml -\r\n================ 173 passed, 2 deselected in 67.41s (0:01:07) =================\r\n"
+    }
+  ],
+  "pre_restoration_check": {
+    "command": "uv run --no-sync python -m pytest tests/unit/test_engine_types.py -q",
+    "exit_code": 1,
+    "output": "\r\n=================================== ERRORS ====================================\r\n______________ ERROR collecting tests/unit/test_engine_types.py _______________\r\nImportError while importing test module 'C:\\Users\\user\\OneDrive\\Desktop\\PagedCore\\tests\\unit\\test_engine_types.py'.\r\nHint: make sure your test modules/packages have valid Python names.\r\nTraceback:\r\n..\\..\\..\\AppData\\Roaming\\uv\\python\\cpython-3.11-windows-x86_64-none\\Lib\\importlib\\__init__.py:126: in import_module\r\n    return _bootstrap._gcd_import(name[level:], package, level)\r\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\r\ntests\\unit\\test_engine_types.py:8: in <module>\r\n    from pagedcore.engine_types import (\r\nE   ImportError: cannot import name 'validate_request_transition' from 'pagedcore.engine_types' (C:\\Users\\user\\OneDrive\\Desktop\\PagedCore\\src\\pagedcore\\engine_types.py)\r\n=========================== short test summary info ===========================\r\nERROR tests/unit/test_engine_types.py\r\n!!!!!!!!!!!!!!!!!!! Interrupted: 1 error during collection !!!!!!!!!!!!!!!!!!!!\r\n1 error in 1.21s\r\n",
+    "interpretation": "Restored tests could not collect because validate_request_transition was absent. The focused and full suites passed after implementation was restored."
+  },
+  "previous_evidence": "results/validation/2026-10-07-p2.2-cpu.json",
+  "limitations": [
+    "Repository-wide formatting still fails on the pre-existing missing blank line in unchanged tests/conftest.py.",
+    "Aggregate counts do not prove per-request ownership, release-once cleanup or CUDA-safe block reuse. Those concrete assertions remain allocator/worker work.",
+    "No T4 tests executed. Phase 2 fixture/oracle work, Phase 1 evidence closure and later runtime gates remain open."
+  ],
+  "captured_at_utc": "2026-10-08T19:18:08.214207+00:00",
+  "source": {
+    "git_revision": "2eda7c07620e638b07270515517722bd783bab38",
+    "dirty": true,
+    "identity": "Uncommitted tested source identified by SHA-256 hashes; revision alone does not identify this change.",
+    "sha256": {
+      "src/pagedcore/__init__.py": "42b1e9884f56caa6de42f8177eedcc2f9b81ae2df2f9db28e45114117e8f3d29",
+      "src/pagedcore/cli.py": "f784ee61837748d535af569736f44e1150b6478dfe338b4b293efd368160eff3",
+      "src/pagedcore/config.py": "1d53260eb14a72385186915dbf28e30c4a13180cff54c3769e872874d3736ac8",
+      "src/pagedcore/determinism.py": "2fdcba5697c59b4f68942fb7d3a14baff46cc4d0d70470c7f23e5c56a437afa2",
+      "src/pagedcore/engine_types.py": "d0125816c8c5756fb3bd1a2193c673716b318b3197b13a6fa011b3c122f8d376",
+      "src/pagedcore/verification.py": "4e6b77ea1e88b81ae96047b59b4e5fa859c4237251d9e674a6ee27c2fbd75044",
+      "tests/conftest.py": "8556b35104991d5ca9737627b0a2bc383076462f421a2d30ce6c1b97d2f11bbe",
+      "tests/gpu/test_target_verification.py": "c40e8cf67d0b972f6737b71787a8d2c8ce4231538ca9b1503da6d65722c5e554",
+      "tests/unit/test_cli.py": "af8fbfb773632497aca945c2ad5fc0209e354b53f9537a7ad74a5c117b03520f",
+      "tests/unit/test_config.py": "7f96e750e9835d84cb2f3596871cd9846ab0a119675dc5bba5200604b576e854",
+      "tests/unit/test_determinism.py": "b4f63d4a3ad45388d9d9e23ffa3901c724a98c86866095b7016667b2ff2052da",
+      "tests/unit/test_engine_types.py": "364debb27dfec1190b9d60f3f619afdfcd1db2fccbffd629429ad02ebd6dc6ae",
+      "tests/unit/test_verification.py": "146f3486311d483da0e30f90521c2eabcf0e6dbed2837d382c9b925a702fb846",
+      "pyproject.toml": "4f655c261767b2542aabb3137274797b30939431b19a5f19f9274cfd41919f84",
+      "uv.lock": "ae7561ac683bfa084defe747ef8aa9380b65a42f7ed7b245ecf3fb9fe0e3df01",
+      "docs/SPEC.md": "a4ea506c0ccfe8a7a676ef56cd14a4b33bd5c2c2e4023845c061957542ff751e",
+      "docs/DESIGN.md": "813d6beec300dbf36d885c7d61c796722f8b8c5db337ecd7f15e3de4a9a65858",
+      "docs/VALIDATION_PLAN.md": "0eb685d0788d60fb98ff67b61775f1ec241f3f5c3e322501aae3d20e778827f5"
+    }
+  },
+  "environment": {
+    "platform": "Windows-10-10.0.26200-SP0",
+    "python": "3.11.15 (main, Jun 23 2026, 15:20:37) [MSC v.1944 64 bit (AMD64)]",
+    "torch": "2.7.1+cpu",
+    "cuda_available": false,
+    "versions": {
+      "pytest": "9.1.1",
+      "ruff": "0.16.9",
+      "mypy": "2.3.1",
+      "transformers": "4.52.4"
+    },
+    "setup": "Existing local uv environment; checks used --no-sync. No fresh installation or dependency synchronization performed.",
+    "test_seed": 0
+  },
+  "tests": {
+    "collected": 175,
+    "selected": 173,
+    "executed": 173,
+    "passed": 173,
+    "failed": 0,
+    "skipped": 0,
+    "deselected": 2,
+    "deselected_reason": "Two GPU tests excluded by marker expression; no benchmark tests collected.",
+    "contract_tests": 108,
+    "restored_contract_tests": 99,
+    "gpu_executed": 0,
+    "junit_sha256": "da48a2f7d6361342a63f0c71d80571687f73335f3e93936984de4e815e55ae92"
+  },
+  "previous_evidence_available": false
+}
