@@ -43,6 +43,72 @@ The P2 oracle explicitly loads the pinned HF model with `attn_implementation="ea
 
 Capture all decoder-relevant values from the loaded configuration, including RMSNorm epsilon, RoPE theta/scaling, intermediate size, head mapping, biases, weight tying, BOS/EOS IDs and vocabulary. Follow the [raw-prompt/decoding policy](SPEC.md#http-contract). Compare token IDs directly across oracle, owned decoder and benchmark adapters. Use public deterministic fixtures; immediate-EOS and stopping paths may also use controlled logits, with synthetic coverage labeled separately from actual checkpoint parity.
 
+### Oracle harness
+
+Run from the repository root with the frozen CUDA/dev environment on an actual T4:
+
+```bash
+export CUBLAS_WORKSPACE_CONFIG=:4096:8
+uv run --no-sync pagedcore oracle --case boundary_15 --output results/local/reference.pt
+uv run --no-sync pagedcore oracle --case boundary_15 --compare results/local/reference.pt --output results/local/reference-repeat.pt
+```
+
+`--case` accepts a name from the public fixture file; `--fixtures` explicitly selects
+that file outside the repository root. The command captures HF reference evidence,
+and `--compare` checks HF reference repeatability. Neither command compares an owned
+decoder or measures serving performance. Retain reviewed artifacts and command/test
+reports under `results/validation/` for gate acceptance; the default local artifacts
+are ignored, and no checkpoint-generated artifact has yet been retained.
+
+[The oracle](../src/pagedcore/oracle.py) captures independent CPU tensor snapshots
+for embeddings, input/post-attention norms, attention outputs, MLP outputs and
+layer outputs in the first and last decoder layers, plus the final norm and logits.
+Each key starts with `prefill` or `decode.<step>`; decode steps start at one. Full
+prefill logits are retained rather than HF generation's usual last-position slice.
+Programmatic `capture_reference(..., layers=(...))` can select other layer indices
+for diagnosis. HF performs cached greedy generation internally; the returned
+`ReferenceTrace` exposes only tensors, IDs, emitted-text decode and finish reason,
+not a Transformers cache. `compare_traces` accepts the same plain record from a
+future owned decoder, checks exact IDs/outcome/text and reports maximum absolute
+errors per tensor at the fixed thresholds below. It rejects missing keys, changed
+shapes/dtypes and non-finite values.
+
+The runner verifies the pinned tokenizer file hashes/settings and exact public
+prompt IDs, loads FP16 eager attention, and records the full resolved model config.
+Fresh generation settings disable inherited checkpoint defaults; an explicit EOS
+override prevents HF from restoring EOS stopping for `ignore_eos=true`. Stopping
+EOS belongs to selected greedy IDs but is excluded from emitted IDs; ignored EOS
+still counts as emitted. Decoding preserves the raw-prompt and special-token policy.
+
+During capture, TF32 and reduced-precision FP16/BF16 matrix-multiply reductions are
+disabled; float32 matmul precision is `highest`, cuDNN benchmarking is disabled,
+and cuDNN deterministic mode is enabled. Deterministic algorithms are enforced
+with `warn_only=false`: unsupported operations fail rather than weakening the
+reference policy. CUDA capture requires `CUBLAS_WORKSPACE_CONFIG=:4096:8` (or
+`:16:8`) before starting Python, including GPU pytest; the oracle rejects missing
+or unsupported values before loading the checkpoint. In PowerShell use
+`$env:CUBLAS_WORKSPACE_CONFIG = ":4096:8"`. Restart a notebook kernel if CUDA/cuBLAS
+was already used before setting the variable. The workspace setting and enforcement
+flags are recorded in artifact metadata; references captured under the previous
+policy must be regenerated for `--compare`. These controls and seed zero do not
+promise cross-device or cross-version equality, or bitwise equality between different
+decoder implementations. Caller math flags, model training mode and hooks are restored
+after success or failure. Artifacts contain tensor/ID records and primitive metadata,
+load with `weights_only=true`, and replace an existing file only after a complete
+write. Metadata retains source/lock and fixture hashes, actual sanitized CLI arguments
+(unknown for a programmatic call), environment, selected GPU identity, numerical
+policy and comparison discrepancies. Installer history remains a separate record.
+
+[Synthetic CPU tests](../tests/unit/test_oracle.py) exercise a tiny random Llama,
+controlled finite logits, independent full-history forwards, artifact failure paths
+and mocked target-loading plumbing. They do not establish pinned-checkpoint parity.
+[Pure internal timing analysis](../src/pagedcore/measurements.py) uses existing
+monotonic-nanosecond records; [synthetic tests](../tests/unit/test_measurements.py)
+check TTFT, publication gaps, TPOT, separate generation/delivery latency and undefined
+zero/one-token cases. This is initial analyzer arithmetic, not worker instrumentation
+or the later external benchmark client. The [T4 reference test](../tests/gpu/test_oracle_reference.py)
+requires actual execution before accepting pinned FP16 capture/repeatability evidence.
+
 ### Public reference fixtures
 
 [Checked-in inputs](../tests/fixtures/reference_prompts.json) contain public raw
@@ -110,6 +176,7 @@ python -m ruff check .
 python -m ruff format --check .
 python -m mypy --strict src/pagedcore
 python -m pytest -m "not gpu and not benchmark"
+export CUBLAS_WORKSPACE_CONFIG=:4096:8
 python -m pytest -m gpu -ra
 ```
 

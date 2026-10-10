@@ -1,0 +1,110 @@
+{
+  "gate": "P2.4",
+  "scope": "Strict deterministic-algorithm enforcement for the HF oracle. Windows CPU evidence only; no pinned-checkpoint T4 capture or owned-decoder parity.",
+  "commands": [
+    {
+      "command": "uv run --no-sync python -m ruff check .",
+      "exit_code": 1,
+      "output": "SIM117 Use a single `with` statement with multiple contexts instead of nested `with` statements\n   --> tests\\unit\\test_oracle.py:241:5\n    |\n239 |           monkeypatch.setenv(\"CUBLAS_WORKSPACE_CONFIG\", workspace)\n240 |       previous = torch.are_deterministic_algorithms_enabled()\n241 | /     with pytest.raises(TargetVerificationError, match=\"CUBLAS_WORKSPACE_CONFIG\"):\n242 | |         with reference_math():\n    | |______________________________^\n243 |               pytest.fail(\"invalid CUDA configuration must fail before capture\")\n244 |       assert torch.are_deterministic_algorithms_enabled() == previous\n    |\nhelp: Combine `with` statements\n\nFound 1 error.\n"
+    },
+    {
+      "command": "uv run --no-sync python -m ruff format --check src/pagedcore/oracle.py tests/unit/test_oracle.py tests/gpu/test_oracle_reference.py",
+      "exit_code": 0,
+      "output": "3 files already formatted\n"
+    },
+    {
+      "command": "uv run --no-sync python -m ruff format --check .",
+      "exit_code": 1,
+      "output": "unformatted: File would be reformatted\n  --> tests\\conftest.py:7:1\n  |\n6 |\n7 +\n8 | @pytest.fixture(autouse=True)\n  |\n\n1 file would be reformatted, 27 files already formatted\n"
+    },
+    {
+      "command": "uv run --no-sync python -m mypy --strict src/pagedcore",
+      "exit_code": 0,
+      "output": "Success: no issues found in 8 source files\r\n"
+    },
+    {
+      "command": "uv run --no-sync python -m pytest -m gpu -ra --junitxml=results/local/2026-10-10-reference-determinism-gpu.xml",
+      "exit_code": 0,
+      "output": "============================= test session starts =============================\r\nplatform win32 -- Python 3.11.15, pytest-9.1.1, pluggy-1.6.0\r\nrootdir: C:\\Users\\user\\OneDrive\\Desktop\\PagedCore\r\nconfigfile: pyproject.toml\r\ntestpaths: tests\r\nplugins: anyio-4.15.1, hypothesis-6.168.3, asyncio-1.4.0\r\nasyncio: mode=Mode.STRICT, debug=False, asyncio_default_fixture_loop_scope=None, asyncio_default_test_loop_scope=function\r\ncollected 250 items / 247 deselected / 3 selected\r\n\r\ntests\\gpu\\test_oracle_reference.py s                                     [ 33%]\r\ntests\\gpu\\test_target_verification.py s                                  [ 66%]\r\ntests\\unit\\test_determinism.py s                                         [100%]\r\n\r\n- generated xml file: C:\\Users\\user\\OneDrive\\Desktop\\PagedCore\\results\\local\\2026-10-10-reference-determinism-gpu.xml -\r\n=========================== short test summary info ===========================\r\nSKIPPED [1] tests\\gpu\\test_oracle_reference.py:13: requires CUDA\r\nSKIPPED [1] tests\\gpu\\test_target_verification.py:13: requires CUDA\r\nSKIPPED [1] tests\\unit\\test_determinism.py:43: requires CUDA\r\n===================== 3 skipped, 247 deselected in 5.07s ======================\r\n"
+    },
+    {
+      "command": "uv run --no-sync python -m ruff check .",
+      "exit_code": 0,
+      "output": "All checks passed!\n"
+    },
+    {
+      "command": "uv run --no-sync python -m pytest -m \"not gpu and not benchmark\" -ra --junitxml=results/local/2026-10-10-reference-determinism-cpu.xml",
+      "exit_code": 0,
+      "output": "============================= test session starts =============================\r\nplatform win32 -- Python 3.11.15, pytest-9.1.1, pluggy-1.6.0\r\nrootdir: C:\\Users\\user\\OneDrive\\Desktop\\PagedCore\r\nconfigfile: pyproject.toml\r\ntestpaths: tests\r\nplugins: anyio-4.15.1, hypothesis-6.168.3, asyncio-1.4.0\r\nasyncio: mode=Mode.STRICT, debug=False, asyncio_default_fixture_loop_scope=None, asyncio_default_test_loop_scope=function\r\ncollected 250 items / 3 deselected / 247 selected\r\n\r\ntests\\unit\\test_cli.py ...................                               [  7%]\r\ntests\\unit\\test_config.py ..........................                     [ 18%]\r\ntests\\unit\\test_determinism.py .....                                     [ 20%]\r\ntests\\unit\\test_engine_types.py ........................................ [ 36%]\r\n....................................................................     [ 63%]\r\ntests\\unit\\test_measurements.py ..........                               [ 68%]\r\ntests\\unit\\test_oracle.py .............................................. [ 86%]\r\n..                                                                       [ 87%]\r\ntests\\unit\\test_reference_fixtures.py ................                   [ 93%]\r\ntests\\unit\\test_verification.py ...............                          [100%]\r\n\r\n- generated xml file: C:\\Users\\user\\OneDrive\\Desktop\\PagedCore\\results\\local\\2026-10-10-reference-determinism-cpu.xml -\r\n===================== 247 passed, 3 deselected in 10.97s ======================\r\n"
+    }
+  ],
+  "regression_before_fix": {
+    "command": "uv run --no-sync python -m pytest tests/unit/test_oracle.py -k \"enforces_determinism or workspace\" -q",
+    "exit_code": 1,
+    "summary": "11 failed, 36 deselected; strict enforcement and workspace-policy assertions fail against the previous implementation."
+  },
+  "test_counts": {
+    "cpu": {
+      "collected": 250,
+      "selected": 247,
+      "executed": 247,
+      "passed": 247,
+      "failed": 0,
+      "skipped": 0,
+      "deselected": 3
+    },
+    "gpu": {
+      "collected": 250,
+      "selected": 3,
+      "executed": 0,
+      "passed": 0,
+      "failed": 0,
+      "skipped": 3,
+      "deselected": 247,
+      "reason": "requires CUDA"
+    }
+  },
+  "limitations": [
+    "No CUDA device is available; strict FP16 eager TinyLlama reference capture and repeatability remain unvalidated on NVIDIA T4.",
+    "Full-tree Ruff formatting fails on the pre-existing missing blank line in unchanged tests/conftest.py. Changed Python files pass.",
+    "CUDA workspace checks use mocked availability in CPU tests; set CUBLAS_WORKSPACE_CONFIG before starting Python on T4.",
+    "References created with the old math policy must be regenerated; no comparison tolerance was changed.",
+    "Existing uncommitted work was preserved; this report attributes the tested source through individual hashes."
+  ],
+  "captured_at_utc": "2026-10-10T14:01:50.392568+00:00",
+  "environment": {
+    "platform": "Windows",
+    "python": "3.11.15",
+    "torch": "2.7.1+cpu",
+    "transformers": "4.52.4",
+    "cuda_available": false
+  },
+  "provenance": {
+    "git_revision": "d3da108a294c0a694ade26e70a47320d8250608c",
+    "dirty": true,
+    "source_sha256": {
+      "src/pagedcore/__init__.py": "42b1e9884f56caa6de42f8177eedcc2f9b81ae2df2f9db28e45114117e8f3d29",
+      "src/pagedcore/cli.py": "e36cb0cf9e342e76787b3d74e98b778c22b1b76b580bf76e556a5f03aa6c2c16",
+      "src/pagedcore/config.py": "1d53260eb14a72385186915dbf28e30c4a13180cff54c3769e872874d3736ac8",
+      "src/pagedcore/determinism.py": "2fdcba5697c59b4f68942fb7d3a14baff46cc4d0d70470c7f23e5c56a437afa2",
+      "src/pagedcore/engine_types.py": "db31cb04b5dd4e127d37f1b3a4b88bc20f2272520893a150428197713c6cae40",
+      "src/pagedcore/measurements.py": "32880998927d7292f0e77ad98618fefaba1e10a696013ec27a16a9864985ddf1",
+      "src/pagedcore/oracle.py": "6fbc7fe7fdd01eb7cb23055ad3189fad00b733bc1dcd727e091306dcf34f9eb8",
+      "src/pagedcore/verification.py": "4e6b77ea1e88b81ae96047b59b4e5fa859c4237251d9e674a6ee27c2fbd75044",
+      "tests/conftest.py": "8556b35104991d5ca9737627b0a2bc383076462f421a2d30ce6c1b97d2f11bbe",
+      "tests/gpu/test_oracle_reference.py": "6617aa0cc73197779f22c52441d85a34e1c3e38e9090fb08a9bd871510f53a78",
+      "tests/gpu/test_target_verification.py": "c40e8cf67d0b972f6737b71787a8d2c8ce4231538ca9b1503da6d65722c5e554",
+      "tests/unit/test_cli.py": "af8fbfb773632497aca945c2ad5fc0209e354b53f9537a7ad74a5c117b03520f",
+      "tests/unit/test_config.py": "7f96e750e9835d84cb2f3596871cd9846ab0a119675dc5bba5200604b576e854",
+      "tests/unit/test_determinism.py": "b4f63d4a3ad45388d9d9e23ffa3901c724a98c86866095b7016667b2ff2052da",
+      "tests/unit/test_engine_types.py": "364debb27dfec1190b9d60f3f619afdfcd1db2fccbffd629429ad02ebd6dc6ae",
+      "tests/unit/test_measurements.py": "61cebb5bc44b7579a9a0442743714ca7484b52605c0ba24770390d760e0c4dbb",
+      "tests/unit/test_oracle.py": "e541cbee6d6672136310866df7059f1d2c627024630eb4460442ae9e5d663227",
+      "tests/unit/test_reference_fixtures.py": "ea21b7be9d4837c4d1ad3e2453909e6c1e0c75aad83c67d4125af612fccf9a67",
+      "tests/unit/test_verification.py": "146f3486311d483da0e30f90521c2eabcf0e6dbed2837d382c9b925a702fb846",
+      "pyproject.toml": "4f655c261767b2542aabb3137274797b30939431b19a5f19f9274cfd41919f84",
+      "uv.lock": "ae7561ac683bfa084defe747ef8aa9380b65a42f7ed7b245ecf3fb9fe0e3df01",
+      "docs/VALIDATION_PLAN.md": "4e86dfc5e7b56f83e23f7737031deee0281dadc24112178e9dbbf11649e7b545"
+    }
+  }
+}

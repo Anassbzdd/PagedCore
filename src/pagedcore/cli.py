@@ -205,6 +205,13 @@ def _build_parser() -> argparse.ArgumentParser:
         default=Path("results/local/environment-manifest.json"),
         help="where to write the prompt-free verification manifest",
     )
+    oracle = commands.add_parser("oracle", help="capture a public T4 HF correctness reference")
+    oracle.add_argument(
+        "--fixtures", type=Path, default=Path("tests/fixtures/reference_prompts.json")
+    )
+    oracle.add_argument("--case", default="boundary_15")
+    oracle.add_argument("--output", type=Path, default=Path("results/local/reference.pt"))
+    oracle.add_argument("--compare", type=Path, help="compare against a saved reference")
     return parser
 
 
@@ -214,6 +221,43 @@ def main(argv: Sequence[str] | None = None) -> int:
     try:
         if arguments.command == "env":
             print(json.dumps(collect_environment_diagnostics(), indent=2, sort_keys=True))
+            return 0
+        if arguments.command == "oracle":
+            try:
+                from pagedcore.oracle import run_oracle
+
+                sanitized = []
+                redact_next = False
+                for argument in actual_arguments:
+                    option, separator, _ = argument.partition("=")
+                    is_path = option in {"--fixtures", "--output", "--compare"}
+                    sanitized.append(
+                        "<path>"
+                        if redact_next
+                        else option + "=<path>"
+                        if is_path and separator
+                        else argument
+                    )
+                    redact_next = is_path and not separator
+                result = run_oracle(
+                    arguments.fixtures,
+                    arguments.case,
+                    arguments.output,
+                    arguments.compare,
+                    command_arguments=sanitized,
+                )
+            except TargetVerificationError:
+                raise
+            except (
+                ImportError,
+                OSError,
+                ValueError,
+                RuntimeError,
+                AssertionError,
+                KeyError,
+            ) as error:
+                raise TargetVerificationError("oracle capture or comparison failed") from error
+            print(json.dumps(result, indent=2, sort_keys=True))
             return 0
         if arguments.command == "verify":
             manifest = verify_target()

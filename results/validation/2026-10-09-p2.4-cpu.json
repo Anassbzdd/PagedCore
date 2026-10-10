@@ -1,0 +1,245 @@
+{
+  "gate": "P2.4",
+  "scope": "Frozen HF oracle capture/comparison, reference artifact CLI and initial pure internal timing analysis. Synthetic CPU evidence only; no owned decoder or live serving comparison.",
+  "captured_at_utc": "2026-10-09T21:51:21.699801+00:00",
+  "commands": [
+    {
+      "argv": [
+        "uv",
+        "run",
+        "--no-sync",
+        "python",
+        "-m",
+        "ruff",
+        "check",
+        "."
+      ],
+      "exit_code": 0,
+      "stdout": "All checks passed!\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "uv",
+        "run",
+        "--no-sync",
+        "python",
+        "-m",
+        "ruff",
+        "format",
+        "--check",
+        "."
+      ],
+      "exit_code": 1,
+      "stdout": "unformatted: File would be reformatted\n  --> tests\\conftest.py:7:1\n  |\n6 |\n7 +\n8 | @pytest.fixture(autouse=True)\n  |\n\n1 file would be reformatted, 27 files already formatted\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "uv",
+        "run",
+        "--no-sync",
+        "python",
+        "-m",
+        "ruff",
+        "format",
+        "--check",
+        "src/pagedcore/oracle.py",
+        "src/pagedcore/measurements.py",
+        "src/pagedcore/cli.py",
+        "tests/unit/test_oracle.py",
+        "tests/unit/test_measurements.py",
+        "tests/gpu/test_oracle_reference.py"
+      ],
+      "exit_code": 0,
+      "stdout": "6 files already formatted\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "uv",
+        "run",
+        "--no-sync",
+        "python",
+        "-m",
+        "mypy",
+        "--strict",
+        "src/pagedcore",
+        "tests/unit/test_oracle.py",
+        "tests/unit/test_measurements.py",
+        "tests/gpu/test_oracle_reference.py"
+      ],
+      "exit_code": 0,
+      "stdout": "Success: no issues found in 11 source files\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "uv",
+        "run",
+        "--no-sync",
+        "python",
+        "-m",
+        "pytest",
+        "-m",
+        "not gpu and not benchmark",
+        "-ra",
+        "--junitxml=results/local/2026-10-09-p2.4-cpu.xml"
+      ],
+      "exit_code": 0,
+      "stdout": "============================= test session starts =============================\nplatform win32 -- Python 3.11.15, pytest-9.1.1, pluggy-1.6.0\nrootdir: C:\\Users\\user\\OneDrive\\Desktop\\PagedCore\nconfigfile: pyproject.toml\ntestpaths: tests\nplugins: anyio-4.15.1, hypothesis-6.168.3, asyncio-1.4.0\nasyncio: mode=Mode.STRICT, debug=False, asyncio_default_fixture_loop_scope=None, asyncio_default_test_loop_scope=function\ncollected 238 items / 3 deselected / 235 selected\n\ntests\\unit\\test_cli.py ...................                               [  8%]\ntests\\unit\\test_config.py ..........................                     [ 19%]\ntests\\unit\\test_determinism.py .....                                     [ 21%]\ntests\\unit\\test_engine_types.py ........................................ [ 38%]\n....................................................................     [ 67%]\ntests\\unit\\test_measurements.py ..........                               [ 71%]\ntests\\unit\\test_oracle.py ....................................           [ 86%]\ntests\\unit\\test_reference_fixtures.py ................                   [ 93%]\ntests\\unit\\test_verification.py ...............                          [100%]\n\n- generated xml file: C:\\Users\\user\\OneDrive\\Desktop\\PagedCore\\results\\local\\2026-10-09-p2.4-cpu.xml -\n================ 235 passed, 3 deselected in 87.18s (0:01:27) =================\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "uv",
+        "pip",
+        "install",
+        "--no-deps",
+        "--target",
+        "<temporary-directory>",
+        "<built-wheel>"
+      ],
+      "exit_code": 0,
+      "stdout": "",
+      "stderr": "Using CPython 3.11.15 interpreter at: .venv\\Scripts\\python.exe\nResolved 1 package in 63ms\nPrepared 1 package in 103ms\nInstalled 1 package in 314ms\n + pagedcore==0.1.0 (from file:///C:/Users/user/OneDrive/Desktop/PagedCore/dist/pagedcore-0.1.0-py3-none-any.whl)\n"
+    },
+    {
+      "argv": [
+        "python",
+        "-I",
+        "-c",
+        "import pathlib,sys; sys.path.insert(0,sys.argv[1]); import pagedcore.cli,pagedcore.oracle,pagedcore.measurements; assert pathlib.Path(pagedcore.oracle.__file__).is_relative_to(pathlib.Path(sys.argv[1])); pagedcore.cli.main(['oracle','--help'])",
+        "<temporary-directory>"
+      ],
+      "exit_code": 0,
+      "stdout": "usage: pagedcore oracle [-h] [--fixtures FIXTURES] [--case CASE]\n                        [--output OUTPUT] [--compare COMPARE]\n\noptions:\n  -h, --help           show this help message and exit\n  --fixtures FIXTURES\n  --case CASE\n  --output OUTPUT\n  --compare COMPARE    compare against a saved reference\n",
+      "stderr": ""
+    }
+  ],
+  "setup": "Existing local CPU/dev environment, checks used --no-sync; no dependency changes or fresh Linux installation. Checkpoint weights were not downloaded.",
+  "environment": {
+    "platform": "Windows-10-10.0.26200-SP0",
+    "python": "3.11.15 (main, Jun 23 2026, 15:20:37) [MSC v.1944 64 bit (AMD64)]",
+    "torch": "2.7.1+cpu",
+    "transformers": "4.52.4",
+    "cuda_available": false
+  },
+  "tests": {
+    "collected": 238,
+    "selected": 235,
+    "executed": 235,
+    "passed": 235,
+    "failed": 0,
+    "skipped": 0,
+    "deselected": 3,
+    "oracle_and_timing_cpu_cases": 46,
+    "t4_tests_executed": 0
+  },
+  "source": {
+    "git_revision": "d3da108a294c0a694ade26e70a47320d8250608c",
+    "dirty": true,
+    "identity": "Final tested checkout identified by source and lock SHA-256; commit alone does not identify uncommitted changes.",
+    "sha256": {
+      ".python-version": "db82937e1f1830581a9553c7814f5c5fcacb6dfdef8310b43e9a812c887acaf5",
+      "docs/CONSTANTS.md": "ef0b2218f540ad12c245300867cdf2d188e2ae2627a99fadfe86c079c7f9a26a",
+      "docs/DESIGN.md": "813d6beec300dbf36d885c7d61c796722f8b8c5db337ecd7f15e3de4a9a65858",
+      "docs/SPEC.md": "a4ea506c0ccfe8a7a676ef56cd14a4b33bd5c2c2e4023845c061957542ff751e",
+      "docs/STATUS.md": "4f02669ffd529c80440865484b03d6b625f47704a2bde8784dd5c112c5508406",
+      "docs/task.md": "b64785f4f87ff3495ccd5720eff44d6f30b3eda0f6adc6828f74b4c46cee46a3",
+      "docs/VALIDATION_PLAN.md": "8e2cfdf20d97b957e50fced437e2bbe52df743cf5d1f79c6fdec0cfb043678c1",
+      "pyproject.toml": "4f655c261767b2542aabb3137274797b30939431b19a5f19f9274cfd41919f84",
+      "src/pagedcore/__init__.py": "42b1e9884f56caa6de42f8177eedcc2f9b81ae2df2f9db28e45114117e8f3d29",
+      "src/pagedcore/cli.py": "e36cb0cf9e342e76787b3d74e98b778c22b1b76b580bf76e556a5f03aa6c2c16",
+      "src/pagedcore/config.py": "1d53260eb14a72385186915dbf28e30c4a13180cff54c3769e872874d3736ac8",
+      "src/pagedcore/determinism.py": "2fdcba5697c59b4f68942fb7d3a14baff46cc4d0d70470c7f23e5c56a437afa2",
+      "src/pagedcore/engine_types.py": "db31cb04b5dd4e127d37f1b3a4b88bc20f2272520893a150428197713c6cae40",
+      "src/pagedcore/measurements.py": "32880998927d7292f0e77ad98618fefaba1e10a696013ec27a16a9864985ddf1",
+      "src/pagedcore/oracle.py": "8de85944d5b8bb9f830766a1eae81bb6860c9a5cb23c42193ababd8608186daa",
+      "src/pagedcore/verification.py": "4e6b77ea1e88b81ae96047b59b4e5fa859c4237251d9e674a6ee27c2fbd75044",
+      "tests/conftest.py": "8556b35104991d5ca9737627b0a2bc383076462f421a2d30ce6c1b97d2f11bbe",
+      "tests/fixtures/reference_prompts.json": "143f89f62b0b85956ddd7ab94cd7b7ec559799725b947b5404409dcdf6365190",
+      "tests/gpu/test_oracle_reference.py": "2fcaa0a485b14cdf4ec890587c00700e3281b7bf3942c8beacbe6884b751135f",
+      "tests/gpu/test_target_verification.py": "c40e8cf67d0b972f6737b71787a8d2c8ce4231538ca9b1503da6d65722c5e554",
+      "tests/unit/test_cli.py": "af8fbfb773632497aca945c2ad5fc0209e354b53f9537a7ad74a5c117b03520f",
+      "tests/unit/test_config.py": "7f96e750e9835d84cb2f3596871cd9846ab0a119675dc5bba5200604b576e854",
+      "tests/unit/test_determinism.py": "b4f63d4a3ad45388d9d9e23ffa3901c724a98c86866095b7016667b2ff2052da",
+      "tests/unit/test_engine_types.py": "364debb27dfec1190b9d60f3f619afdfcd1db2fccbffd629429ad02ebd6dc6ae",
+      "tests/unit/test_measurements.py": "61cebb5bc44b7579a9a0442743714ca7484b52605c0ba24770390d760e0c4dbb",
+      "tests/unit/test_oracle.py": "b4f2839e264e31c9feb93c11180a8995606cba15eff055b34b9eae6366c5dc07",
+      "tests/unit/test_reference_fixtures.py": "ea21b7be9d4837c4d1ad3e2453909e6c1e0c75aad83c67d4125af612fccf9a67",
+      "tests/unit/test_verification.py": "146f3486311d483da0e30f90521c2eabcf0e6dbed2837d382c9b925a702fb846",
+      "uv.lock": "ae7561ac683bfa084defe747ef8aa9380b65a42f7ed7b245ecf3fb9fe0e3df01"
+    }
+  },
+  "iteration_failures": [
+    {
+      "command": "pytest tests/unit/test_oracle.py tests/unit/test_measurements.py -q -ra",
+      "result": "36 passed, 1 failed: FP32 reported discrepancy 0.003000020980834961 exceeded pytest.approx(0.003) default tolerance. Corrected decimal-error reporting test to account for FP32 rounding; parity tolerances unchanged."
+    },
+    {
+      "command": "pytest -m \"not gpu and not benchmark\" -ra",
+      "result": "Collection stopped: duplicate test_oracle.py basenames in unit and GPU directories. Renamed only the new GPU module to test_oracle_reference.py."
+    },
+    {
+      "command": "mypy --strict src/pagedcore and new tests",
+      "result": "Iteration found math-flag inference, an untyped diagnostic lambda, duplicate test module names, dynamic invalid-input typing and a private imported exception reference. Corrected code/test typing and imports; final result retained above."
+    }
+  ],
+  "packaging": {
+    "build_command": "uv run --no-sync python -m build",
+    "exit_code": 0,
+    "result": "Built wheel and sdist with setuptools 84.0.0; installed-wheel smoke retained in commands.",
+    "wheel_sha256": "752e2db1ab1d87ea7b8084ef818c10b8f2597546b0351d88d5716e92a94a31c8",
+    "wheel_matches_changed_runtime_source": true
+  },
+  "limitations": [
+    "Repository-wide Ruff formatting still fails only on the pre-existing missing blank line in unchanged tests/conftest.py. Changed Python files pass formatting.",
+    "Tiny randomly initialized CPU Llama and controlled finite logits exercise harness logic; mocked loading is not hardware or pinned-checkpoint evidence.",
+    "GPU execution is unavailable. Actual pinned eager FP16 capture and repeatability on T4 remain unexecuted, leaving P2.4 and the Phase 2 exit gate open.",
+    "No owned decoder, paging, batching, worker instrumentation, service, live benchmark or performance claim. P2.5 was not implemented."
+  ],
+  "gpu_check": {
+    "argv": [
+      "uv",
+      "run",
+      "--no-sync",
+      "python",
+      "-m",
+      "pytest",
+      "-m",
+      "gpu",
+      "-ra",
+      "--junitxml=results/local/2026-10-09-p2.4-gpu.xml"
+    ],
+    "exit_code": 0,
+    "collected": 238,
+    "selected": 3,
+    "executed": 0,
+    "passed": 0,
+    "failed": 0,
+    "skipped": 3,
+    "deselected": 235,
+    "skip_reasons": [
+      "requires CUDA",
+      "requires CUDA",
+      "requires CUDA"
+    ],
+    "scope": "CPU collection/skip observation only; zero GPU execution"
+  },
+  "oracle_cpu_smoke": {
+    "argv": [
+      "uv",
+      "run",
+      "--no-sync",
+      "pagedcore",
+      "oracle",
+      "--case",
+      "boundary_15"
+    ],
+    "exit_code": 1,
+    "stdout": "",
+    "stderr": "{\"status\": \"failed\", \"error\": \"oracle reference capture requires an NVIDIA T4\"}\n",
+    "scope": "Expected failure before checkpoint download on this CPU machine"
+  }
+}

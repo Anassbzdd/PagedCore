@@ -1,10 +1,10 @@
 # Implementation and evidence status
 
-Snapshot: 2026-10-08. Public reference fixtures and synthetic stopping cases have fresh local CPU evidence in the [P2.3 report](../results/validation/2026-10-08-p2.3-cpu.json), attributed by source hashes against the uncommitted checkout based on `f813a555d6e54814839ccbe020b9cedcc2fada0b`. The real pinned tokenizer ID check executed successfully. The CPU CI workflow was added against commit `82102a3e55b995a0ab431a8f7a15417b29ba2421`; its first GitHub-hosted run remains unverified. Earlier environment evidence is attributed to commit `ab05602e721beb6b0fc4266a9642b09f89eee6c1` plus source hashes and a sanitized patch in the [CPU validation report](../results/validation/2026-10-05-p1.6-cpu.json). This page records observed state, not a release certificate.
+Snapshot: 2026-10-10. Strict deterministic-algorithm enforcement and the CUDA workspace requirement now have [local CPU evidence](../results/validation/2026-10-10-reference-determinism-cpu.json); the changed oracle policy remains unvalidated on T4. The oracle harness and initial internal timing analyzer have earlier local synthetic CPU evidence in the [P2.4 report](../results/validation/2026-10-09-p2.4-cpu.json), attributed by tested source/lock hashes; actual pinned FP16/T4 oracle execution remains open. Public reference fixtures and synthetic stopping cases have earlier local CPU evidence in the [P2.3 report](../results/validation/2026-10-08-p2.3-cpu.json). The CPU CI workflow was added against commit `82102a3e55b995a0ab431a8f7a15417b29ba2421`; its first GitHub-hosted run remains unverified. Earlier environment evidence is attributed to commit `ab05602e721beb6b0fc4266a9642b09f89eee6c1` plus source hashes and a sanitized patch in the [CPU validation report](../results/validation/2026-10-05-p1.6-cpu.json). This page records observed state, not a release certificate.
 
 ## Current gate
 
-Phase 1 implementation is substantially delivered; its evidence closure remains open and was not re-audited for this change. P2.1 shared types, P2.2 lifecycle/accounting validators and P2.3 public reference fixtures are implemented and CPU-tested; release-once rules are specified, with concrete ownership/cleanup assertions deferred to P4/P6. The oracle harness (P2.4) and test-command work (P2.5) remain next. The Phase 2 exit gate remains open, followed by dense parity -> allocator correctness -> paged attention -> lifecycle correctness -> HTTP. Early CI and validation procedures support that order without implementing later runtime features.
+Phase 1 implementation is substantially delivered; its evidence closure remains open and was not re-audited for this change. P2.1 shared types, P2.2 lifecycle/accounting validators and P2.3 public reference fixtures are implemented and CPU-tested; release-once rules are specified, with concrete ownership/cleanup assertions deferred to P4/P6. P2.4 oracle capture/comparison and initial timing arithmetic are implemented with synthetic CPU checks; pinned-checkpoint T4 reference evidence remains required. P2.5 test-command work remains next. The Phase 2 exit gate remains open, followed by dense parity -> allocator correctness -> paged attention -> lifecycle correctness -> HTTP. Early CI and validation procedures support that order without implementing later runtime features.
 
 | Surface | Observed implementation | Evidence limit |
 |---|---|---|
@@ -15,12 +15,29 @@ Phase 1 implementation is substantially delivered; its evidence closure remains 
 | Target verifier | Pinned snapshot, FP16/config/logit checks, source hashes, sanitized actual CLI arguments, manifest-write error handling | CPU regressions pass; fresh T4 evidence for the changed verifier remains open |
 | Shared engine contracts | [Immutable records, legal-transition validator, positive reservation credits and nonnegative/accounted capacity snapshots](../src/pagedcore/engine_types.py); release-once contract specified | [108 CPU contract cases](../tests/unit/test_engine_types.py), including 99 added for P2.2; no request-state mutation, allocator/worker ownership checks, cleanup, instrumentation or T4 engine evidence |
 | Reference fixtures | [Six public raw-prompt cases](../tests/fixtures/reference_prompts.json) with exact pinned tokenizer IDs, 15/16/17 and 32/49-token lengths, maximum output, EOS settings and a mixed-length group; [seven controlled-logit stopping cases](../tests/unit/test_reference_fixtures.py) | CPU tokenizer verification and synthetic HF stopping reference only; tokenizer verification explicitly skips with an empty offline cache. No checkpoint-generated output IDs, owned stopping loop, batching/paging or T4 parity evidence |
+| Oracle and timing analyzer | [Frozen eager HF capture, strict deterministic algorithms, CUDA workspace preflight, plain tensor/ID comparison and artifact command](../src/pagedcore/oracle.py); [pure internal timing arithmetic](../src/pagedcore/measurements.py) | Synthetic CPU capture/stopping/comparison and timing tests; mocked loader tests are not hardware proof. The changed numerical policy requires new T4 references. [T4 reference test](../tests/gpu/test_oracle_reference.py) unexecuted; no retained pinned outputs, owned-decoder comparison, worker instrumentation or performance claim |
 | Decoder, allocator, paged attention | Not implemented | No parity, ownership, or paged-read evidence |
 | Scheduler, worker, HTTP/SSE | Not implemented | No concurrency, cleanup, backpressure, or service evidence |
 | CPU CI | [Workflow](../.github/workflows/ci.yml) for every push/PR: frozen CPU/dev environment, lock check, format/lint/strict types, non-GPU/non-benchmark pytest, distribution build and installed-wheel/config/CLI smoke | Local Windows CPU checks; first GitHub-hosted Linux run pending |
 | Container, benchmark/report | Not implemented | No container or benchmark evidence |
 
 ## Observed CPU checks
+
+On 2026-10-10, the [reference determinism report](../results/validation/2026-10-10-reference-determinism-cpu.json)
+records 247 passing non-GPU/non-benchmark tests, Ruff lint, strict mypy and
+changed-file formatting. Regression tests cover strict operation rejection,
+nested contexts, caller settings restored after success/failure, CUDA workspace
+validation and metadata policy mismatch. All three selected GPU tests skipped
+without CUDA; zero executed. Repository-wide formatting remains blocked by the
+pre-existing blank line in unchanged `tests/conftest.py`. The P2.4 T4 gate remains open.
+
+On 2026-10-09, [oracle and timing tests](../results/validation/2026-10-09-p2.4-cpu.json)
+passed locally on Windows/CPU using a tiny random eager Llama and controlled logits.
+The report retains required checks, command outcomes, source/lock attribution and
+test counts. Repository-wide formatting still fails on the pre-existing missing
+blank line in unchanged `tests/conftest.py`; changed Python files are formatted.
+No checkpoint weights were downloaded and no T4 tests executed. The oracle task
+remains in progress pending real pinned FP16 reference capture/repeatability.
 
 On 2026-10-08, local Windows validation of the reference fixtures passed Ruff
 lint, strict mypy over six source modules plus the new fixture test module, and
