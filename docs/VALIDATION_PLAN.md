@@ -180,7 +180,14 @@ export CUBLAS_WORKSPACE_CONFIG=:4096:8
 python -m pytest -m gpu -ra
 ```
 
-The last command requires an actual T4 and an inspected test report. Add package-build, service, container and benchmark smoke commands when those surfaces exist.
+The last command requires an actual T4 and an inspected test report. The six
+registered markers (`unit`, `integration`, `gpu`, `service`, `slow`, `benchmark`)
+and their selection commands are documented in
+[Contributing](../CONTRIBUTING.md#selecting-test-suites). Marks can overlap; every
+hardware-dependent test must carry `gpu` regardless of its other marks. Routine
+CPU CI excludes `gpu` and `benchmark` and includes CPU integration, service and
+slow checks. Empty or all-skipped selections do not satisfy a validation gate.
+Add package-build, service, container and benchmark smoke commands when those surfaces exist.
 
 ## Benchmark protocol
 

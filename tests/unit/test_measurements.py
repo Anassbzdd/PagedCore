@@ -6,6 +6,8 @@ import pytest
 from pagedcore.engine_types import MonotonicTimestamp, RequestTiming
 from pagedcore.measurements import analyze_internal_timing
 
+pytestmark = pytest.mark.unit
+
 
 def ns(milliseconds: int) -> MonotonicTimestamp:
     return MonotonicTimestamp(milliseconds * 1_000_000)

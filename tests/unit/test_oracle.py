@@ -20,6 +20,8 @@ from pagedcore.oracle import (
 )
 from pagedcore.verification import TargetVerificationError
 
+pytestmark = pytest.mark.unit
+
 
 class Tokenizer:
     bos_token_id = 1

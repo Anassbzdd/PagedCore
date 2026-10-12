@@ -10,6 +10,8 @@ import torch
 from pagedcore.config import MODEL_ID, MODEL_REVISION, PagedCoreConfig
 from pagedcore.engine_types import FinishReason
 
+pytestmark = pytest.mark.unit
+
 FIXTURE_PATH = Path(__file__).parents[1] / "fixtures" / "reference_prompts.json"
 REFERENCE_DATA: dict[str, Any] = json.loads(FIXTURE_PATH.read_text(encoding="utf-8"))
 PROMPTS: list[dict[str, Any]] = REFERENCE_DATA["prompts"]

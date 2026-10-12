@@ -12,6 +12,8 @@ from pagedcore.config import (
     load_config,
 )
 
+pytestmark = pytest.mark.unit
+
 
 def test_load_config_uses_documented_defaults() -> None:
     config = load_config({})

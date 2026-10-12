@@ -93,8 +93,10 @@ files = ["src/pagedcore"]
 addopts = "--strict-config --strict-markers"
 testpaths = ["tests"]
 markers = [
-    "benchmark: benchmark-harness tests excluded from routine CPU checks",
-    "gpu: tests that require an NVIDIA T4 and CUDA runtime",
+    "unit: isolated component and synthetic contract tests",
     "integration: cross-component tests",
+    "gpu: tests that require an NVIDIA T4 and CUDA runtime",
     "service: HTTP and SSE service tests",
+    "slow: long-running tests, including extended property and soak tests",
+    "benchmark: benchmark-harness tests excluded from routine CPU checks",
 ]

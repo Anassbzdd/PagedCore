@@ -1,0 +1,131 @@
+{
+  "task": "P2.5",
+  "validation": "CPU-only",
+  "seed": 0,
+  "setup": "Existing frozen CPU/dev environment; no fresh installation performed.",
+  "checks": [
+    {
+      "name": "lint",
+      "command": "uv run --no-sync python -m ruff check .",
+      "exit_code": 0,
+      "output": "All checks passed!"
+    },
+    {
+      "name": "format",
+      "command": "uv run --no-sync python -m ruff format --check .",
+      "exit_code": 1,
+      "output": "unformatted: File would be reformatted\n  --> tests\\conftest.py:7:1\n  |\n6 |\n7 +\n8 | @pytest.fixture(autouse=True)\n  |\n\n1 file would be reformatted, 27 files already formatted"
+    },
+    {
+      "name": "types",
+      "command": "uv run --no-sync python -m mypy --strict src/pagedcore",
+      "exit_code": 0,
+      "output": "Success: no issues found in 8 source files"
+    },
+    {
+      "name": "cpu",
+      "command": "uv run --no-sync python -m pytest -m \"not gpu and not benchmark\" -ra --junitxml=results/local/p2.5-cpu.xml",
+      "exit_code": 0,
+      "output": "============================= test session starts =============================\r\nplatform win32 -- Python 3.11.15, pytest-9.1.1, pluggy-1.6.0\r\nrootdir: C:\\Users\\user\\OneDrive\\Desktop\\PagedCore\r\nconfigfile: pyproject.toml\r\ntestpaths: tests\r\nplugins: anyio-4.15.1, hypothesis-6.168.3, asyncio-1.4.0\r\nasyncio: mode=Mode.STRICT, debug=False, asyncio_default_fixture_loop_scope=None, asyncio_default_test_loop_scope=function\r\ncollected 250 items / 3 deselected / 247 selected\r\n\r\ntests\\unit\\test_cli.py ...................                               [  7%]\r\ntests\\unit\\test_config.py ..........................                     [ 18%]\r\ntests\\unit\\test_determinism.py .....                                     [ 20%]\r\ntests\\unit\\test_engine_types.py ........................................ [ 36%]\r\n....................................................................     [ 63%]\r\ntests\\unit\\test_measurements.py ..........                               [ 68%]\r\ntests\\unit\\test_oracle.py .............................................. [ 86%]\r\n..                                                                       [ 87%]\r\ntests\\unit\\test_reference_fixtures.py ................                   [ 93%]\r\ntests\\unit\\test_verification.py ...............                          [100%]\r\n\r\n- generated xml file: C:\\Users\\user\\OneDrive\\Desktop\\PagedCore\\results\\local\\p2.5-cpu.xml -\r\n===================== 247 passed, 3 deselected in 43.80s ======================"
+    },
+    {
+      "name": "unit",
+      "command": "uv run --no-sync python -m pytest -m \"unit and not integration and not gpu and not benchmark\" --collect-only -q",
+      "exit_code": 0,
+      "output": "246/250 tests collected (4 deselected) in 29.79s"
+    },
+    {
+      "name": "integration",
+      "command": "uv run --no-sync python -m pytest -m \"integration and not gpu and not benchmark\" --collect-only -q",
+      "exit_code": 0,
+      "output": "tests/unit/test_reference_fixtures.py::test_public_prompt_ids_match_cached_pinned_tokenizer\r\n\r\n1/250 tests collected (249 deselected) in 29.80s"
+    },
+    {
+      "name": "gpu",
+      "command": "uv run --no-sync python -m pytest -m gpu --collect-only -q",
+      "exit_code": 0,
+      "output": "tests/gpu/test_oracle_reference.py::test_public_reference_capture_and_repeatability_on_t4\r\ntests/gpu/test_target_verification.py::test_pinned_checkpoint_loads_and_runs_one_reference_forward_pass\r\ntests/unit/test_determinism.py::test_seed_everything_repeats_cuda_random_streams\r\n\r\n3/250 tests collected (247 deselected) in 29.80s"
+    },
+    {
+      "name": "markers",
+      "command": "uv run --no-sync python -m pytest --markers",
+      "exit_code": 0,
+      "output": "@pytest.mark.unit: isolated component and synthetic contract tests\r\n\r\n@pytest.mark.integration: cross-component tests\r\n\r\n@pytest.mark.gpu: tests that require an NVIDIA T4 and CUDA runtime\r\n\r\n@pytest.mark.service: HTTP and SSE service tests\r\n\r\n@pytest.mark.slow: long-running tests, including extended property and soak tests\r\n\r\n@pytest.mark.benchmark: benchmark-harness tests excluded from routine CPU checks"
+    }
+  ],
+  "additional_checks": [
+    {
+      "command": "uv run --no-sync python -m ruff format --check tests/unit",
+      "exit_code": 0,
+      "output": "8 files already formatted"
+    },
+    {
+      "command": "uv run --no-sync python -m pytest -m \"service or slow or benchmark\" --collect-only -q",
+      "observed_tool_exit_code": 1,
+      "output": "no tests collected (250 deselected)"
+    },
+    {
+      "command": "git diff --check",
+      "exit_code": 0
+    }
+  ],
+  "counts": {
+    "collected": 250,
+    "selected": 247,
+    "executed": 247,
+    "passed": 247,
+    "failed": 0,
+    "skipped": 0,
+    "deselected": 3,
+    "gpu_executed": 0
+  },
+  "selection": {
+    "isolated_cpu_unit": 246,
+    "cpu_integration": 1,
+    "gpu": 3,
+    "service": 0,
+    "slow": 0,
+    "benchmark": 0
+  },
+  "limitations": [
+    "GPU selection was collection-only; no GPU tests executed and no T4 validation claimed.",
+    "Repository-wide formatting fails on the pre-existing missing blank line in unchanged tests/conftest.py; changed Python files pass.",
+    "Service, slow and benchmark suites are registered but have no marked tests.",
+    "GitHub-hosted CI was not executed or verified."
+  ],
+  "captured_at_utc": "2026-10-12T15:58:18.632793+00:00",
+  "git_revision": "51dcf8f31f651f026778ba296795364fb2e931a0",
+  "dirty_source": true,
+  "environment": {
+    "platform": "Windows-10-10.0.26200-SP0",
+    "python": "3.11.15",
+    "torch": "2.7.1+cpu",
+    "cuda_available": false
+  },
+  "source_sha256": {
+    "pyproject.toml": "0f57db5f7495acfd3330fe5a2f2136e5f585f458fa9f0c30a42485aee4654ca7",
+    "CONTRIBUTING.md": "31410fc849016a445ebb3901accba39234422f9add62c7025d34254c842edb50",
+    "docs/VALIDATION_PLAN.md": "b1d92e08a22117a84fb111612de72420eda9f112c24667af414c3351cb4bfe88",
+    "tests/conftest.py": "8556b35104991d5ca9737627b0a2bc383076462f421a2d30ce6c1b97d2f11bbe",
+    ".github/workflows/ci.yml": "a64892c12887a3c7cf5df26a76b8047508cb723d2b854b4a7de67550c7d69004",
+    "uv.lock": "ae7561ac683bfa084defe747ef8aa9380b65a42f7ed7b245ecf3fb9fe0e3df01",
+    "tests/gpu/test_oracle_reference.py": "6617aa0cc73197779f22c52441d85a34e1c3e38e9090fb08a9bd871510f53a78",
+    "tests/gpu/test_target_verification.py": "c40e8cf67d0b972f6737b71787a8d2c8ce4231538ca9b1503da6d65722c5e554",
+    "tests/unit/test_cli.py": "f1d72b629020a78f89f50b1b8ccdb01a69ac28fb2f2a4d80405f770bcb22b5f2",
+    "tests/unit/test_config.py": "ed028751b20e50dd2b74cf5a7b9e7539c517341390102abdfd10e5b376bc2422",
+    "tests/unit/test_determinism.py": "4da0279f676caced156a2db72ebc0c691ff787f22ac15c9635e85d723835eefa",
+    "tests/unit/test_engine_types.py": "ea9c52b46ac60f72c0dc95ade581b799e2b6746d627c9334c4ba7e8ab11193f3",
+    "tests/unit/test_measurements.py": "578c329ef26deebd583e4b34dfca98106411ea6e3925a62693055b46a9827687",
+    "tests/unit/test_oracle.py": "b47f8f38a3988704da5bc5b2b11d9539728a0d86fba414f46cdfab4ef8f8166b",
+    "tests/unit/test_reference_fixtures.py": "7a4483485678c31f58fe6700b63e468664555d6321fb49a628acb8496657f17b",
+    "tests/unit/test_verification.py": "75df0ea776fd91478db64e74b0861be1cb9e49a1cbb8464fbff1ceeb49cfb2b1",
+    "src/pagedcore/__init__.py": "42b1e9884f56caa6de42f8177eedcc2f9b81ae2df2f9db28e45114117e8f3d29",
+    "src/pagedcore/cli.py": "e36cb0cf9e342e76787b3d74e98b778c22b1b76b580bf76e556a5f03aa6c2c16",
+    "src/pagedcore/config.py": "1d53260eb14a72385186915dbf28e30c4a13180cff54c3769e872874d3736ac8",
+    "src/pagedcore/determinism.py": "2fdcba5697c59b4f68942fb7d3a14baff46cc4d0d70470c7f23e5c56a437afa2",
+    "src/pagedcore/engine_types.py": "db31cb04b5dd4e127d37f1b3a4b88bc20f2272520893a150428197713c6cae40",
+    "src/pagedcore/measurements.py": "32880998927d7292f0e77ad98618fefaba1e10a696013ec27a16a9864985ddf1",
+    "src/pagedcore/oracle.py": "6fbc7fe7fdd01eb7cb23055ad3189fad00b733bc1dcd727e091306dcf34f9eb8",
+    "src/pagedcore/verification.py": "4e6b77ea1e88b81ae96047b59b4e5fa859c4237251d9e674a6ee27c2fbd75044"
+  }
+}

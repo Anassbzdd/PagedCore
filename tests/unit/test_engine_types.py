@@ -28,6 +28,8 @@ from pagedcore.engine_types import (
     validate_request_transition,
 )
 
+pytestmark = pytest.mark.unit
+
 
 def test_generation_completion_survives_later_delivery_failure() -> None:
     request_id = RequestId("request-1")

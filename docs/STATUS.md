@@ -1,10 +1,10 @@
 # Implementation and evidence status
 
-Snapshot: 2026-10-10. Strict deterministic-algorithm enforcement and the CUDA workspace requirement now have [local CPU evidence](../results/validation/2026-10-10-reference-determinism-cpu.json); the changed oracle policy remains unvalidated on T4. The oracle harness and initial internal timing analyzer have earlier local synthetic CPU evidence in the [P2.4 report](../results/validation/2026-10-09-p2.4-cpu.json), attributed by tested source/lock hashes; actual pinned FP16/T4 oracle execution remains open. Public reference fixtures and synthetic stopping cases have earlier local CPU evidence in the [P2.3 report](../results/validation/2026-10-08-p2.3-cpu.json). The CPU CI workflow was added against commit `82102a3e55b995a0ab431a8f7a15417b29ba2421`; its first GitHub-hosted run remains unverified. Earlier environment evidence is attributed to commit `ab05602e721beb6b0fc4266a9642b09f89eee6c1` plus source hashes and a sanitized patch in the [CPU validation report](../results/validation/2026-10-05-p1.6-cpu.json). This page records observed state, not a release certificate.
+Snapshot: 2026-10-12. Strict deterministic-algorithm enforcement and the CUDA workspace requirement now have [local CPU evidence](../results/validation/2026-10-10-reference-determinism-cpu.json); the changed oracle policy remains unvalidated on T4. The oracle harness and initial internal timing analyzer have earlier local synthetic CPU evidence in the [P2.4 report](../results/validation/2026-10-09-p2.4-cpu.json), attributed by tested source/lock hashes; actual pinned FP16/T4 oracle execution remains open. Public reference fixtures and synthetic stopping cases have earlier local CPU evidence in the [P2.3 report](../results/validation/2026-10-08-p2.3-cpu.json). The CPU CI workflow was added against commit `82102a3e55b995a0ab431a8f7a15417b29ba2421`; its first GitHub-hosted run remains unverified. Earlier environment evidence is attributed to commit `ab05602e721beb6b0fc4266a9642b09f89eee6c1` plus source hashes and a sanitized patch in the [CPU validation report](../results/validation/2026-10-05-p1.6-cpu.json). This page records observed state, not a release certificate.
 
 ## Current gate
 
-Phase 1 implementation is substantially delivered; its evidence closure remains open and was not re-audited for this change. P2.1 shared types, P2.2 lifecycle/accounting validators and P2.3 public reference fixtures are implemented and CPU-tested; release-once rules are specified, with concrete ownership/cleanup assertions deferred to P4/P6. P2.4 oracle capture/comparison and initial timing arithmetic are implemented with synthetic CPU checks; pinned-checkpoint T4 reference evidence remains required. P2.5 test-command work remains next. The Phase 2 exit gate remains open, followed by dense parity -> allocator correctness -> paged attention -> lifecycle correctness -> HTTP. Early CI and validation procedures support that order without implementing later runtime features.
+Phase 1 implementation is substantially delivered; its evidence closure remains open and was not re-audited for this change. P2.1 shared types, P2.2 lifecycle/accounting validators and P2.3 public reference fixtures are implemented and CPU-tested; release-once rules are specified, with concrete ownership/cleanup assertions deferred to P4/P6. P2.4 oracle capture/comparison and initial timing arithmetic are implemented with synthetic CPU checks; pinned-checkpoint T4 reference evidence remains required. P2.5 test markers and selection commands are established with local CPU checks; see [suite commands](../CONTRIBUTING.md#selecting-test-suites). The Phase 2 exit gate remains open, followed by dense parity -> allocator correctness -> paged attention -> lifecycle correctness -> HTTP. Early CI and validation procedures support that order without implementing later runtime features.
 
 | Surface | Observed implementation | Evidence limit |
 |---|---|---|
@@ -22,6 +22,16 @@ Phase 1 implementation is substantially delivered; its evidence closure remains 
 | Container, benchmark/report | Not implemented | No container or benchmark evidence |
 
 ## Observed CPU checks
+
+On 2026-10-12, the [test-command report](../results/validation/2026-10-12-p2.5-cpu.json)
+records all six registered markers and collection checks selecting 246 isolated CPU
+unit cases, one CPU tokenizer integration case and three GPU cases. The full
+non-GPU/non-benchmark run executed and passed 247 tests with zero skips and three
+GPU cases deselected. Ruff lint, strict mypy, changed-file formatting and
+`git diff --check` passed. Repository-wide formatting still fails on the unchanged
+`tests/conftest.py` blank line. Service, slow and benchmark selections are empty;
+their markers do not claim implemented suites. GPU selection was collection-only:
+zero GPU tests executed. No runtime capability or T4 gate advanced.
 
 On 2026-10-10, the [reference determinism report](../results/validation/2026-10-10-reference-determinism-cpu.json)
 records 247 passing non-GPU/non-benchmark tests, Ruff lint, strict mypy and

@@ -4,6 +4,8 @@ import pytest
 
 from pagedcore.determinism import inference_mode, seed_everything
 
+pytestmark = pytest.mark.unit
+
 torch = pytest.importorskip("torch")
 
 

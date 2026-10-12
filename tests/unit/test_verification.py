@@ -14,6 +14,8 @@ from pagedcore.verification import (
     verify_target,
 )
 
+pytestmark = pytest.mark.unit
+
 
 def _valid_model(
     logits: torch.Tensor | None = None,

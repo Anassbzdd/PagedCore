@@ -9,6 +9,8 @@ import pytest
 from pagedcore import cli
 from pagedcore.config import PagedCoreConfig
 
+pytestmark = pytest.mark.unit
+
 
 def test_collect_environment_diagnostics_reports_safe_resolved_values(monkeypatch) -> None:
     monkeypatch.setattr(
