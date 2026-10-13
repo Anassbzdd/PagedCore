@@ -1,0 +1,254 @@
+{
+  "gate": "P2 audit fixes; evidence closure remains open",
+  "validation": "CPU-only; reviewed retained T4 artifacts separately",
+  "captured_at_utc": "2026-10-12T16:41:18.204247+00:00",
+  "setup": "Existing frozen CPU/dev environment; no installer or dependency synchronization run.",
+  "git_revision": "6bd0ca77c53d4e500f58817a8044482e2ae8f019",
+  "working_tree_clean": false,
+  "preexisting_changes": [
+    "Deleted tests/gpu/.gitkeep",
+    "Deleted tests/unit/.gitkeep"
+  ],
+  "uv_lock_sha256": "ae7561ac683bfa084defe747ef8aa9380b65a42f7ed7b245ecf3fb9fe0e3df01",
+  "source_sha256": {
+    ".github/workflows/ci.yml": "a64892c12887a3c7cf5df26a76b8047508cb723d2b854b4a7de67550c7d69004",
+    ".gitignore": "f78a05013ee6fb9bfff1c0f1b856e1d191e15a4e51cbc559a2e5b344122c9ed5",
+    ".python-version": "db82937e1f1830581a9553c7814f5c5fcacb6dfdef8310b43e9a812c887acaf5",
+    "CONTRIBUTING.md": "ec3a6e98a621b45c34339e0720efad2aae81599e65aa35873d7c13737306e216",
+    "docs/DESIGN.md": "7bef9d3602ba2b63951235a995c039c4249cacb3369499549c2cad58c96d9433",
+    "docs/SPEC.md": "a4ea506c0ccfe8a7a676ef56cd14a4b33bd5c2c2e4023845c061957542ff751e",
+    "docs/STATUS.md": "751030908b838b9419532bf9df03351ea022651f7d00eaaaf2a4e446804c14eb",
+    "docs/VALIDATION_PLAN.md": "24df1b146d11e82f84771737bdd61a24791a39e4c56dea7c502685e5b97cf611",
+    "pyproject.toml": "0f57db5f7495acfd3330fe5a2f2136e5f585f458fa9f0c30a42485aee4654ca7",
+    "results/README.md": "ef6c6e44b0cf4c7481c0db3876ad5fb27f2a8226bcb8f71567a42edf4d3b4486",
+    "scripts/validate_t4.sh": "3f9e75873975652758eadc0a0601e7ef5e29282af829ce5e1c570bef6b164048",
+    "src/pagedcore/__init__.py": "42b1e9884f56caa6de42f8177eedcc2f9b81ae2df2f9db28e45114117e8f3d29",
+    "src/pagedcore/cli.py": "e36cb0cf9e342e76787b3d74e98b778c22b1b76b580bf76e556a5f03aa6c2c16",
+    "src/pagedcore/config.py": "1d53260eb14a72385186915dbf28e30c4a13180cff54c3769e872874d3736ac8",
+    "src/pagedcore/determinism.py": "2fdcba5697c59b4f68942fb7d3a14baff46cc4d0d70470c7f23e5c56a437afa2",
+    "src/pagedcore/engine_types.py": "db31cb04b5dd4e127d37f1b3a4b88bc20f2272520893a150428197713c6cae40",
+    "src/pagedcore/measurements.py": "760946d8dac98f4a9bfcc182a2426a5b92af62aa23fb859d239895d42ca5c3f0",
+    "src/pagedcore/oracle.py": "6fbc7fe7fdd01eb7cb23055ad3189fad00b733bc1dcd727e091306dcf34f9eb8",
+    "src/pagedcore/verification.py": "4e6b77ea1e88b81ae96047b59b4e5fa859c4237251d9e674a6ee27c2fbd75044",
+    "tests/conftest.py": "9af7001d775975ae833aa8b278569b03b593192a66e9e04fff20672f59461b18",
+    "tests/fixtures/reference_prompts.json": "143f89f62b0b85956ddd7ab94cd7b7ec559799725b947b5404409dcdf6365190",
+    "tests/gpu/test_oracle_reference.py": "6617aa0cc73197779f22c52441d85a34e1c3e38e9090fb08a9bd871510f53a78",
+    "tests/gpu/test_target_verification.py": "c40e8cf67d0b972f6737b71787a8d2c8ce4231538ca9b1503da6d65722c5e554",
+    "tests/unit/test_cli.py": "f1d72b629020a78f89f50b1b8ccdb01a69ac28fb2f2a4d80405f770bcb22b5f2",
+    "tests/unit/test_config.py": "ed028751b20e50dd2b74cf5a7b9e7539c517341390102abdfd10e5b376bc2422",
+    "tests/unit/test_determinism.py": "4da0279f676caced156a2db72ebc0c691ff787f22ac15c9635e85d723835eefa",
+    "tests/unit/test_engine_types.py": "ea9c52b46ac60f72c0dc95ade581b799e2b6746d627c9334c4ba7e8ab11193f3",
+    "tests/unit/test_measurements.py": "469ae30346ef880b1bbfadc58af72320f7597d3a658a0fda017c9df8fbddd00a",
+    "tests/unit/test_oracle.py": "b47f8f38a3988704da5bc5b2b11d9539728a0d86fba414f46cdfab4ef8f8166b",
+    "tests/unit/test_reference_fixtures.py": "7a4483485678c31f58fe6700b63e468664555d6321fb49a628acb8496657f17b",
+    "tests/unit/test_verification.py": "75df0ea776fd91478db64e74b0861be1cb9e49a1cbb8464fbff1ceeb49cfb2b1",
+    "uv.lock": "ae7561ac683bfa084defe747ef8aa9380b65a42f7ed7b245ecf3fb9fe0e3df01"
+  },
+  "tested_source_patch": "diff --git a/src/pagedcore/measurements.py b/src/pagedcore/measurements.py\nindex a43b1a5..dfb978f 100644\n--- a/src/pagedcore/measurements.py\n+++ b/src/pagedcore/measurements.py\n@@ -27,16 +27,18 @@ def analyze_internal_timing(\n         timing.admission,\n         *token_times,\n         timing.generation_terminal,\n-        timing.transport_terminal,\n     )\n     present = [value for value in values if value is not None]\n-    endpoints = (timing.first_token, timing.last_token)\n+    endpoints = (timing.first_token, timing.last_token, timing.transport_terminal)\n     if any(\n         type(value) is not int or value < 0 for value in (*present, *endpoints) if value is not None\n     ):\n         raise ValueError(\"timestamps must be nonnegative integer nanoseconds\")\n     if present != sorted(present):\n         raise ValueError(\"internal timestamps must be ordered on one monotonic clock\")\n+    # Transport can close before the worker observes cancellation and terminates generation.\n+    if timing.transport_terminal is not None and timing.transport_terminal < timing.arrival:\n+        raise ValueError(\"transport termination must not precede arrival\")\n     first = token_times[0] if token_times else None\n     last = token_times[-1] if token_times else None\n     if timing.first_token != first or timing.last_token != last:\ndiff --git a/tests/conftest.py b/tests/conftest.py\nindex 1e67ea1..2396136 100644\n--- a/tests/conftest.py\n+++ b/tests/conftest.py\n@@ -4,6 +4,7 @@ from pagedcore.determinism import seed_everything\n \n TEST_SEED = 0\n \n+\n @pytest.fixture(autouse=True)\n def deterministic_test_state() -> None:\n     \"\"\"Start every test with the same Python and PyTorch RNG state.\"\"\"\ndiff --git a/tests/unit/test_measurements.py b/tests/unit/test_measurements.py\nindex f97ef7a..18cf993 100644\n--- a/tests/unit/test_measurements.py\n+++ b/tests/unit/test_measurements.py\n@@ -43,6 +43,30 @@ def test_equal_publication_times_and_unfinished_generation() -> None:\n     assert result.stream_seconds is None\n \n \n+@pytest.mark.parametrize(\"active\", [False, True])\n+@pytest.mark.parametrize(\"generation_terminal\", [None, ns(40)])\n+def test_disconnect_can_precede_worker_terminal(\n+    active: bool, generation_terminal: MonotonicTimestamp | None\n+) -> None:\n+    times = (ns(20), ns(22)) if active else ()\n+    timing = RequestTiming(\n+        arrival=ns(5),\n+        admission=ns(10) if active else None,\n+        first_token=times[0] if times else None,\n+        last_token=times[-1] if times else None,\n+        generation_terminal=generation_terminal,\n+        transport_terminal=ns(25),\n+    )\n+\n+    result = analyze_internal_timing(timing, times)\n+\n+    assert result.stream_seconds == 0.02\n+    assert result.generation_seconds == (None if generation_terminal is None else 0.035)\n+    assert result.ttft_seconds == (0.015 if active else None)\n+    assert result.itl_seconds == ((0.002,) if active else ())\n+    assert result.tpot_seconds == (0.002 if active else None)\n+\n+\n @pytest.mark.parametrize(\n     \"field,value\",\n     [\n@@ -51,10 +75,23 @@ def test_equal_publication_times_and_unfinished_generation() -> None:\n         (\"first_token\", ns(51)),\n         (\"last_token\", None),\n         (\"generation_terminal\", ns(80)),\n-        (\"transport_terminal\", ns(94)),\n+        (\"transport_terminal\", ns(-1)),\n     ],\n )\n def test_inconsistent_timestamps_fail(field: str, value: Any) -> None:\n     timing = RequestTiming(ns(0), ns(20), ns(50), ns(90), ns(95), ns(110))\n     with pytest.raises(ValueError):\n         analyze_internal_timing(replace(timing, **{field: value}), (ns(50), ns(70), ns(90)))\n+\n+\n+def test_transport_cannot_terminate_before_arrival() -> None:\n+    timing = RequestTiming(arrival=ns(5), transport_terminal=ns(4))\n+    with pytest.raises(ValueError):\n+        analyze_internal_timing(timing, ())\n+\n+\n+@pytest.mark.parametrize(\"value\", [True, 1.5, \"25\"])\n+def test_transport_timestamp_requires_integer_nanoseconds(value: Any) -> None:\n+    timing = RequestTiming(arrival=ns(0), transport_terminal=value)\n+    with pytest.raises(ValueError, match=\"nonnegative integer nanoseconds\"):\n+        analyze_internal_timing(timing, ())\n",
+  "environment": {
+    "platform": "Windows-10-10.0.26200-SP0",
+    "python": "3.11.15",
+    "torch": "2.7.1+cpu",
+    "transformers": "4.52.4",
+    "pytest": "9.1.1",
+    "ruff": "0.16.9",
+    "mypy": "2.3.1",
+    "cuda_available": false,
+    "seed": 0
+  },
+  "checks": [
+    {
+      "name": "lint",
+      "command": ".venv/Scripts/python.exe -B -m ruff check .",
+      "chunk_id": "718803",
+      "wall_time_seconds": 1.6903157,
+      "exit_code": 0,
+      "original_token_count": 5,
+      "output": "All checks passed!\n"
+    },
+    {
+      "name": "format",
+      "command": ".venv/Scripts/python.exe -B -m ruff format --check .",
+      "chunk_id": "a35a3d",
+      "wall_time_seconds": 1.7133798,
+      "exit_code": 0,
+      "original_token_count": 7,
+      "output": "28 files already formatted\n"
+    },
+    {
+      "name": "types",
+      "command": ".venv/Scripts/python.exe -B -m mypy --strict src/pagedcore",
+      "chunk_id": "1f62bc",
+      "wall_time_seconds": 4.4389571,
+      "exit_code": 0,
+      "original_token_count": 11,
+      "output": "Success: no issues found in 8 source files\r\n"
+    },
+    {
+      "name": "cpu",
+      "command": ".venv/Scripts/python.exe -B -m pytest -m \"not gpu and not benchmark\" -ra --junitxml=results/validation/2026-10-12-p2-audit-fixes/cpu-tests.xml",
+      "chunk_id": "b5090d",
+      "wall_time_seconds": 10.0105489,
+      "original_token_count": 373,
+      "output": "============================= test session starts =============================\r\nplatform win32 -- Python 3.11.15, pytest-9.1.1, pluggy-1.6.0\r\nrootdir: C:\\Users\\user\\OneDrive\\Desktop\\PagedCore\r\nconfigfile: pyproject.toml\r\ntestpaths: tests\r\nplugins: anyio-4.15.1, hypothesis-6.168.3, asyncio-1.4.0\r\nasyncio: mode=Mode.STRICT, debug=False, asyncio_default_fixture_loop_scope=None, asyncio_default_test_loop_scope=function\r\ncollected 258 items / 3 deselected / 255 selected\r\n\r\ntests\\unit\\test_cli.py ...................                               [  7%]\r\ntests\\unit\\test_config.py ..........................                     [ 17%]\r\ntests\\unit\\test_determinism.py .....                                     [ 19%]\r\ntests\\unit\\test_engine_types.py ........................................ [ 35%]\r\n....................................................................     [ 61%]\r\ntests\\unit\\test_measurements.py ..................                       [ 69%]\r\ntests\\unit\\test_oracle.py .............................................. [ 87%]\r\n..                                                                       [ 87%]\r\ntests\\unit\\test_reference_fixtures.py ................                   [ 94%]\r\ntests\\unit\\test_verification.py ...............                          [100%]\r\n\r\n- generated xml file: C:\\Users\\user\\OneDrive\\Desktop\\PagedCore\\results\\validation\\2026-10-12-p2-audit-fixes\\cpu-tests.xml -\r\n====================== 255 passed, 3 deselected in 8.93s ======================\r\n",
+      "exit_code": 0
+    }
+  ],
+  "tests": {
+    "collected": 258,
+    "selected": 255,
+    "executed": 255,
+    "passed": 255,
+    "failed": 0,
+    "skipped": 0,
+    "deselected": 3,
+    "gpu_executed": 0,
+    "timing_cases": 18,
+    "pinned_tokenizer_integration": "executed and passed"
+  },
+  "junit_report": "cpu-tests.xml",
+  "junit_sha256": "d35c112f572a190dbbf0ac382538972ab3773e693f81d265971c5326e5185b24",
+  "regression_before_fix": {
+    "command": ".venv/Scripts/python.exe -B -m pytest tests/unit/test_measurements.py -q -p no:cacheprovider",
+    "exit_code": 1,
+    "selected": 18,
+    "failed": 2,
+    "passed": 16,
+    "failed_cases": [
+      "test_disconnect_can_precede_worker_terminal[40000000-False]",
+      "test_disconnect_can_precede_worker_terminal[40000000-True]"
+    ],
+    "failure": "ValueError: internal timestamps must be ordered on one monotonic clock",
+    "original_source_git_revision": "6bd0ca77c53d4e500f58817a8044482e2ae8f019",
+    "original_source_LF_sha256": "32880998927d7292f0e77ad98618fefaba1e10a696013ec27a16a9864985ddf1",
+    "scope": "New pending/active disconnect regression cases ran against the original analyzer before the fix; this is an observed summary, not a retained raw JUnit report."
+  },
+  "focused_after_fix": {
+    "command": ".venv/Scripts/python.exe -B -m pytest tests/unit/test_measurements.py -q -p no:cacheprovider --junitxml=results/local/2026-10-12-p2-audit-timing.xml",
+    "exit_code": 0,
+    "passed": 18
+  },
+  "hosted_cpu_ci": {
+    "checked_on": "2026-10-12",
+    "run_id": 38274851925,
+    "url": "https://github.com/Anassbzdd/PagedCore/actions/runs/38274851925",
+    "head_sha": "6bd0ca77c53d4e500f58817a8044482e2ae8f019",
+    "conclusion": "failure",
+    "job": {
+      "id": 114897681527,
+      "name": "cpu",
+      "status": "completed",
+      "conclusion": "failure",
+      "run_id": 38274851925,
+      "logs_url": null,
+      "steps": [
+        {
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 1
+        },
+        {
+          "name": "Run actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 2
+        },
+        {
+          "name": "Run astral-sh/setup-uv@37802adc94f370d6bfd71619e3f0bf239e1f3b78",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 3
+        },
+        {
+          "name": "Install frozen CPU and development environment",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 4
+        },
+        {
+          "name": "Check formatting",
+          "status": "completed",
+          "conclusion": "failure",
+          "number": 5
+        },
+        {
+          "name": "Lint",
+          "status": "completed",
+          "conclusion": "skipped",
+          "number": 6
+        },
+        {
+          "name": "Check types",
+          "status": "completed",
+          "conclusion": "skipped",
+          "number": 7
+        },
+        {
+          "name": "Run CPU tests",
+          "status": "completed",
+          "conclusion": "skipped",
+          "number": 8
+        },
+        {
+          "name": "Build distributions",
+          "status": "completed",
+          "conclusion": "skipped",
+          "number": 9
+        },
+        {
+          "name": "Smoke-test installed wheel and CLI configuration",
+          "status": "completed",
+          "conclusion": "skipped",
+          "number": 10
+        },
+        {
+          "name": "Retain CPU test report",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 11
+        },
+        {
+          "name": "Post Run astral-sh/setup-uv@37802adc94f370d6bfd71619e3f0bf239e1f3b78",
+          "status": "completed",
+          "conclusion": "skipped",
+          "number": 21
+        },
+        {
+          "name": "Post Run actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 22
+        },
+        {
+          "name": "Complete job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 23
+        }
+      ]
+    }
+  },
+  "retained_t4_review": "../2026-10-12-t4-evidence-review.json",
+  "limitations": [
+    "No new GPU tests executed; this machine has CPU PyTorch.",
+    "October 12 retained T4 run has no setup history or CUDA-visible device count.",
+    "Hosted run inspected for parent revision failed at formatting; the fixed local source has not been pushed or executed in hosted CI.",
+    "The new T4 collector is prepared for execution; its syntax check is not a GPU run."
+  ],
+  "additional_checks": [
+    {
+      "command": "C:/Program Files/Git/bin/bash.exe -n scripts/validate_t4.sh",
+      "exit_code": 0,
+      "scope": "Bash syntax only; no T4 execution"
+    },
+    {
+      "command": "git -c core.safecrlf=false diff --check",
+      "exit_code": 0
+    },
+    {
+      "check": "Local Markdown link targets in STATUS.md, task.md, VALIDATION_PLAN.md, CONTRIBUTING.md and results/README.md",
+      "missing_targets": []
+    }
+  ]
+}

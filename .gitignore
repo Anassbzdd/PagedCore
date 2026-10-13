@@ -37,6 +37,7 @@ benchmark-results/
 
 # Logs, editors, and operating-system state
 *.log
+!results/validation/2026-10-07-t4/commands.log
 .idea/
 .vscode/
 .obsidian/

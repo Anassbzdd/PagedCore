@@ -1,95 +1,88 @@
 # Implementation and evidence status
 
-Snapshot: 2026-10-12. Strict deterministic-algorithm enforcement and the CUDA workspace requirement now have [local CPU evidence](../results/validation/2026-10-10-reference-determinism-cpu.json); the changed oracle policy remains unvalidated on T4. The oracle harness and initial internal timing analyzer have earlier local synthetic CPU evidence in the [P2.4 report](../results/validation/2026-10-09-p2.4-cpu.json), attributed by tested source/lock hashes; actual pinned FP16/T4 oracle execution remains open. Public reference fixtures and synthetic stopping cases have earlier local CPU evidence in the [P2.3 report](../results/validation/2026-10-08-p2.3-cpu.json). The CPU CI workflow was added against commit `82102a3e55b995a0ab431a8f7a15417b29ba2421`; its first GitHub-hosted run remains unverified. Earlier environment evidence is attributed to commit `ab05602e721beb6b0fc4266a9642b09f89eee6c1` plus source hashes and a sanitized patch in the [CPU validation report](../results/validation/2026-10-05-p1.6-cpu.json). This page records observed state, not a release certificate.
+Snapshot: 2026-10-12. The [audit-fix CPU report](../results/validation/2026-10-12-p2-audit-fixes/report.json) records 255 passing non-GPU tests, including 18 timing cases, plus passing repository formatting, Ruff lint and strict mypy. Pending and active disconnects can now terminate transport before worker generation termination without invalidating timing analysis. These are Windows/CPU results; no new GPU execution occurred during this change.
 
 ## Current gate
 
-Phase 1 implementation is substantially delivered; its evidence closure remains open and was not re-audited for this change. P2.1 shared types, P2.2 lifecycle/accounting validators and P2.3 public reference fixtures are implemented and CPU-tested; release-once rules are specified, with concrete ownership/cleanup assertions deferred to P4/P6. P2.4 oracle capture/comparison and initial timing arithmetic are implemented with synthetic CPU checks; pinned-checkpoint T4 reference evidence remains required. P2.5 test markers and selection commands are established with local CPU checks; see [suite commands](../CONTRIBUTING.md#selecting-test-suites). The Phase 2 exit gate remains open, followed by dense parity -> allocator correctness -> paged attention -> lifecycle correctness -> HTTP. Early CI and validation procedures support that order without implementing later runtime features.
+Phase 2 implementation is delivered, including the timing correction. Its complete evidence gate remains open. The retained October 12 oracle run has no installer history or CUDA-visible device count, and the fixed source still needs a successful hosted CPU CI run. The next runtime gate is Phase 3 dense decoder parity; do not advance until those evidence requirements close.
 
-| Surface | Observed implementation | Evidence limit |
+| Surface | Implemented and observed | Evidence boundary |
 |---|---|---|
-| Package/environment | Metadata, committed lock, Python pin, CPU/CUDA extras | No retained fresh Linux/T4 clean-install report inspected |
-| Configuration | Immutable typed settings and validation | CPU tests; worker/service-only settings remain planned |
-| Diagnostics | Safe JSON diagnostics, hardware fallback and expected CLI configuration-error handling | CPU coverage; hardware output is not engine certification |
-| Deterministic controls | Python/Torch seeds and inference mode | CPU repeatability checked; no retained CUDA repeatability report |
-| Target verifier | Pinned snapshot, FP16/config/logit checks, source hashes, sanitized actual CLI arguments, manifest-write error handling | CPU regressions pass; fresh T4 evidence for the changed verifier remains open |
-| Shared engine contracts | [Immutable records, legal-transition validator, positive reservation credits and nonnegative/accounted capacity snapshots](../src/pagedcore/engine_types.py); release-once contract specified | [108 CPU contract cases](../tests/unit/test_engine_types.py), including 99 added for P2.2; no request-state mutation, allocator/worker ownership checks, cleanup, instrumentation or T4 engine evidence |
-| Reference fixtures | [Six public raw-prompt cases](../tests/fixtures/reference_prompts.json) with exact pinned tokenizer IDs, 15/16/17 and 32/49-token lengths, maximum output, EOS settings and a mixed-length group; [seven controlled-logit stopping cases](../tests/unit/test_reference_fixtures.py) | CPU tokenizer verification and synthetic HF stopping reference only; tokenizer verification explicitly skips with an empty offline cache. No checkpoint-generated output IDs, owned stopping loop, batching/paging or T4 parity evidence |
-| Oracle and timing analyzer | [Frozen eager HF capture, strict deterministic algorithms, CUDA workspace preflight, plain tensor/ID comparison and artifact command](../src/pagedcore/oracle.py); [pure internal timing arithmetic](../src/pagedcore/measurements.py) | Synthetic CPU capture/stopping/comparison and timing tests; mocked loader tests are not hardware proof. The changed numerical policy requires new T4 references. [T4 reference test](../tests/gpu/test_oracle_reference.py) unexecuted; no retained pinned outputs, owned-decoder comparison, worker instrumentation or performance claim |
-| Decoder, allocator, paged attention | Not implemented | No parity, ownership, or paged-read evidence |
-| Scheduler, worker, HTTP/SSE | Not implemented | No concurrency, cleanup, backpressure, or service evidence |
-| CPU CI | [Workflow](../.github/workflows/ci.yml) for every push/PR: frozen CPU/dev environment, lock check, format/lint/strict types, non-GPU/non-benchmark pytest, distribution build and installed-wheel/config/CLI smoke | Local Windows CPU checks; first GitHub-hosted Linux run pending |
-| Container, benchmark/report | Not implemented | No container or benchmark evidence |
+| Package/configuration/diagnostics | Frozen CPU/CUDA graph, immutable pinned settings, safe diagnostics and target verifier | October 7 clean Linux/T4 reference setup exists; the environment manifest lacks the selected GPU UUID |
+| Deterministic controls | Python/Torch seeding and inference mode | CPU repeatability plus one executed October 7 CUDA RNG repeatability test; no cross-device promise |
+| Shared engine contracts | Immutable records, legal transitions, positive reservation credits and aggregate capacity checks | 108 passing CPU contract cases; concrete ownership/release-once/CUDA ordering remain P4/P6 work |
+| Public fixtures | Exact pinned IDs at 15/16/17 and 32/49 tokens, whitespace, mixed lengths, maximum output and synthetic EOS cases | Current cached-tokenizer integration check executed and passed; these inputs do not prove batching or an owned generation loop |
+| HF oracle | Frozen eager FP16 capture/comparison, strict deterministic policy, snapshots and safe artifact persistence | October 12 T4 reference repeatability proved for `boundary_15`; setup history and CUDA visibility for that run remain unknown |
+| Internal timing analyzer | Separate generation/delivery durations, TTFT/ITL/TPOT and missing zero/one-token values | 18 synthetic CPU cases; early transport closure is valid, impossible generation ordering and invalid timestamps still fail |
+| CPU CI | Push/PR workflow for frozen setup, format/lint/types/tests and distribution smoke | Latest inspected hosted run failed at formatting; the local fix passes, but no green hosted result for the fixed source exists yet |
+| Decoder/paging/worker/service | Not implemented | No owned parity, paged reads, cleanup, concurrency, HTTP or GPU memory-safety proof |
+| Container/benchmark/report | Not implemented | No container, serving performance or comparative measurement proof |
 
-## Observed CPU checks
+## Current CPU evidence
 
-On 2026-10-12, the [test-command report](../results/validation/2026-10-12-p2.5-cpu.json)
-records all six registered markers and collection checks selecting 246 isolated CPU
-unit cases, one CPU tokenizer integration case and three GPU cases. The full
-non-GPU/non-benchmark run executed and passed 247 tests with zero skips and three
-GPU cases deselected. Ruff lint, strict mypy, changed-file formatting and
-`git diff --check` passed. Repository-wide formatting still fails on the unchanged
-`tests/conftest.py` blank line. Service, slow and benchmark selections are empty;
-their markers do not claim implemented suites. GPU selection was collection-only:
-zero GPU tests executed. No runtime capability or T4 gate advanced.
+The [retained report](../results/validation/2026-10-12-p2-audit-fixes/report.json) and
+[JUnit report](../results/validation/2026-10-12-p2-audit-fixes/cpu-tests.xml) identify
+source/lock hashes, actual commands, the existing local environment and test counts:
+258 collected, 255 selected/executed/passed, zero failed/skipped, and three GPU
+cases deselected. The new pending/active disconnect tests failed before the timing
+fix and pass afterward. Formatting, Ruff lint and strict mypy over eight source
+files pass. The T4 collector passes Bash syntax checking only.
 
-On 2026-10-10, the [reference determinism report](../results/validation/2026-10-10-reference-determinism-cpu.json)
-records 247 passing non-GPU/non-benchmark tests, Ruff lint, strict mypy and
-changed-file formatting. Regression tests cover strict operation rejection,
-nested contexts, caller settings restored after success/failure, CUDA workspace
-validation and metadata policy mismatch. All three selected GPU tests skipped
-without CUDA; zero executed. Repository-wide formatting remains blocked by the
-pre-existing blank line in unchanged `tests/conftest.py`. The P2.4 T4 gate remains open.
+Earlier CPU evidence remains historical: [P1.6](../results/validation/2026-10-05-cpu/2026-10-05-p1.6-cpu.json),
+[P2.1](../results/validation/2026-10-07-p2.1-cpu.json),
+[P2.2](../results/validation/2026-10-08-p2.2-cpu.json),
+[P2.3](../results/validation/2026-10-08-p2.3-cpu.json),
+[oracle arithmetic](../results/validation/2026-10-09-p2.4-cpu.json),
+[strict reference policy](../results/validation/2026-10-10-reference-determinism-cpu.json)
+and [marker selection](../results/validation/2026-10-12-p2.5-cpu.json).
+Their old formatting failures do not describe the corrected current checkout.
 
-On 2026-10-09, [oracle and timing tests](../results/validation/2026-10-09-p2.4-cpu.json)
-passed locally on Windows/CPU using a tiny random eager Llama and controlled logits.
-The report retains required checks, command outcomes, source/lock attribution and
-test counts. Repository-wide formatting still fails on the pre-existing missing
-blank line in unchanged `tests/conftest.py`; changed Python files are formatted.
-No checkpoint weights were downloaded and no T4 tests executed. The oracle task
-remains in progress pending real pinned FP16 reference capture/repeatability.
+## Saved T4 observations
 
-On 2026-10-08, local Windows validation of the reference fixtures passed Ruff
-lint, strict mypy over six source modules plus the new fixture test module, and
-non-GPU/non-benchmark pytest: 191 collected, 189 selected/executed/passed, zero
-failed/skipped, two GPU tests deselected. All 16 new tests passed, including exact
-IDs from the pinned tokenizer and seven synthetic stopping cases. Changed-file formatting passed.
-Repository-wide formatting still failed on a pre-existing missing blank line in
-unchanged `tests/conftest.py`. An isolated empty-cache/offline fixture run passed
-15 tests and explicitly skipped the real tokenizer check. The [P2.3 report](../results/validation/2026-10-08-p2.3-cpu.json)
-retains commands/output, source/lock hashes, environment, test counts and these
-limitations. Only small pinned tokenizer/config files were fetched; no checkpoint
-weights or T4 tests were executed. The [P2.2 report](../results/validation/2026-10-08-p2.2-cpu.json)
-retains the earlier shared-contract validation. None of these CPU checks proves
-owned-decoder parity, release-once cleanup, per-request ownership or CUDA safety.
+The [evidence review](../results/validation/2026-10-12-t4-evidence-review.json)
+separates two runs and records hashes, actual results and unknown fields.
 
-The [retained report](../results/validation/2026-10-05-p1.6-cpu.json) records Windows, Python 3.11.15, Torch 2.7.1+cpu, Transformers 4.52.4 and unavailable CUDA. The existing environment was synchronized with `uv sync --frozen --extra cpu --extra dev`; this was not a fresh Linux installation. Ruff lint/format, full-source strict mypy and the offline frozen-lock check passed. Non-GPU pytest collected 67 tests, selected and executed **65**, passed all 65, skipped none, and deselected two GPU tests. Expected CLI failures were reproduced before the fix and covered by regression tests.
+On October 7, the retained [manifest](../results/validation/2026-10-07-t4/manifest.json),
+[setup/command log](../results/validation/2026-10-07-t4/commands.log) and
+[GPU report](../results/validation/2026-10-07-t4/pytest-report.xml) identify clean
+source `211bb0c`, the frozen lock, Linux, pinned Python 3.11.15, Torch 2.7.1+cu126
+and Transformers 4.52.4. A reference forward and CUDA RNG repeatability both
+executed and passed, with zero skips. Two physical T4s were present; one was
+CUDA-visible. The manifest does not record its UUID. This is environment evidence.
 
-An explicit GPU-marked run selected two tests and skipped both with `requires CUDA`: **zero GPU tests executed**. The report retains sanitized pytest output, JUnit reports, source/lock hashes, the source patch, setup arguments, installed dependencies and seeds. CLI diagnostics passed; target verification returned the expected JSON failure without CUDA. These are local CPU observations, not CI or T4 certification.
+The archive stored at [2026-10-07-t4/p2.4-evidence.zip](../results/validation/2026-10-07-t4/p2.4-evidence.zip)
+contains a separate run captured on October 12 at source `51dcf8f`. One oracle
+GPU test and 58 synthetic oracle/timing tests executed and passed with zero skips.
+Two `boundary_15` captures have three emitted tokens and 39 FP16 tensors, exact
+ID/outcome/text agreement and zero observed tensor differences. Eager attention,
+strict deterministic settings, cuBLAS workspace, selected T4 UUID, dependencies
+and source/lock identity are retained. The current oracle implementation matches;
+the timing analyzer and shared fixture formatting changed afterward.
 
-On 2026-10-06, local Windows checks for the new workflow passed lock consistency,
-frozen CPU/dev synchronization, Ruff format/lint, strict mypy (five source files)
-and non-GPU/non-benchmark pytest
-(67 collected, 65 selected/executed/passed, zero failed/skipped, two GPU tests
-deselected). `python -m build` produced a wheel and sdist; installing the wheel
-with `--no-deps --reinstall` passed isolated import, package metadata, default
-configuration, CLI help and diagnostics checks. Actionlint 1.7.12 passed workflow
-validation with shellcheck disabled. These command observations are local CPU
-checks; they do not close the GitHub-hosted run or clean Linux/T4 installation gate.
+The October 12 archive has no installer/setup log and does not identify the
+CUDA-visible device count. Its physical inventory lists two T4s; the selected
+`cuda:0` is explicit. This proves HF reference repeatability for one fixture,
+not an owned decoder, paging, memory safety or performance.
 
-## Saved T4 observation
+## Hosted CPU CI
 
-An ignored local manifest dated `2026-10-04T14:37:18.785925Z` reports Tesla T4, CUDA 12.6, Torch 2.7.1+cu126, Transformers 4.52.4, the pinned TinyLlama model/tokenizer, and finite FP16 reference logits shaped `[1, 8, 32000]`. Its Git revision is the original implementation commit `157d1f3e7f8c72b23a01879850f0e9a261b8522c` and its lock hash is `ae7561ac683bfa084defe747ef8aa9380b65a42f7ed7b245ecf3fb9fe0e3df01`.
-
-It also reports a dirty working tree without saved changes/source hashes and hardcoded command/setup provenance. No associated GPU pytest report was inspected. The older tracked validation manifest is absent from the current checkout. This page deliberately has no link to either a missing file or ignored local evidence; a fresh public checkout cannot retrieve them. This observation belongs to implementation revision `157d1f3e7f8c72b23a01879850f0e9a261b8522c`, not the changed verifier.
-
-The saved manifest supports a reference-environment smoke observation. It does not prove the exact tested source solely from its commit ID, CUDA seed repeatability, custom decoder parity, paging, lifecycle safety, or performance.
+The [latest inspected run](https://github.com/Anassbzdd/PagedCore/actions/runs/38274851925)
+for `6bd0ca7` failed at **Check formatting**. Installation succeeded; lint, types,
+tests, build and wheel smoke were skipped. This was verified through GitHub run
+and job metadata on October 12 and is retained in the audit-fix report. A local
+CPU pass does not turn that historical hosted failure into a success.
 
 ## Required closure
 
-1. Extend the retained CPU evidence with reviewed Linux/T4 artifacts under `results/validation/`, attributing source, lock, actual arguments, setup and installed dependencies. Retain differences/hashes for dirty source or rerun the final verifier from clean attributable source.
-2. Retain a fresh Linux/T4 installation record and current GPU pytest report with collected/executed/skipped counts, including CUDA repeatability. A job in which every GPU test skips cannot satisfy the gate.
-3. Re-run the changed verifier on attributable T4 source. Manifest version 2 removes assumed execution history; CLI configuration/manifest-write fixes and formatting normalization are CPU-tested but do not replace target-machine evidence.
-4. Confirm the first GitHub-hosted CPU CI run and establish the repeatable T4 job before further GPU gates. Extend the existing CI workflow with service/container smoke checks when those surfaces exist. Keep target verification distinct from the later engine suites.
+1. Run `bash scripts/validate_t4.sh` on the updated clean Linux/T4 checkout. Review
+   and retain its ZIP, including actual setup/commands, physical inventory,
+   CUDA-visible identity, reference captures and three executed passing GPU tests.
+   Existing environment synchronization is labeled separately from a fresh install.
+2. Retain a successful hosted CPU CI run for the fixed source, including its test
+   artifact and distribution checks. No hosted run was triggered for these local edits.
+3. Close P2.4 and the Phase 2 exit gate only after those reports meet the evidence
+   contract. Continue dense parity -> allocator -> paged attention -> lifecycle -> HTTP.
 
-All final MVP acceptance rows in [TRACEABILITY.md](TRACEABILITY.md) remain pending. See the public [phase mapping](VALIDATION_PLAN.md#build-order) for task ownership and evidence requirements. The detailed local checklist is intentionally ignored by Git; it must not be the only definition of a public gate.
+All final MVP acceptance rows in [TRACEABILITY.md](TRACEABILITY.md) remain pending.
+The [public validation plan](VALIDATION_PLAN.md#build-order) defines gate ownership;
+the ignored local checklist is not the only public definition of a gate.

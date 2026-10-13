@@ -247,6 +247,11 @@ Use monotonic timestamps and distinguish generation from delivery:
 
 Internal `TTFT = first_token - arrival`, including pending wait and prefill. Internal ITL pools consecutive token-publication gaps. `TPOT = (last_token - first_token) / (output_tokens - 1)` for at least two emitted tokens. Generation latency is `generation_terminal - arrival`; stream latency is `transport_terminal - arrival`. EOS decisions and terminal transport overhead must not be silently included in TPOT. Track transport status separately from the generation finish reason.
 
+Arrival, admission, token publications and generation termination follow the worker's
+event order. Transport termination is checked separately: it cannot precede arrival,
+but a disconnect may close transport before the worker records generation termination.
+An unfinished worker outcome remains `None`; it is not replaced by the transport time.
+
 For zero-token EOS, TTFT/ITL/TPOT are missing. ITL and TPOT are undefined below two emitted tokens. Export counts, times, statuses, and stable reasons; never retain prompt/generated text or token IDs in metrics or benchmark records. Keep aggregate server metrics and bounded diagnostic retention. The benchmark client owns full public-run timing records; do not retain an unbounded server-side request history.
 
 KV metrics use these exact definitions:

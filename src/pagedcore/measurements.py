@@ -27,16 +27,18 @@ def analyze_internal_timing(
         timing.admission,
         *token_times,
         timing.generation_terminal,
-        timing.transport_terminal,
     )
     present = [value for value in values if value is not None]
-    endpoints = (timing.first_token, timing.last_token)
+    endpoints = (timing.first_token, timing.last_token, timing.transport_terminal)
     if any(
         type(value) is not int or value < 0 for value in (*present, *endpoints) if value is not None
     ):
         raise ValueError("timestamps must be nonnegative integer nanoseconds")
     if present != sorted(present):
         raise ValueError("internal timestamps must be ordered on one monotonic clock")
+    # Transport can close before the worker observes cancellation and terminates generation.
+    if timing.transport_terminal is not None and timing.transport_terminal < timing.arrival:
+        raise ValueError("transport termination must not precede arrival")
     first = token_times[0] if token_times else None
     last = token_times[-1] if token_times else None
     if timing.first_token != first or timing.last_token != last:

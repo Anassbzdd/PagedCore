@@ -36,6 +36,11 @@ The build backend uses the existing isolated build requirements in `pyproject.to
 Extend this workflow with HTTP and container smoke checks when those surfaces exist.
 CPU CI does not certify T4 execution or the later clean wheel/sdist installation gate.
 
+On a clean Linux/T4 checkout with Git and `uv` available, run
+`bash scripts/validate_t4.sh` to retain setup/command logs, device identity, CPU and
+GPU reports, and reference captures in one local ZIP. Review the bundle before
+publishing it under `results/validation/`; see the [evidence contract](docs/VALIDATION_PLAN.md#oracle-harness).
+
 ## Selecting test suites
 
 The six registered markers are `unit` (isolated components and synthetic contracts),

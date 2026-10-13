@@ -1,0 +1,207 @@
+{
+  "reviewed_at_utc": "2026-10-12T16:36:17.914097+00:00",
+  "scope": "Review of retained environment and HF reference evidence; no new GPU execution.",
+  "environment_run": {
+    "captured_at_utc": "2026-10-07T16:31:28.039223Z",
+    "source_revision": "211bb0cc4c213a084be89dea0d66b5f66d64f46f",
+    "manifest": "2026-10-07-t4/manifest.json",
+    "commands": "2026-10-07-t4/commands.log",
+    "report": "2026-10-07-t4/pytest-report.xml",
+    "command_log_sha256": "633764b1fdbfd240e5d6a6e1c81bf7d6ca1785b8576b71d71c9f6282e0de3da8",
+    "gpu_tests": {
+      "selected": 2,
+      "executed": 2,
+      "passed": 2,
+      "skipped": 0,
+      "failed": 0
+    },
+    "setup": "Fresh Linux CUDA/dev environment and frozen synchronization recorded in commands.log; uv sync initially chose Python 3.11.17, and uv run used the pinned Python 3.11.15.",
+    "cuda_visible_device_count": 1,
+    "physical_device_count": 2,
+    "limitations": [
+      "The environment manifest does not record the selected GPU UUID.",
+      "This run predates the oracle; it proves reference loading and CUDA RNG repeatability, not engine parity."
+    ]
+  },
+  "oracle_run": {
+    "archive": "2026-10-07-t4/p2.4-evidence.zip",
+    "archive_sha256": "01d2588d4cca495756c5eefa2ee54e8f5346eec04e4db5bcbe955395a2c7cd44",
+    "captured_at_utc": "2026-10-12T15:36:50.091526+00:00",
+    "source_revision": "51dcf8f31f651f026778ba296795364fb2e931a0",
+    "working_tree_clean": true,
+    "uv_lock_sha256": "ae7561ac683bfa084defe747ef8aa9380b65a42f7ed7b245ecf3fb9fe0e3df01",
+    "source_identity": {
+      ".python-version": {
+        "recorded_sha256": "db82937e1f1830581a9553c7814f5c5fcacb6dfdef8310b43e9a812c887acaf5",
+        "current_sha256": "db82937e1f1830581a9553c7814f5c5fcacb6dfdef8310b43e9a812c887acaf5",
+        "current_LF_sha256": "db82937e1f1830581a9553c7814f5c5fcacb6dfdef8310b43e9a812c887acaf5"
+      },
+      "pyproject.toml": {
+        "recorded_sha256": "4f655c261767b2542aabb3137274797b30939431b19a5f19f9274cfd41919f84",
+        "current_sha256": "0f57db5f7495acfd3330fe5a2f2136e5f585f458fa9f0c30a42485aee4654ca7",
+        "current_LF_sha256": "0f57db5f7495acfd3330fe5a2f2136e5f585f458fa9f0c30a42485aee4654ca7"
+      },
+      "src/pagedcore/__init__.py": {
+        "recorded_sha256": "42b1e9884f56caa6de42f8177eedcc2f9b81ae2df2f9db28e45114117e8f3d29",
+        "current_sha256": "42b1e9884f56caa6de42f8177eedcc2f9b81ae2df2f9db28e45114117e8f3d29",
+        "current_LF_sha256": "42b1e9884f56caa6de42f8177eedcc2f9b81ae2df2f9db28e45114117e8f3d29"
+      },
+      "src/pagedcore/cli.py": {
+        "recorded_sha256": "e36cb0cf9e342e76787b3d74e98b778c22b1b76b580bf76e556a5f03aa6c2c16",
+        "current_sha256": "e36cb0cf9e342e76787b3d74e98b778c22b1b76b580bf76e556a5f03aa6c2c16",
+        "current_LF_sha256": "e36cb0cf9e342e76787b3d74e98b778c22b1b76b580bf76e556a5f03aa6c2c16"
+      },
+      "src/pagedcore/config.py": {
+        "recorded_sha256": "e98a9fa8deac28516161f205e0ad737d9035d6d44145f1cd42a19c7d5dde6ab1",
+        "current_sha256": "1d53260eb14a72385186915dbf28e30c4a13180cff54c3769e872874d3736ac8",
+        "current_LF_sha256": "e98a9fa8deac28516161f205e0ad737d9035d6d44145f1cd42a19c7d5dde6ab1"
+      },
+      "src/pagedcore/determinism.py": {
+        "recorded_sha256": "2fdcba5697c59b4f68942fb7d3a14baff46cc4d0d70470c7f23e5c56a437afa2",
+        "current_sha256": "2fdcba5697c59b4f68942fb7d3a14baff46cc4d0d70470c7f23e5c56a437afa2",
+        "current_LF_sha256": "2fdcba5697c59b4f68942fb7d3a14baff46cc4d0d70470c7f23e5c56a437afa2"
+      },
+      "src/pagedcore/engine_types.py": {
+        "recorded_sha256": "db31cb04b5dd4e127d37f1b3a4b88bc20f2272520893a150428197713c6cae40",
+        "current_sha256": "db31cb04b5dd4e127d37f1b3a4b88bc20f2272520893a150428197713c6cae40",
+        "current_LF_sha256": "db31cb04b5dd4e127d37f1b3a4b88bc20f2272520893a150428197713c6cae40"
+      },
+      "src/pagedcore/measurements.py": {
+        "recorded_sha256": "32880998927d7292f0e77ad98618fefaba1e10a696013ec27a16a9864985ddf1",
+        "current_sha256": "760946d8dac98f4a9bfcc182a2426a5b92af62aa23fb859d239895d42ca5c3f0",
+        "current_LF_sha256": "760946d8dac98f4a9bfcc182a2426a5b92af62aa23fb859d239895d42ca5c3f0"
+      },
+      "src/pagedcore/oracle.py": {
+        "recorded_sha256": "6fbc7fe7fdd01eb7cb23055ad3189fad00b733bc1dcd727e091306dcf34f9eb8",
+        "current_sha256": "6fbc7fe7fdd01eb7cb23055ad3189fad00b733bc1dcd727e091306dcf34f9eb8",
+        "current_LF_sha256": "6fbc7fe7fdd01eb7cb23055ad3189fad00b733bc1dcd727e091306dcf34f9eb8"
+      },
+      "src/pagedcore/verification.py": {
+        "recorded_sha256": "4e6b77ea1e88b81ae96047b59b4e5fa859c4237251d9e674a6ee27c2fbd75044",
+        "current_sha256": "4e6b77ea1e88b81ae96047b59b4e5fa859c4237251d9e674a6ee27c2fbd75044",
+        "current_LF_sha256": "4e6b77ea1e88b81ae96047b59b4e5fa859c4237251d9e674a6ee27c2fbd75044"
+      },
+      "tests/conftest.py": {
+        "recorded_sha256": "8556b35104991d5ca9737627b0a2bc383076462f421a2d30ce6c1b97d2f11bbe",
+        "current_sha256": "9af7001d775975ae833aa8b278569b03b593192a66e9e04fff20672f59461b18",
+        "current_LF_sha256": "9af7001d775975ae833aa8b278569b03b593192a66e9e04fff20672f59461b18"
+      },
+      "tests/gpu/test_oracle_reference.py": {
+        "recorded_sha256": "6617aa0cc73197779f22c52441d85a34e1c3e38e9090fb08a9bd871510f53a78",
+        "current_sha256": "6617aa0cc73197779f22c52441d85a34e1c3e38e9090fb08a9bd871510f53a78",
+        "current_LF_sha256": "6617aa0cc73197779f22c52441d85a34e1c3e38e9090fb08a9bd871510f53a78"
+      },
+      "tests/gpu/test_target_verification.py": {
+        "recorded_sha256": "c40e8cf67d0b972f6737b71787a8d2c8ce4231538ca9b1503da6d65722c5e554",
+        "current_sha256": "c40e8cf67d0b972f6737b71787a8d2c8ce4231538ca9b1503da6d65722c5e554",
+        "current_LF_sha256": "c40e8cf67d0b972f6737b71787a8d2c8ce4231538ca9b1503da6d65722c5e554"
+      },
+      "tests/unit/test_cli.py": {
+        "recorded_sha256": "af8fbfb773632497aca945c2ad5fc0209e354b53f9537a7ad74a5c117b03520f",
+        "current_sha256": "f1d72b629020a78f89f50b1b8ccdb01a69ac28fb2f2a4d80405f770bcb22b5f2",
+        "current_LF_sha256": "a1001cd023c1925f4b3f4642bfb3bcceae9076e0ae05a3e4956a4d3bb25695c6"
+      },
+      "tests/unit/test_config.py": {
+        "recorded_sha256": "7f96e750e9835d84cb2f3596871cd9846ab0a119675dc5bba5200604b576e854",
+        "current_sha256": "ed028751b20e50dd2b74cf5a7b9e7539c517341390102abdfd10e5b376bc2422",
+        "current_LF_sha256": "19699d17154146b1ca57087d6c9aa3a7e1e1bf98b7e210a2ee8152bd29793353"
+      },
+      "tests/unit/test_determinism.py": {
+        "recorded_sha256": "b4f63d4a3ad45388d9d9e23ffa3901c724a98c86866095b7016667b2ff2052da",
+        "current_sha256": "4da0279f676caced156a2db72ebc0c691ff787f22ac15c9635e85d723835eefa",
+        "current_LF_sha256": "c14bcfd55d86108881ad14783e8033ff8361bc93b5e587608ee32d9f622d8d7b"
+      },
+      "tests/unit/test_engine_types.py": {
+        "recorded_sha256": "364debb27dfec1190b9d60f3f619afdfcd1db2fccbffd629429ad02ebd6dc6ae",
+        "current_sha256": "ea9c52b46ac60f72c0dc95ade581b799e2b6746d627c9334c4ba7e8ab11193f3",
+        "current_LF_sha256": "74fa0bf1941e898625f4ac6e89c6677ee8e5053de7071e5542f4e43921b614e0"
+      },
+      "tests/unit/test_measurements.py": {
+        "recorded_sha256": "61cebb5bc44b7579a9a0442743714ca7484b52605c0ba24770390d760e0c4dbb",
+        "current_sha256": "469ae30346ef880b1bbfadc58af72320f7597d3a658a0fda017c9df8fbddd00a",
+        "current_LF_sha256": "59289e37896067b39350143f461af08d9353259f96ba701406615bc3e6e99ea9"
+      },
+      "tests/unit/test_oracle.py": {
+        "recorded_sha256": "e541cbee6d6672136310866df7059f1d2c627024630eb4460442ae9e5d663227",
+        "current_sha256": "b47f8f38a3988704da5bc5b2b11d9539728a0d86fba414f46cdfab4ef8f8166b",
+        "current_LF_sha256": "5d887cb07283f55b127d8e756b209beeb8906ad2dda3e8da49205551c6ad4f62"
+      },
+      "tests/unit/test_reference_fixtures.py": {
+        "recorded_sha256": "ea21b7be9d4837c4d1ad3e2453909e6c1e0c75aad83c67d4125af612fccf9a67",
+        "current_sha256": "7a4483485678c31f58fe6700b63e468664555d6321fb49a628acb8496657f17b",
+        "current_LF_sha256": "76144ca8315fdc9c95ad4b3056c0b6d2073fad1e15cddbf8c646eec261cb67a2"
+      },
+      "tests/unit/test_verification.py": {
+        "recorded_sha256": "146f3486311d483da0e30f90521c2eabcf0e6dbed2837d382c9b925a702fb846",
+        "current_sha256": "75df0ea776fd91478db64e74b0861be1cb9e49a1cbb8464fbff1ceeb49cfb2b1",
+        "current_LF_sha256": "0595fdbbcf22f3f705e89e822ac349ae9e5ba2f6d30b1e0e3af0e2c3c594da9f"
+      }
+    },
+    "fixture_sha256": "e7b266732b235e44b3b43fff949e8bbb6e40ecb12e661cb482aa660144b355d6",
+    "fixture_matches_current_LF": true,
+    "case": "boundary_15",
+    "attention_backend": "eager",
+    "math_settings": {
+      "matmul_allow_tf32": false,
+      "fp16_reduced_precision_reduction": false,
+      "bf16_reduced_precision_reduction": false,
+      "cudnn_allow_tf32": false,
+      "cudnn_benchmark": false,
+      "cudnn_deterministic": true,
+      "float32_matmul_precision": "highest",
+      "deterministic_algorithms": true,
+      "deterministic_warn_only": false,
+      "cublas_workspace_config": ":4096:8"
+    },
+    "target": {
+      "device": "cuda:0",
+      "name": "Tesla T4",
+      "uuid": "da2363b6-8138-502c-de76-f6c6280c411a",
+      "compute_capability": "7.5",
+      "memory_bytes": 15636037632
+    },
+    "gpu_tests": {
+      "selected": 1,
+      "executed": 1,
+      "passed": 1,
+      "skipped": 0,
+      "failed": 0
+    },
+    "synthetic_cpu_tests": {
+      "selected": 58,
+      "executed": 58,
+      "passed": 58,
+      "skipped": 0,
+      "failed": 0
+    },
+    "capture_arguments": [
+      "oracle",
+      "--case",
+      "boundary_15",
+      "--output",
+      "<path>"
+    ],
+    "comparison_arguments": [
+      "oracle",
+      "--case",
+      "boundary_15",
+      "--compare",
+      "<path>",
+      "--output",
+      "<path>"
+    ],
+    "output_tokens": 3,
+    "tensor_count": 39,
+    "maximum_absolute_error": 0.0,
+    "exact_ids_outcome_and_text": true,
+    "reference_link_matches": true,
+    "setup_record": null,
+    "cuda_visible_device_count": null,
+    "limitations": [
+      "No installer/setup command log retained for this October 12 run; dependency versions are recorded.",
+      "Physical inventory lists two T4s; selected cuda:0 UUID is recorded, but CUDA-visible device count is unknown.",
+      "Repeatability covers boundary_15 only; no owned decoder, paging, memory-safety or performance evidence.",
+      "Current timing analyzer and shared fixture setup changed after this run; the oracle implementation is unchanged."
+    ]
+  }
+}

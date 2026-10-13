@@ -58,7 +58,26 @@ that file outside the repository root. The command captures HF reference evidenc
 and `--compare` checks HF reference repeatability. Neither command compares an owned
 decoder or measures serving performance. Retain reviewed artifacts and command/test
 reports under `results/validation/` for gate acceptance; the default local artifacts
-are ignored, and no checkpoint-generated artifact has yet been retained.
+are ignored. The retained [October 12 T4 archive](../results/validation/2026-10-07-t4/p2.4-evidence.zip)
+contains an executed oracle test and two pinned FP16 captures with exact reference
+repeatability. The [evidence review](../results/validation/2026-10-12-t4-evidence-review.json)
+records source identity and remaining limits: the installer history and CUDA-visible
+device count for that run are unknown. It does not close the full evidence contract.
+
+From a clean checkout on Linux with an actual T4, Git and `uv` available, run:
+
+```bash
+bash scripts/validate_t4.sh
+```
+
+This [collector](../scripts/validate_t4.sh) logs frozen environment setup, source/lock
+identity, physical GPU inventory and the single selected CUDA-visible T4. It runs
+the CPU checks, all three required GPU tests, reference capture and comparison, then
+creates a ZIP under `results/local/`. A failed run leaves its raw directory intact;
+no successful bundle is accepted with missing or skipped required GPU tests. Review
+and retain that bundle under `results/validation/` before closing the gate. The
+script's local syntax check is not execution on T4, and hosted CPU CI remains a
+separate requirement.
 
 [The oracle](../src/pagedcore/oracle.py) captures independent CPU tensor snapshots
 for embeddings, input/post-attention norms, attention outputs, MLP outputs and
@@ -105,9 +124,13 @@ and mocked target-loading plumbing. They do not establish pinned-checkpoint pari
 [Pure internal timing analysis](../src/pagedcore/measurements.py) uses existing
 monotonic-nanosecond records; [synthetic tests](../tests/unit/test_measurements.py)
 check TTFT, publication gaps, TPOT, separate generation/delivery latency and undefined
-zero/one-token cases. This is initial analyzer arithmetic, not worker instrumentation
-or the later external benchmark client. The [T4 reference test](../tests/gpu/test_oracle_reference.py)
-requires actual execution before accepting pinned FP16 capture/repeatability evidence.
+zero/one-token cases. Pending/active disconnect cases permit transport termination
+before worker termination or while the worker outcome is still unknown; invalid
+transport timestamps and termination before arrival fail. This is initial analyzer
+arithmetic, not worker instrumentation or the later external benchmark client.
+The [T4 reference test](../tests/gpu/test_oracle_reference.py)
+has executed in the retained archive; the remaining setup attribution and current
+validation procedure still require closure before accepting the complete gate.
 
 ### Public reference fixtures
 
