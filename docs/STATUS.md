@@ -1,10 +1,17 @@
 # Implementation and evidence status
 
-Snapshot: 2026-10-12. The [audit-fix CPU report](../results/validation/2026-10-12-p2-audit-fixes/report.json) records 255 passing non-GPU tests, including 18 timing cases, plus passing repository formatting, Ruff lint and strict mypy. Pending and active disconnects can now terminate transport before worker generation termination without invalidating timing analysis. These are Windows/CPU results; no new GPU execution occurred during this change.
+Snapshot: 2026-10-14. The [P3.1 CPU report](../results/validation/2026-10-14-p3.1-cpu.json)
+records 324 passing non-GPU tests, including 69 weight-loading contract cases,
+passing formatting/Ruff/strict mypy, distribution builds and a real pinned-weight
+CPU load. No GPU execution occurred during this change.
 
 ## Current gate
 
-Phase 2 implementation is delivered, including the timing correction. Its complete evidence gate remains open. The retained October 12 oracle run has no installer history or CUDA-visible device count, and the fixed source still needs a successful hosted CPU CI run. The next runtime gate is Phase 3 dense decoder parity; do not advance until those evidence requirements close.
+Phase 3 dense decoder parity is the current runtime gate. P3.1 weight loading is
+implemented and CPU-validated; P3.2 dense components are next. Layer/logit/greedy
+T4 parity and dense workspace measurement remain unsatisfied. The October 13
+archive and successful hosted CI below supersede the earlier Phase 2 evidence
+blockers; they do not validate this new loader on GPU.
 
 | Surface | Implemented and observed | Evidence boundary |
 |---|---|---|
@@ -12,15 +19,21 @@ Phase 2 implementation is delivered, including the timing correction. Its comple
 | Deterministic controls | Python/Torch seeding and inference mode | CPU repeatability plus one executed October 7 CUDA RNG repeatability test; no cross-device promise |
 | Shared engine contracts | Immutable records, legal transitions, positive reservation credits and aggregate capacity checks | 108 passing CPU contract cases; concrete ownership/release-once/CUDA ordering remain P4/P6 work |
 | Public fixtures | Exact pinned IDs at 15/16/17 and 32/49 tokens, whitespace, mixed lengths, maximum output and synthetic EOS cases | Current cached-tokenizer integration check executed and passed; these inputs do not prove batching or an owned generation loop |
-| HF oracle | Frozen eager FP16 capture/comparison, strict deterministic policy, snapshots and safe artifact persistence | October 12 T4 reference repeatability proved for `boundary_15`; setup history and CUDA visibility for that run remain unknown |
+| HF oracle | Frozen eager FP16 capture/comparison, strict deterministic policy, snapshots and safe artifact persistence | October 13 T4 reference repeatability for `boundary_15`, with setup and selected-device attribution |
 | Internal timing analyzer | Separate generation/delivery durations, TTFT/ITL/TPOT and missing zero/one-token values | 18 synthetic CPU cases; early transport closure is valid, impossible generation ordering and invalid timestamps still fail |
-| CPU CI | Push/PR workflow for frozen setup, format/lint/types/tests and distribution smoke | Latest inspected hosted run failed at formatting; the local fix passes, but no green hosted result for the fixed source exists yet |
+| CPU CI | Push/PR workflow for frozen setup, format/lint/types/tests and distribution smoke | Hosted run `38445324328` succeeded for prior source; current loader changes have local CPU evidence only |
+| Owned weight loading | Pinned safetensors/config validation, complete typed mapping, BF16-to-FP16 conversion, untied embedding/head | 69 synthetic contract cases plus all 201 real pinned tensors loaded on CPU; no forward pass or T4 loader validation |
 | Decoder/paging/worker/service | Not implemented | No owned parity, paged reads, cleanup, concurrency, HTTP or GPU memory-safety proof |
 | Container/benchmark/report | Not implemented | No container, serving performance or comparative measurement proof |
 
 ## Current CPU evidence
 
-The [retained report](../results/validation/2026-10-12-p2-audit-fixes/report.json) and
+The current [weight-loading report](../results/validation/2026-10-14-p3.1-cpu.json)
+records commands, source/lock identity, dependency versions and CPU-only limits.
+All 324 selected tests passed with zero skips; three GPU tests were deselected.
+The full pinned checkpoint loaded as finite FP16 CPU tensors with 22 layer records.
+
+The earlier [audit-fix report](../results/validation/2026-10-12-p2-audit-fixes/report.json) and
 [JUnit report](../results/validation/2026-10-12-p2-audit-fixes/cpu-tests.xml) identify
 source/lock hashes, actual commands, the existing local environment and test counts:
 258 collected, 255 selected/executed/passed, zero failed/skipped, and three GPU
@@ -38,6 +51,13 @@ and [marker selection](../results/validation/2026-10-12-p2.5-cpu.json).
 Their old formatting failures do not describe the corrected current checkout.
 
 ## Saved T4 observations
+
+The newer [October 13 archive](../results/validation/2026-10-13-t4/t4-20261013T180545Z.zip)
+at source `d6fb549` retains setup/commands, 255 passing CPU tests and three executed
+passing GPU tests with zero skips, one CUDA-visible T4 and its UUID. The two
+`boundary_15` oracle captures match exactly across 39 tensors. Reviewed again on
+October 14, this closes the earlier environment/reference attribution gaps;
+it does not prove an owned decoder, paging, memory safety or performance.
 
 The [evidence review](../results/validation/2026-10-12-t4-evidence-review.json)
 separates two runs and records hashes, actual results and unknown fields.
@@ -66,22 +86,16 @@ not an owned decoder, paging, memory safety or performance.
 
 ## Hosted CPU CI
 
-The [latest inspected run](https://github.com/Anassbzdd/PagedCore/actions/runs/38274851925)
-for `6bd0ca7` failed at **Check formatting**. Installation succeeded; lint, types,
-tests, build and wheel smoke were skipped. This was verified through GitHub run
-and job metadata on October 12 and is retained in the audit-fix report. A local
-CPU pass does not turn that historical hosted failure into a success.
+The newer [successful run](https://github.com/Anassbzdd/PagedCore/actions/runs/38445324328)
+for `0b94ebf` supersedes the historical formatting failure. Its completed/success
+status was rechecked through GitHub's API on October 14. That run predates the
+weight loader; no hosted run was triggered for these local edits.
 
-## Required closure
+## Remaining decoder gate
 
-1. Run `bash scripts/validate_t4.sh` on the updated clean Linux/T4 checkout. Review
-   and retain its ZIP, including actual setup/commands, physical inventory,
-   CUDA-visible identity, reference captures and three executed passing GPU tests.
-   Existing environment synchronization is labeled separately from a fresh install.
-2. Retain a successful hosted CPU CI run for the fixed source, including its test
-   artifact and distribution checks. No hosted run was triggered for these local edits.
-3. Close P2.4 and the Phase 2 exit gate only after those reports meet the evidence
-   contract. Continue dense parity -> allocator -> paged attention -> lifecycle -> HTTP.
+Implement dense components and contiguous prefill/decode, then retain attributable
+layer/logit/greedy parity and workspace measurements on T4 before advancing to the
+allocator. Continue dense parity -> allocator -> paged attention -> lifecycle -> HTTP.
 
 All final MVP acceptance rows in [TRACEABILITY.md](TRACEABILITY.md) remain pending.
 The [public validation plan](VALIDATION_PLAN.md#build-order) defines gate ownership;

@@ -678,6 +678,7 @@ source = { editable = "." }
 dependencies = [
     { name = "fastapi" },
     { name = "huggingface-hub" },
+    { name = "safetensors" },
     { name = "transformers" },
     { name = "uvicorn", extra = ["standard"] },
 ]
@@ -711,6 +712,7 @@ requires-dist = [
     { name = "pytest", marker = "extra == 'dev'" },
     { name = "pytest-asyncio", marker = "extra == 'dev'" },
     { name = "ruff", marker = "extra == 'dev'" },
+    { name = "safetensors" },
     { name = "torch", marker = "extra == 'cpu'", specifier = "==2.7.1", index = "https://download.pytorch.org/whl/cpu", conflict = { package = "pagedcore", extra = "cpu" } },
     { name = "torch", marker = "extra == 'cuda'", specifier = "==2.7.1", index = "https://download.pytorch.org/whl/cu126", conflict = { package = "pagedcore", extra = "cuda" } },
     { name = "transformers", specifier = "==4.52.4" },

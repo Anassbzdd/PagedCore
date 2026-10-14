@@ -12,6 +12,18 @@ PagedCore loads the pinned TinyLlama weights and tokenizer, then implements the 
 
 PagedAttention’s defining mapping is from a sequence’s logical KV blocks to noncontiguous physical KV blocks read by attention.
 
+### Weight loading
+
+[`load_weights`](../src/pagedcore/weights.py) downloads only `config.json` and
+`model.safetensors` at the pinned Hub revision. It validates decoder-relevant
+configuration, the exact 201 tensor names, projection shapes and BF16 storage
+dtypes before transferring tensors. The checkpoint stores BF16; runtime weights
+are converted to FP16 and rejected if conversion produces non-finite values.
+Embedding and LM-head weights remain untied, as required by the pinned config.
+Frozen weight records retain the checkpoint's `[output, input]` projection layout
+and share the loaded tensors without another model copy or an HF model instance.
+They do not implement a forward pass, cache, or tokenizer.
+
 ## Components
 
 ```

@@ -1,0 +1,305 @@
+{
+  "task": "P3.1",
+  "captured_at_utc": "2026-10-14T16:24:41.472332+00:00",
+  "validation": "Windows/CPU-only",
+  "setup": "Existing frozen CPU/dev environment; no fresh runtime install. uv lock --offline added the already-pinned safetensors package as a direct dependency, without changing package versions.",
+  "seed": 0,
+  "environment": {
+    "python": "3.11.15",
+    "package": {
+      "name": "pagedcore",
+      "version": "0.1.0"
+    },
+    "dependencies": {
+      "torch": "2.7.1+cpu",
+      "transformers": "4.52.4"
+    },
+    "cuda": {
+      "available": false,
+      "runtime": null
+    },
+    "driver": null,
+    "gpu": [],
+    "model": {
+      "id": "TinyLlama/TinyLlama-1.1B-Chat-v1.0",
+      "revision": "af8e934848d8dd00074cc2cd8a40a9b05c3b011e"
+    },
+    "settings": {
+      "model_id": "TinyLlama/TinyLlama-1.1B-Chat-v1.0",
+      "model_revision": "af8e934848d8dd00074cc2cd8a40a9b05c3b011e",
+      "context_limit": 2048,
+      "min_new_tokens": 1,
+      "default_max_new_tokens": 128,
+      "max_new_tokens": 256,
+      "block_tokens": 16,
+      "kv_pool_mib": 8192,
+      "workspace_margin_mib": 1024,
+      "max_pending_requests": 64,
+      "max_active_sequences": 32,
+      "token_queue_size": 32,
+      "bind_address": "localhost",
+      "log_level": "INFO"
+    }
+  },
+  "safetensors_version": "0.8.0",
+  "provenance": {
+    "setup_command": null,
+    "command_arguments": null,
+    "git_revision": "0b94ebfa472c42566eeb0e34352a69996e2614cb",
+    "working_tree_clean": false,
+    "uv_lock_sha256": "46700b60b0a8d492fc673aec8a0e12c27ae43124dd8e194f8c754dbd6ca7ea48",
+    "source_sha256": {
+      ".python-version": "db82937e1f1830581a9553c7814f5c5fcacb6dfdef8310b43e9a812c887acaf5",
+      "pyproject.toml": "55b3d48fd0a5297b3adea9b812bad4c561751c84d95e2d0d2d8a0b588ce78a71",
+      "src/pagedcore/__init__.py": "42b1e9884f56caa6de42f8177eedcc2f9b81ae2df2f9db28e45114117e8f3d29",
+      "src/pagedcore/cli.py": "e36cb0cf9e342e76787b3d74e98b778c22b1b76b580bf76e556a5f03aa6c2c16",
+      "src/pagedcore/config.py": "1d53260eb14a72385186915dbf28e30c4a13180cff54c3769e872874d3736ac8",
+      "src/pagedcore/determinism.py": "2fdcba5697c59b4f68942fb7d3a14baff46cc4d0d70470c7f23e5c56a437afa2",
+      "src/pagedcore/engine_types.py": "db31cb04b5dd4e127d37f1b3a4b88bc20f2272520893a150428197713c6cae40",
+      "src/pagedcore/measurements.py": "760946d8dac98f4a9bfcc182a2426a5b92af62aa23fb859d239895d42ca5c3f0",
+      "src/pagedcore/oracle.py": "6fbc7fe7fdd01eb7cb23055ad3189fad00b733bc1dcd727e091306dcf34f9eb8",
+      "src/pagedcore/verification.py": "4e6b77ea1e88b81ae96047b59b4e5fa859c4237251d9e674a6ee27c2fbd75044",
+      "src/pagedcore/weights.py": "a54b140b6099f1dd188c4d7b0b644de796ab70438ef9f3910a7e065f11c1d8cf",
+      "tests/conftest.py": "9af7001d775975ae833aa8b278569b03b593192a66e9e04fff20672f59461b18",
+      "tests/gpu/test_oracle_reference.py": "6617aa0cc73197779f22c52441d85a34e1c3e38e9090fb08a9bd871510f53a78",
+      "tests/gpu/test_target_verification.py": "c40e8cf67d0b972f6737b71787a8d2c8ce4231538ca9b1503da6d65722c5e554",
+      "tests/unit/test_cli.py": "f1d72b629020a78f89f50b1b8ccdb01a69ac28fb2f2a4d80405f770bcb22b5f2",
+      "tests/unit/test_config.py": "ed028751b20e50dd2b74cf5a7b9e7539c517341390102abdfd10e5b376bc2422",
+      "tests/unit/test_determinism.py": "4da0279f676caced156a2db72ebc0c691ff787f22ac15c9635e85d723835eefa",
+      "tests/unit/test_engine_types.py": "ea9c52b46ac60f72c0dc95ade581b799e2b6746d627c9334c4ba7e8ab11193f3",
+      "tests/unit/test_measurements.py": "469ae30346ef880b1bbfadc58af72320f7597d3a658a0fda017c9df8fbddd00a",
+      "tests/unit/test_oracle.py": "b47f8f38a3988704da5bc5b2b11d9539728a0d86fba414f46cdfab4ef8f8166b",
+      "tests/unit/test_reference_fixtures.py": "7a4483485678c31f58fe6700b63e468664555d6321fb49a628acb8496657f17b",
+      "tests/unit/test_verification.py": "75df0ea776fd91478db64e74b0861be1cb9e49a1cbb8464fbff1ceeb49cfb2b1",
+      "tests/unit/test_weights.py": "5555b55d797ddd5020887016ff19f9b7dfb54432f09a95b17ffe42ab58ea64ae"
+    }
+  },
+  "documentation_sha256": {
+    "docs/DESIGN.md": "deaa3e585bf62b06a65edd63e655879e537ac0fdf7e8808523c625bffe7260e8",
+    "docs/VALIDATION_PLAN.md": "c0a5d56935fe274cb931a5b10b63242846475a88e5cc96d3d57f08e67b80983a",
+    "docs/STATUS.md": "31e9a676e8d85e18b304b7ede134dc37ae52b1b9be97eca554857cea592d4525",
+    "docs/task.md": "fda2fd688906a8321c726fc6f11c4c6179d1b8737ae5bc1d76ace657572dba80"
+  },
+  "checks": [
+    {
+      "command": "uv run --no-sync python -m pytest tests/unit/test_weights.py -q",
+      "exit_code": 0,
+      "result": "69 passed"
+    },
+    {
+      "command": "uv run --no-sync python -m ruff check .",
+      "exit_code": 0,
+      "result": "All checks passed!"
+    },
+    {
+      "command": "uv run --no-sync python -m ruff format --check .",
+      "exit_code": 0,
+      "result": "30 files already formatted"
+    },
+    {
+      "command": "uv run --no-sync python -m mypy --strict src/pagedcore",
+      "exit_code": 0,
+      "result": "Success: no issues found in 9 source files"
+    },
+    {
+      "command": "uv run --no-sync python -m pytest -m \"not gpu and not benchmark\" -ra --junitxml=results/local/p3.1-cpu.xml",
+      "exit_code": 0,
+      "result": "324 passed, 3 deselected in 63.35s",
+      "junit_summary": {
+        "name": "pytest",
+        "errors": "0",
+        "failures": "0",
+        "skipped": "0",
+        "tests": "324",
+        "time": "62.851",
+        "timestamp": "2026-10-14T16:19:38.303313+00:00",
+        "hostname": "DESKTOP-6B32K31"
+      }
+    },
+    {
+      "command": "uv run --no-sync python -m build",
+      "exit_code": 0,
+      "result": "Successfully built pagedcore-0.1.0.tar.gz and pagedcore-0.1.0-py3-none-any.whl"
+    },
+    {
+      "command": "uv lock --check",
+      "exit_code": 0,
+      "result": "Resolved 77 packages"
+    },
+    {
+      "command": "uv pip install --no-deps --target results/local/p3.1-wheel dist/pagedcore-0.1.0-py3-none-any.whl",
+      "exit_code": 0,
+      "result": "Installed pagedcore 0.1.0 from built wheel"
+    },
+    {
+      "command": "uv run --no-sync python -I -c \"import sys; from pathlib import Path; target=Path('results/local/p3.1-wheel').resolve(); sys.path.insert(0,str(target)); import pagedcore.weights as w; from pagedcore.config import load_config; from pagedcore.cli import main; assert Path(w.__file__).is_relative_to(target); load_config(); print(w.__file__); main(['--help'])\"",
+      "exit_code": 0,
+      "result": "Imported installed wheel weights module, validated config, CLI help exited successfully"
+    },
+    {
+      "command": "git diff --check",
+      "exit_code": 0
+    }
+  ],
+  "counts": {
+    "collected": 327,
+    "selected": 324,
+    "executed": 324,
+    "passed": 324,
+    "failed": 0,
+    "skipped": 0,
+    "deselected": 3,
+    "gpu_executed": 0,
+    "weight_contract_cases": 69
+  },
+  "checkpoint_cpu_load": {
+    "model_id": "TinyLlama/TinyLlama-1.1B-Chat-v1.0",
+    "revision": "af8e934848d8dd00074cc2cd8a40a9b05c3b011e",
+    "checkpoint_bytes": 2200119864,
+    "checkpoint_sha256": "6e6001da2106d4757498752a021df6c2bdc332c650aae4bae6b0c004dcf14933",
+    "hash_validation": "SHA-256 of the existing cached weight file matches the pinned revision LFS SHA-256 retrieved via HfApi.model_info(files_metadata=True). The verified file was hardlinked into the pinned snapshot cache.",
+    "invocation": "w=load_weights(device='cpu',local_files_only=True)",
+    "result": "passed",
+    "loaded_tensors": 201,
+    "layer_records": 22,
+    "embedding_shape": [
+      32000,
+      2048
+    ],
+    "lm_head_shape": [
+      32000,
+      2048
+    ],
+    "source_dtype": "BF16",
+    "runtime_dtype": "torch.float16",
+    "device": "cpu",
+    "finite_weights": true,
+    "duration_seconds": 15.343999999924563,
+    "config": {
+      "architectures": [
+        "LlamaForCausalLM"
+      ],
+      "attention_bias": false,
+      "bos_token_id": 1,
+      "eos_token_id": 2,
+      "hidden_act": "silu",
+      "hidden_size": 2048,
+      "initializer_range": 0.02,
+      "intermediate_size": 5632,
+      "max_position_embeddings": 2048,
+      "model_type": "llama",
+      "num_attention_heads": 32,
+      "num_hidden_layers": 22,
+      "num_key_value_heads": 4,
+      "pretraining_tp": 1,
+      "rms_norm_eps": 1e-05,
+      "rope_scaling": null,
+      "rope_theta": 10000.0,
+      "tie_word_embeddings": false,
+      "torch_dtype": "bfloat16",
+      "transformers_version": "4.35.0",
+      "use_cache": true,
+      "vocab_size": 32000
+    }
+  },
+  "prior_gate_review": {
+    "t4_archive": "results/validation/2026-10-13-t4/t4-20261013T180545Z.zip",
+    "archive_sha256": "58b393f15143905cf42ac9fef02fd806599b8bf3db2ee13e6e12786ca090d89c",
+    "hosted_ci_url": "https://github.com/Anassbzdd/PagedCore/actions/runs/38445324328",
+    "hosted_ci_head_sha": "0b94ebfa472c42566eeb0e34352a69996e2614cb",
+    "hosted_ci_api_observation": {
+      "status": "completed",
+      "conclusion": "success"
+    },
+    "limit": "Prior environment/oracle evidence only; predates this loader.",
+    "test_summaries": {
+      "cpu-tests.xml": {
+        "name": "pytest",
+        "errors": "0",
+        "failures": "0",
+        "skipped": "0",
+        "tests": "255",
+        "time": "6.500",
+        "timestamp": "2026-10-13T18:07:50.392495+00:00",
+        "hostname": "e4b2b8098a3b"
+      },
+      "gpu-tests.xml": {
+        "name": "pytest",
+        "errors": "0",
+        "failures": "0",
+        "skipped": "0",
+        "tests": "3",
+        "time": "11.801",
+        "timestamp": "2026-10-13T18:07:58.883358+00:00",
+        "hostname": "e4b2b8098a3b"
+      }
+    },
+    "comparison": {
+      "case": "boundary_15",
+      "finish_reason": "length",
+      "maximum_absolute_errors": {
+        "decode.1.embedding": 0.0,
+        "decode.1.final_norm": 0.0,
+        "decode.1.layer.0.attention": 0.0,
+        "decode.1.layer.0.hidden": 0.0,
+        "decode.1.layer.0.input_norm": 0.0,
+        "decode.1.layer.0.mlp": 0.0,
+        "decode.1.layer.0.post_attention_norm": 0.0,
+        "decode.1.layer.21.attention": 0.0,
+        "decode.1.layer.21.hidden": 0.0,
+        "decode.1.layer.21.input_norm": 0.0,
+        "decode.1.layer.21.mlp": 0.0,
+        "decode.1.layer.21.post_attention_norm": 0.0,
+        "decode.1.logits": 0.0,
+        "decode.2.embedding": 0.0,
+        "decode.2.final_norm": 0.0,
+        "decode.2.layer.0.attention": 0.0,
+        "decode.2.layer.0.hidden": 0.0,
+        "decode.2.layer.0.input_norm": 0.0,
+        "decode.2.layer.0.mlp": 0.0,
+        "decode.2.layer.0.post_attention_norm": 0.0,
+        "decode.2.layer.21.attention": 0.0,
+        "decode.2.layer.21.hidden": 0.0,
+        "decode.2.layer.21.input_norm": 0.0,
+        "decode.2.layer.21.mlp": 0.0,
+        "decode.2.layer.21.post_attention_norm": 0.0,
+        "decode.2.logits": 0.0,
+        "prefill.embedding": 0.0,
+        "prefill.final_norm": 0.0,
+        "prefill.layer.0.attention": 0.0,
+        "prefill.layer.0.hidden": 0.0,
+        "prefill.layer.0.input_norm": 0.0,
+        "prefill.layer.0.mlp": 0.0,
+        "prefill.layer.0.post_attention_norm": 0.0,
+        "prefill.layer.21.attention": 0.0,
+        "prefill.layer.21.hidden": 0.0,
+        "prefill.layer.21.input_norm": 0.0,
+        "prefill.layer.21.mlp": 0.0,
+        "prefill.layer.21.post_attention_norm": 0.0,
+        "prefill.logits": 0.0
+      },
+      "output_tokens": 3,
+      "scope": "HF reference only; no owned-decoder parity or performance claim",
+      "status": "passed",
+      "tensor_count": 39
+    }
+  },
+  "earlier_attempts": [
+    {
+      "check": "Initial Ruff run",
+      "exit_code": 1,
+      "result": "RUF043 in new test regex; escaped the literal dot and the final lint pass succeeded."
+    },
+    {
+      "check": "Initial pinned checkpoint download",
+      "exit_code": 1,
+      "result": "Intentionally interrupted redundant network download; reused SHA-256-verified existing cached weights for the successful full load."
+    }
+  ],
+  "limits": [
+    "Small safetensors unit fixtures reduce dimensions; the complete fixed schema is independently asserted.",
+    "Real CPU load checks weight mapping and finite FP16 conversion only. No owned forward pass, T4 loading/parity, CUDA memory safety or workspace/performance evidence.",
+    "P3.1 is complete; P3.2-P3.7 and the Phase 3 exit gate remain open.",
+    "Current source has local checks only; no hosted CI was dispatched."
+  ]
+}

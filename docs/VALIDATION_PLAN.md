@@ -43,6 +43,16 @@ The P2 oracle explicitly loads the pinned HF model with `attn_implementation="ea
 
 Capture all decoder-relevant values from the loaded configuration, including RMSNorm epsilon, RoPE theta/scaling, intermediate size, head mapping, biases, weight tying, BOS/EOS IDs and vocabulary. Follow the [raw-prompt/decoding policy](SPEC.md#http-contract). Compare token IDs directly across oracle, owned decoder and benchmark adapters. Use public deterministic fixtures; immediate-EOS and stopping paths may also use controlled logits, with synthetic coverage labeled separately from actual checkpoint parity.
 
+The [owned weight loader](../src/pagedcore/weights.py) validates the pinned
+revision, config and complete safetensors metadata before loading FP16 tensors.
+[CPU contract tests](../tests/unit/test_weights.py) exercise malformed snapshots,
+every required config field, missing/extra tensors, shape/dtype errors, untied
+mapping and non-finite conversion. Small real safetensors fixtures test I/O;
+their reduced dimensions do not prove pinned-checkpoint or GPU correctness.
+The [P3.1 CPU report](../results/validation/2026-10-14-p3.1-cpu.json) separately
+records loading all real pinned weights on CPU. Subsequent dense parity tests
+must use these owned weights on T4; CPU weight loading does not close Phase 3.
+
 ### Oracle harness
 
 Run from the repository root with the frozen CUDA/dev environment on an actual T4:
