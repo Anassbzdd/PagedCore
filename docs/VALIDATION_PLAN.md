@@ -53,6 +53,17 @@ The [P3.1 CPU report](../results/validation/2026-10-14-p3.1-cpu.json) separately
 records loading all real pinned weights on CPU. Subsequent dense parity tests
 must use these owned weights on T4; CPU weight loading does not close Phase 3.
 
+The [dense components](../src/pagedcore/dense.py) have
+[synthetic CPU tests](../tests/unit/test_dense.py) for projection/head layout,
+eight-to-one KV mapping, causal prefill-shaped and one-query attention, FP32
+RMSNorm/softmax behavior, RoPE at absolute positions through 2,047, output
+projection, SwiGLU and final norm/untied LM head. Component comparisons use the
+pinned Transformers implementation with random weights and unchanged tolerances;
+these are not full-layer or pinned-checkpoint parity tests. The
+[P3.2 CPU report](../results/validation/2026-10-14-p3.2-cpu.json) records local
+checks and source identity. Contiguous cache orchestration, exact greedy T4
+parity, a measured tolerance envelope and workspace evidence remain required.
+
 ### Oracle harness
 
 Run from the repository root with the frozen CUDA/dev environment on an actual T4:

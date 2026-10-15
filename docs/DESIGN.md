@@ -2,7 +2,9 @@ Purpose: Record the architecture, memory rules, and technical decisions that imp
 
 # PagedCore Technical Design
 
-This is the required target architecture. The decoder, paging, worker, and HTTP components are not implemented yet; [STATUS.md](STATUS.md) distinguishes delivered code from evidence and planned work.
+This is the required target architecture. Owned weights and dense math components
+exist; the complete decoder, paging, worker, and HTTP components remain planned.
+[STATUS.md](STATUS.md) distinguishes delivered code from evidence and planned work.
 
 ## Core design decision
 
@@ -23,6 +25,25 @@ Embedding and LM-head weights remain untied, as required by the pinned config.
 Frozen weight records retain the checkpoint's `[output, input]` projection layout
 and share the loaded tensors without another model copy or an HF model instance.
 They do not implement a forward pass, cache, or tokenizer.
+
+### Dense components
+
+[`dense.py`](../src/pagedcore/dense.py) consumes the existing weight records without
+copying weights or importing Transformers. It provides RMSNorm, separate Q/K/V
+projections, absolute-position RoPE, eight-to-one grouped-query head mapping,
+dense attention, output projection, SwiGLU, and final normalization/LM logits.
+Q/K/V use `[batch, heads, tokens, 64]`; each KV head serves eight consecutive query
+heads. RoPE rotates Q/K using the pinned half-pair convention before K is cached.
+RMSNorm reductions and RoPE trigonometry use FP32; dense eager attention uses an
+FP32 softmax rounded to FP16 before multiplying V, matching the oracle's operation
+order. Callers supply valid absolute positions and a boolean causal mask with at
+least one allowed key per query, and run under inference mode.
+
+Dense attention expands KV heads over contiguous tensors only for correctness
+validation. It is replaceable by block-table attention; the paged decode path must
+not use this full-history expansion. These stateless components do not own a
+cache or implement prefill/decode orchestration or generation. Synthetic CPU
+component tests are not pinned-checkpoint or T4 parity evidence.
 
 ## Components
 
