@@ -61,8 +61,20 @@ projection, SwiGLU and final norm/untied LM head. Component comparisons use the
 pinned Transformers implementation with random weights and unchanged tolerances;
 these are not full-layer or pinned-checkpoint parity tests. The
 [P3.2 CPU report](../results/validation/2026-10-14-p3.2-cpu.json) records local
-checks and source identity. Contiguous cache orchestration, exact greedy T4
-parity, a measured tolerance envelope and workspace evidence remain required.
+checks and source identity.
+
+The [contiguous decoder](../src/pagedcore/decoder.py) now composes these components
+for single-sequence prefill and one-token decode. Its
+[synthetic CPU tests](../tests/unit/test_decoder.py) check eager HF prefill logits,
+cached versus fresh full-prefix forwards, rotated K/unrotated V, causal visibility,
+request isolation and unchanged input caches after success or injected failure.
+Lengths 1/15/16/17/49 exercise orchestration; a synthetic 2,047-position cache
+exercises the last decode position and overflow rejection, not maximum-prefill
+workspace. The [P3.3 CPU report](../results/validation/2026-10-16-p3.3-cpu.json)
+retains local commands and source identity. These reduced-depth random-weight
+tests do not prove real-checkpoint layer/greedy parity. Layer-by-layer T4 checks,
+exact greedy parity, a measured tolerance envelope and workspace evidence remain
+required.
 
 ### Oracle harness
 

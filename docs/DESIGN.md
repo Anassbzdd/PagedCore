@@ -2,8 +2,9 @@ Purpose: Record the architecture, memory rules, and technical decisions that imp
 
 # PagedCore Technical Design
 
-This is the required target architecture. Owned weights and dense math components
-exist; the complete decoder, paging, worker, and HTTP components remain planned.
+This is the required target architecture. Owned weights, dense math components
+and single-sequence contiguous prefill/decode exist. Paging, the worker and HTTP
+components remain planned.
 [STATUS.md](STATUS.md) distinguishes delivered code from evidence and planned work.
 
 ## Core design decision
@@ -44,6 +45,29 @@ validation. It is replaceable by block-table attention; the paged decode path mu
 not use this full-history expansion. These stateless components do not own a
 cache or implement prefill/decode orchestration or generation. Synthetic CPU
 component tests are not pinned-checkpoint or T4 parity evidence.
+
+### Contiguous prefill and decode
+
+[`decoder.py`](../src/pagedcore/decoder.py) composes the owned components and
+residual connections under inference mode. `prefill` accepts already-tokenized
+int64 `[1, prompt_tokens]` IDs and returns FP16 logits for every prompt position
+plus a per-layer `ContiguousCache`. The last position selects the first output
+token. `decode` accepts `[1, 1]` containing the previously emitted token and
+returns its logits and the extended cache. The cached length supplies the absolute
+RoPE position and causal mask; the total cannot exceed 2,048 positions.
+
+Each cache layer holds rotated K and unrotated V as `[1, 4, tokens, 64]`. Decode
+concatenates into new tensors, leaving the previous cache unchanged even if a
+later layer fails. Cache tensors are read-only by contract and must be used with
+the weights that produced them. The decoder keeps no per-request state; callers
+own cache lifetime. Token selection, stopping, tokenization and batching remain
+outside these forward functions.
+
+This simple full-history cache is a dense correctness baseline. Its storage and
+dense attention must be replaced together for paged decode; neither concatenation
+nor full-history KV-head expansion is permitted in that path. The prefill/decode
+boundary takes IDs and returns logits/cache without any Transformers cache API.
+Synthetic CPU orchestration tests do not close the T4 parity or workspace gate.
 
 ## Components
 

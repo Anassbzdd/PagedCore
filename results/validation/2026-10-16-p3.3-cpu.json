@@ -1,0 +1,211 @@
+{
+  "task": "P3.3",
+  "captured_at_utc": "2026-10-16T19:50:31.708260+00:00",
+  "validation": "Windows/CPU-only",
+  "setup": "Existing frozen CPU/dev environment; no dependency or runtime installation changes.",
+  "seed": 0,
+  "environment": {
+    "python": "3.11.15",
+    "package": {
+      "name": "pagedcore",
+      "version": "0.1.0"
+    },
+    "dependencies": {
+      "torch": "2.7.1+cpu",
+      "transformers": "4.52.4"
+    },
+    "cuda": {
+      "available": false,
+      "runtime": null
+    },
+    "driver": null,
+    "gpu": [],
+    "model": {
+      "id": "TinyLlama/TinyLlama-1.1B-Chat-v1.0",
+      "revision": "af8e934848d8dd00074cc2cd8a40a9b05c3b011e"
+    },
+    "settings": {
+      "model_id": "TinyLlama/TinyLlama-1.1B-Chat-v1.0",
+      "model_revision": "af8e934848d8dd00074cc2cd8a40a9b05c3b011e",
+      "context_limit": 2048,
+      "min_new_tokens": 1,
+      "default_max_new_tokens": 128,
+      "max_new_tokens": 256,
+      "block_tokens": 16,
+      "kv_pool_mib": 8192,
+      "workspace_margin_mib": 1024,
+      "max_pending_requests": 64,
+      "max_active_sequences": 32,
+      "token_queue_size": 32,
+      "bind_address": "localhost",
+      "log_level": "INFO"
+    }
+  },
+  "provenance": {
+    "setup_command": null,
+    "command_arguments": null,
+    "git_revision": "562636ab9d182530632b062933211dbd68f33d5f",
+    "working_tree_clean": false,
+    "uv_lock_sha256": "46700b60b0a8d492fc673aec8a0e12c27ae43124dd8e194f8c754dbd6ca7ea48",
+    "source_sha256": {
+      ".python-version": "db82937e1f1830581a9553c7814f5c5fcacb6dfdef8310b43e9a812c887acaf5",
+      "pyproject.toml": "55b3d48fd0a5297b3adea9b812bad4c561751c84d95e2d0d2d8a0b588ce78a71",
+      "src/pagedcore/__init__.py": "42b1e9884f56caa6de42f8177eedcc2f9b81ae2df2f9db28e45114117e8f3d29",
+      "src/pagedcore/cli.py": "e36cb0cf9e342e76787b3d74e98b778c22b1b76b580bf76e556a5f03aa6c2c16",
+      "src/pagedcore/config.py": "1d53260eb14a72385186915dbf28e30c4a13180cff54c3769e872874d3736ac8",
+      "src/pagedcore/decoder.py": "1633e66c49c89aaa896343adbb8db4d9bc6aed19179d09cba66bbdbcacea7f8e",
+      "src/pagedcore/dense.py": "2c927378c4a06b6ec5680b9a1540d46908748088991aa35525d0c9a1e27bb342",
+      "src/pagedcore/determinism.py": "2fdcba5697c59b4f68942fb7d3a14baff46cc4d0d70470c7f23e5c56a437afa2",
+      "src/pagedcore/engine_types.py": "db31cb04b5dd4e127d37f1b3a4b88bc20f2272520893a150428197713c6cae40",
+      "src/pagedcore/measurements.py": "760946d8dac98f4a9bfcc182a2426a5b92af62aa23fb859d239895d42ca5c3f0",
+      "src/pagedcore/oracle.py": "6fbc7fe7fdd01eb7cb23055ad3189fad00b733bc1dcd727e091306dcf34f9eb8",
+      "src/pagedcore/verification.py": "4e6b77ea1e88b81ae96047b59b4e5fa859c4237251d9e674a6ee27c2fbd75044",
+      "src/pagedcore/weights.py": "1a0b9f34003ab9ca99ccd00e2f193253071d45b480adce7ed809e65ffa72ec5b",
+      "tests/conftest.py": "9af7001d775975ae833aa8b278569b03b593192a66e9e04fff20672f59461b18",
+      "tests/gpu/test_oracle_reference.py": "6617aa0cc73197779f22c52441d85a34e1c3e38e9090fb08a9bd871510f53a78",
+      "tests/gpu/test_target_verification.py": "c40e8cf67d0b972f6737b71787a8d2c8ce4231538ca9b1503da6d65722c5e554",
+      "tests/unit/test_cli.py": "f1d72b629020a78f89f50b1b8ccdb01a69ac28fb2f2a4d80405f770bcb22b5f2",
+      "tests/unit/test_config.py": "ed028751b20e50dd2b74cf5a7b9e7539c517341390102abdfd10e5b376bc2422",
+      "tests/unit/test_decoder.py": "628799c640fcf1e76abf12426fd432be7257bd6acecc109b7fbbafa77f75d22a",
+      "tests/unit/test_dense.py": "346107a33eae54cdfd5b9a8bfb38017e95379338e6574049521b060c814d3d92",
+      "tests/unit/test_determinism.py": "4da0279f676caced156a2db72ebc0c691ff787f22ac15c9635e85d723835eefa",
+      "tests/unit/test_engine_types.py": "ea9c52b46ac60f72c0dc95ade581b799e2b6746d627c9334c4ba7e8ab11193f3",
+      "tests/unit/test_measurements.py": "469ae30346ef880b1bbfadc58af72320f7597d3a658a0fda017c9df8fbddd00a",
+      "tests/unit/test_oracle.py": "b47f8f38a3988704da5bc5b2b11d9539728a0d86fba414f46cdfab4ef8f8166b",
+      "tests/unit/test_reference_fixtures.py": "7a4483485678c31f58fe6700b63e468664555d6321fb49a628acb8496657f17b",
+      "tests/unit/test_verification.py": "75df0ea776fd91478db64e74b0861be1cb9e49a1cbb8464fbff1ceeb49cfb2b1",
+      "tests/unit/test_weights.py": "5555b55d797ddd5020887016ff19f9b7dfb54432f09a95b17ffe42ab58ea64ae"
+    }
+  },
+  "checks": [
+    {
+      "argv": [
+        "uv",
+        "run",
+        "--no-sync",
+        "python",
+        "-m",
+        "ruff",
+        "format",
+        "--check",
+        "."
+      ],
+      "exit_code": 0,
+      "stdout": "34 files already formatted\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "uv",
+        "run",
+        "--no-sync",
+        "python",
+        "-m",
+        "ruff",
+        "check",
+        "."
+      ],
+      "exit_code": 0,
+      "stdout": "All checks passed!\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "uv",
+        "run",
+        "--no-sync",
+        "python",
+        "-m",
+        "mypy",
+        "--strict",
+        "src/pagedcore"
+      ],
+      "exit_code": 0,
+      "stdout": "Success: no issues found in 11 source files\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "uv",
+        "run",
+        "--no-sync",
+        "python",
+        "-m",
+        "pytest",
+        "-m",
+        "not gpu and not benchmark",
+        "-ra",
+        "--junitxml=results/local/p3.3-cpu-tests.xml"
+      ],
+      "exit_code": 0,
+      "stdout": "============================= test session starts =============================\nplatform win32 -- Python 3.11.15, pytest-9.1.1, pluggy-1.6.0\nrootdir: C:\\Users\\user\\OneDrive\\Desktop\\PagedCore\nconfigfile: pyproject.toml\ntestpaths: tests\nplugins: anyio-4.15.1, hypothesis-6.168.3, asyncio-1.4.0\nasyncio: mode=Mode.STRICT, debug=False, asyncio_default_fixture_loop_scope=None, asyncio_default_test_loop_scope=function\ncollected 379 items / 3 deselected / 376 selected\n\ntests\\unit\\test_cli.py ...................                               [  5%]\ntests\\unit\\test_config.py ..........................                     [ 11%]\ntests\\unit\\test_decoder.py ..............................                [ 19%]\ntests\\unit\\test_dense.py ......................                          [ 25%]\ntests\\unit\\test_determinism.py .....                                     [ 27%]\ntests\\unit\\test_engine_types.py ........................................ [ 37%]\n....................................................................     [ 55%]\ntests\\unit\\test_measurements.py ..................                       [ 60%]\ntests\\unit\\test_oracle.py .............................................. [ 72%]\n..                                                                       [ 73%]\ntests\\unit\\test_reference_fixtures.py ................                   [ 77%]\ntests\\unit\\test_verification.py ...............                          [ 81%]\ntests\\unit\\test_weights.py ............................................. [ 93%]\n........................                                                 [100%]\n\n- generated xml file: C:\\Users\\user\\OneDrive\\Desktop\\PagedCore\\results\\local\\p3.3-cpu-tests.xml -\n===================== 376 passed, 3 deselected in 29.40s ======================\n",
+      "stderr": ""
+    }
+  ],
+  "earlier_attempts": [
+    {
+      "command": "uv run --no-sync python -m pytest tests/unit/test_decoder.py -q",
+      "exit_code": 0,
+      "result": "28 passed in 76.83s; injected-failure and device-mismatch cases added afterward and included in the final full suite."
+    }
+  ],
+  "tests": {
+    "tests": 376,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0,
+    "collected": 379,
+    "selected": 376,
+    "executed": 376,
+    "passed": 376,
+    "failed": 0,
+    "gpu_deselected": 3,
+    "new_decoder_cases": 30
+  },
+  "limits": [
+    "Synthetic two-layer CPU model uses the pinned head geometry with random weights and reduced MLP/vocabulary. No real-checkpoint forward or T4 parity is established.",
+    "The last-position test extends a synthetic cache to 2047 positions before one decode. It does not measure maximum-prefill workspace or validate that synthetic history against a checkpoint.",
+    "Contiguous concatenation and dense KV expansion are correctness-baseline operations, forbidden in the future paged decode path.",
+    "Token selection/stopping, layer-by-layer T4 parity, measured tolerance envelope, dense workspace, paging and service remain outside this result. Numerical tolerances are unchanged.",
+    "Local checks only; no hosted CI or GPU tests executed."
+  ],
+  "documentation_sha256": {
+    "docs/DESIGN.md": "b93cbfb0ec8d5e063895c633346cd510c0a8990cbea95a7c057a7b79f767de58",
+    "docs/VALIDATION_PLAN.md": "bb037f0a755c7b7982b331852e8a7f33339309dabad37c90f7ef1b8eef5bbfa0",
+    "docs/STATUS.md": "98148be238edc415a6d7492fd64b014808f15ae2150557352c5ff1116bfdc839",
+    "docs/task.md": "d25f338969b720cf09c35556197ffef2a85b75692d35efde30a56d0ca1185b11"
+  },
+  "final_rechecks": [
+    {
+      "argv": [
+        "uv",
+        "run",
+        "--no-sync",
+        "python",
+        "-m",
+        "ruff",
+        "format",
+        "--check",
+        "."
+      ],
+      "exit_code": 0,
+      "stdout": "34 files already formatted\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "uv",
+        "run",
+        "--no-sync",
+        "python",
+        "-m",
+        "ruff",
+        "check",
+        "."
+      ],
+      "exit_code": 0,
+      "stdout": "All checks passed!\n",
+      "stderr": ""
+    }
+  ]
+}

@@ -1,19 +1,21 @@
 # Implementation and evidence status
 
-Snapshot: 2026-10-14. The [P3.2 CPU report](../results/validation/2026-10-14-p3.2-cpu.json)
-records 346 passing non-GPU tests, including 22 dense-component cases, and passing
-formatting/Ruff/strict mypy. No GPU execution occurred during this change. The
+Snapshot: 2026-10-16. The [P3.3 CPU report](../results/validation/2026-10-16-p3.3-cpu.json)
+records 376 passing non-GPU tests, including 30 contiguous-decoder cases, and
+passing formatting/Ruff/strict mypy. No GPU execution occurred during this change. The
+[P3.2 report](../results/validation/2026-10-14-p3.2-cpu.json) retains earlier
+dense-component evidence. The
 [P3.1 report](../results/validation/2026-10-14-p3.1-cpu.json) retains the earlier
 weight-loading, distribution-build and real pinned-weight CPU-load evidence.
 
 ## Current gate
 
 Phase 3 dense decoder parity is the current runtime gate. P3.1 weight loading is
-implemented and CPU-validated, as are P3.2 dense components. P3.3 contiguous
-prefill/decode is next. Layer/logit/greedy
+implemented and CPU-validated, as are P3.2 dense components and P3.3 contiguous
+prefill/decode. P3.4 layer-by-layer comparison is next. Layer/logit/greedy
 T4 parity and dense workspace measurement remain unsatisfied. The October 13
 archive and successful hosted CI below supersede the earlier Phase 2 evidence
-blockers; they do not validate the owned loader or dense components on GPU.
+blockers; they do not validate the owned decoder on GPU.
 
 | Surface | Implemented and observed | Evidence boundary |
 |---|---|---|
@@ -23,20 +25,30 @@ blockers; they do not validate the owned loader or dense components on GPU.
 | Public fixtures | Exact pinned IDs at 15/16/17 and 32/49 tokens, whitespace, mixed lengths, maximum output and synthetic EOS cases | Current cached-tokenizer integration check executed and passed; these inputs do not prove batching or an owned generation loop |
 | HF oracle | Frozen eager FP16 capture/comparison, strict deterministic policy, snapshots and safe artifact persistence | October 13 T4 reference repeatability for `boundary_15`, with setup and selected-device attribution |
 | Internal timing analyzer | Separate generation/delivery durations, TTFT/ITL/TPOT and missing zero/one-token values | 18 synthetic CPU cases; early transport closure is valid, impossible generation ordering and invalid timestamps still fail |
-| CPU CI | Push/PR workflow for frozen setup, format/lint/types/tests and distribution smoke | Hosted run `38445324328` succeeded for prior source; current loader/components have local CPU evidence only |
-| Owned weight loading | Pinned safetensors/config validation, complete typed mapping, BF16-to-FP16 conversion, untied embedding/head | 69 synthetic contract cases plus all 201 real pinned tensors loaded on CPU; no forward pass or T4 loader validation |
-| Dense decoder components | RMSNorm, Q/K/V, absolute RoPE, GQA mapping/dense attention, output projection, SwiGLU, final norm/LM head | 22 synthetic CPU cases; no complete decoder, pinned-checkpoint or T4 parity proof |
-| Prefill/decode/paging/worker/service | Not implemented | No owned generation parity, paged reads, cleanup, concurrency, HTTP or GPU memory-safety proof |
+| CPU CI | Push/PR workflow for frozen setup, format/lint/types/tests and distribution smoke | Hosted run `38445324328` succeeded for prior source; current owned decoder has local CPU evidence only |
+| Owned weight loading | Pinned safetensors/config validation, complete typed mapping, BF16-to-FP16 conversion, untied embedding/head | 69 synthetic contract cases plus all 201 real pinned tensors loaded on CPU; no real-checkpoint forward or T4 loader validation |
+| Dense decoder components | RMSNorm, Q/K/V, absolute RoPE, GQA mapping/dense attention, output projection, SwiGLU, final norm/LM head | 22 synthetic CPU component cases; no pinned-checkpoint or T4 parity proof |
+| Contiguous prefill/decode | Single-sequence owned forward, residuals, per-layer FP16 cache and one-token append at absolute positions | Synthetic CPU prefill-logit and cached/full-prefix checks; no real-checkpoint layer/greedy parity or T4 workspace proof |
+| Paging/worker/service | Not implemented | No owned generation parity, paged reads, cleanup, concurrency, HTTP or GPU memory-safety proof |
 | Container/benchmark/report | Not implemented | No container, serving performance or comparative measurement proof |
 
 ## Current CPU evidence
 
-The current [dense-component report](../results/validation/2026-10-14-p3.2-cpu.json)
+The current [contiguous-decoder report](../results/validation/2026-10-16-p3.3-cpu.json)
+records commands, source/lock identity, dependency versions and CPU-only limits.
+All 376 selected tests passed with zero skips; three GPU tests were deselected.
+Synthetic two-layer tests use pinned head geometry and reduced MLP/vocabulary.
+They check prefill logits against eager HF, repeated decode against fresh prefixes,
+causal visibility, K/V contents, request isolation, validation and cache preservation
+after injected failure. A synthetic 2,047-position history tests the last decode
+position and overflow; it does not prove maximum-prefill memory safety.
+
+The earlier [dense-component report](../results/validation/2026-10-14-p3.2-cpu.json)
 records commands, source/lock identity, dependency versions and CPU-only limits.
 All 346 selected tests passed with zero skips; three GPU tests were deselected.
 Synthetic component tests compare with pinned HF math and independently check
 projection orientation, head mapping, absolute positions, causal visibility and
-the untied LM head. They do not establish complete-layer or real-model parity.
+the untied LM head. They do not establish real-model parity.
 
 The earlier [weight-loading report](../results/validation/2026-10-14-p3.1-cpu.json)
 records commands, source/lock identity, dependency versions and CPU-only limits.
@@ -99,13 +111,14 @@ not an owned decoder, paging, memory safety or performance.
 The newer [successful run](https://github.com/Anassbzdd/PagedCore/actions/runs/38445324328)
 for `0b94ebf` supersedes the historical formatting failure. Its completed/success
 status was rechecked through GitHub's API on October 14. That run predates the
-weight loader and dense components; no hosted run was triggered for these local edits.
+weight loader, dense components and contiguous decoder; no hosted run was triggered
+for these local edits.
 
 ## Remaining decoder gate
 
-Implement contiguous prefill/decode, then retain attributable
-layer/logit/greedy parity and workspace measurements on T4 before advancing to the
-allocator. Continue dense parity -> allocator -> paged attention -> lifecycle -> HTTP.
+Retain attributable layer/logit/greedy parity and workspace measurements on T4
+for the contiguous decoder before advancing to the allocator. Continue dense
+parity -> allocator -> paged attention -> lifecycle -> HTTP.
 
 All final MVP acceptance rows in [TRACEABILITY.md](TRACEABILITY.md) remain pending.
 The [public validation plan](VALIDATION_PLAN.md#build-order) defines gate ownership;
