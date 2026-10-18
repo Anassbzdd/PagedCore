@@ -76,6 +76,30 @@ tests do not prove real-checkpoint layer/greedy parity. Layer-by-layer T4 checks
 exact greedy parity, a measured tolerance envelope and workspace evidence remain
 required.
 
+The [layer-comparison fixture](../tests/conftest.py) snapshots every decoder
+layer's input/post-attention norms, projected attention, MLP and residual output,
+plus embeddings, final normalized hidden state and logits. It observes the actual
+owned forwards through temporary test wrappers and HF through hooks, restoring
+both on success or failure. Prefill and three cached decode steps receive identical
+IDs; decode replays reference-selected tokens, so this is forward comparison rather
+than proof of owned greedy selection or stopping. Intermediate/final-hidden
+comparisons use `atol=rtol=2e-3`; logits use `atol=rtol=5e-3`, with shape/dtype and
+finite-value checks and named step/layer failures.
+
+[Synthetic CPU cases](../tests/unit/test_decoder.py) cover prompt lengths
+1/15/16/17/49 with two random-weight layers. Their HF RoPE frequencies remain FP32:
+calling `.half()` on the whole synthetic model also rounds buffers, which caused
+norm mismatches when the new comparisons were first run. Recreating the HF rotary
+module after parameter conversion removes that reference-fixture error without
+changing the owned math or tolerances. An injected attention error verifies that
+the comparisons detect a named owned-layer mismatch.
+
+The [pinned-checkpoint T4 test](../tests/gpu/test_decoder_parity.py) uses the owned
+weight loader and eager HF with all 22 layers, prompt lengths 1/15/16/17/49 and
+three cached decode steps each. It is required by the T4 collector but has not yet
+executed; CPU success and GPU collection/skips do not satisfy P3.4's T4 evidence.
+See the [P3.4 CPU report](../results/validation/2026-10-17-p3.4-cpu.json).
+
 ### Oracle harness
 
 Run from the repository root with the frozen CUDA/dev environment on an actual T4:
@@ -105,7 +129,7 @@ bash scripts/validate_t4.sh
 
 This [collector](../scripts/validate_t4.sh) logs frozen environment setup, source/lock
 identity, physical GPU inventory and the single selected CUDA-visible T4. It runs
-the CPU checks, all three required GPU tests, reference capture and comparison, then
+the CPU checks, all four required GPU tests, reference capture and comparison, then
 creates a ZIP under `results/local/`. A failed run leaves its raw directory intact;
 no successful bundle is accepted with missing or skipped required GPU tests. Review
 and retain that bundle under `results/validation/` before closing the gate. The

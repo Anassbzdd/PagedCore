@@ -1,8 +1,11 @@
 # Implementation and evidence status
 
-Snapshot: 2026-10-16. The [P3.3 CPU report](../results/validation/2026-10-16-p3.3-cpu.json)
-records 376 passing non-GPU tests, including 30 contiguous-decoder cases, and
-passing formatting/Ruff/strict mypy. No GPU execution occurred during this change. The
+Snapshot: 2026-10-17. The [P3.4 CPU report](../results/validation/2026-10-17-p3.4-cpu.json)
+records 382 passing non-GPU tests, including six new comparison/detection cases,
+and passing formatting/Ruff/strict mypy. The
+[P3.3 CPU report](../results/validation/2026-10-16-p3.3-cpu.json)
+retains the earlier 376 passing non-GPU tests, including 30 contiguous-decoder cases,
+and passing formatting/Ruff/strict mypy. No GPU execution occurred during this change. The
 [P3.2 report](../results/validation/2026-10-14-p3.2-cpu.json) retains earlier
 dense-component evidence. The
 [P3.1 report](../results/validation/2026-10-14-p3.1-cpu.json) retains the earlier
@@ -12,7 +15,8 @@ weight-loading, distribution-build and real pinned-weight CPU-load evidence.
 
 Phase 3 dense decoder parity is the current runtime gate. P3.1 weight loading is
 implemented and CPU-validated, as are P3.2 dense components and P3.3 contiguous
-prefill/decode. P3.4 layer-by-layer comparison is next. Layer/logit/greedy
+prefill/decode. P3.4 layer-by-layer comparison tests are implemented and CPU-validated;
+the pinned-checkpoint T4 test is added but execution remains pending. Layer/logit/greedy
 T4 parity and dense workspace measurement remain unsatisfied. The October 13
 archive and successful hosted CI below supersede the earlier Phase 2 evidence
 blockers; they do not validate the owned decoder on GPU.
@@ -29,12 +33,23 @@ blockers; they do not validate the owned decoder on GPU.
 | Owned weight loading | Pinned safetensors/config validation, complete typed mapping, BF16-to-FP16 conversion, untied embedding/head | 69 synthetic contract cases plus all 201 real pinned tensors loaded on CPU; no real-checkpoint forward or T4 loader validation |
 | Dense decoder components | RMSNorm, Q/K/V, absolute RoPE, GQA mapping/dense attention, output projection, SwiGLU, final norm/LM head | 22 synthetic CPU component cases; no pinned-checkpoint or T4 parity proof |
 | Contiguous prefill/decode | Single-sequence owned forward, residuals, per-layer FP16 cache and one-token append at absolute positions | Synthetic CPU prefill-logit and cached/full-prefix checks; no real-checkpoint layer/greedy parity or T4 workspace proof |
+| Layer comparisons | All-layer snapshots during prefill and three reference-token cached decode steps, with fixed intermediate/logit tolerances and named failures | Two-layer random-weight CPU evidence; 22-layer pinned-checkpoint T4 test awaits execution; no owned greedy/stopping parity |
 | Paging/worker/service | Not implemented | No owned generation parity, paged reads, cleanup, concurrency, HTTP or GPU memory-safety proof |
 | Container/benchmark/report | Not implemented | No container, serving performance or comparative measurement proof |
 
 ## Current CPU evidence
 
-The current [contiguous-decoder report](../results/validation/2026-10-16-p3.3-cpu.json)
+The current [layer-comparison report](../results/validation/2026-10-17-p3.4-cpu.json)
+records commands, source/lock identity and CPU-only limits. All 382 selected CPU
+tests passed with zero skips; four GPU tests were deselected. The new T4 test was
+also selected separately and skipped because CUDA is unavailable. New cases compare
+embeddings, both per-layer norms, projected attention, MLPs, residual outputs,
+final normalized hidden state and logits at lengths 1/15/16/17/49, including three
+cached decode steps. An injected layer error checks mismatch detection. Initial
+failures traced to FP16-rounded RoPE buffers in the synthetic HF fixture; restoring
+FP32 frequencies fixed them at unchanged tolerances. The runtime decoder is unchanged.
+
+The earlier [contiguous-decoder report](../results/validation/2026-10-16-p3.3-cpu.json)
 records commands, source/lock identity, dependency versions and CPU-only limits.
 All 376 selected tests passed with zero skips; three GPU tests were deselected.
 Synthetic two-layer tests use pinned head geometry and reduced MLP/vocabulary.

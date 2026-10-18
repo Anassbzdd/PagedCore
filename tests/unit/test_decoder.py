@@ -1,10 +1,13 @@
+from collections.abc import Callable
 from dataclasses import replace
 from types import SimpleNamespace
+from typing import Any
 
 import pytest
 import torch
 from torch import Tensor
 from transformers import LlamaConfig, LlamaForCausalLM
+from transformers.models.llama.modeling_llama import LlamaRotaryEmbedding
 
 import pagedcore.decoder as decoder_module
 from pagedcore.decoder import ContiguousCache, decode, prefill
@@ -35,6 +38,8 @@ def decoder() -> SimpleNamespace:
     with torch.random.fork_rng(devices=[]):
         torch.manual_seed(0)
         model = LlamaForCausalLM(config).half().eval()
+    # .half() also rounds buffers; the reference requires FP32 RoPE frequencies.
+    model.model.rotary_emb = LlamaRotaryEmbedding(config)
     layers = tuple(
         LayerWeights(
             input_norm=layer.input_layernorm.weight.detach(),
@@ -85,6 +90,32 @@ def test_prefill_matches_synthetic_hf_and_caches_prompt(
     _, rotated = apply_rope(query, key, torch.arange(tokens)[None])
     torch.testing.assert_close(cache.layers[0][0], rotated, atol=0, rtol=0)
     torch.testing.assert_close(cache.layers[0][1], value, atol=0, rtol=0)
+
+
+@pytest.mark.parametrize("tokens", [1, 15, 16, 17, 49])
+def test_all_layers_match_synthetic_hf_prefill_and_cached_decode(
+    decoder: SimpleNamespace,
+    assert_decoder_layer_parity: Callable[[Any, TinyLlamaWeights, Tensor], None],
+    tokens: int,
+) -> None:
+    assert_decoder_layer_parity(decoder.model, decoder.weights, torch.arange(tokens)[None] % 31)
+
+
+def test_layer_comparison_identifies_owned_attention_mismatch(
+    decoder: SimpleNamespace,
+    assert_decoder_layer_parity: Callable[[Any, TinyLlamaWeights, Tensor], None],
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    original = decoder_module.output_projection
+
+    def corrupted_attention(value: Tensor, layer: LayerWeights) -> Tensor:
+        result = original(value, layer)
+        return result + 0.125 if layer is decoder.weights.layers[1] else result
+
+    with monkeypatch.context() as patch:
+        patch.setattr(decoder_module, "output_projection", corrupted_attention)
+        with pytest.raises(AssertionError, match=r"prefill\.layer\.1\.attention"):
+            assert_decoder_layer_parity(decoder.model, decoder.weights, torch.tensor([[1, 3]]))
 
 
 @pytest.mark.parametrize("prompt_tokens", [1, 15, 16, 17, 49])

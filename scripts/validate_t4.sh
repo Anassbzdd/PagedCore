@@ -90,6 +90,7 @@ required = {
     "test_pinned_checkpoint_loads_and_runs_one_reference_forward_pass",
     "test_seed_everything_repeats_cuda_random_streams",
     "test_public_reference_capture_and_repeatability_on_t4",
+    "test_pinned_decoder_layer_parity_on_t4",
 }
 if not required <= {case.attrib["name"] for case in cases} or any(
     case.find(tag) is not None for case in cases for tag in ("skipped", "failure", "error")
