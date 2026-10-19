@@ -68,8 +68,10 @@ def assert_decoder_greedy_parity() -> Callable[..., decoder_module.GreedyResult]
 @pytest.fixture
 def assert_decoder_layer_parity(
     monkeypatch: pytest.MonkeyPatch,
-) -> Callable[[Any, TinyLlamaWeights, Tensor], None]:
-    def compare(model: Any, weights: TinyLlamaWeights, input_ids: Tensor) -> None:
+) -> Callable[[Any, TinyLlamaWeights, Tensor], dict[str, dict[str, float]]]:
+    def compare(
+        model: Any, weights: TinyLlamaWeights, input_ids: Tensor
+    ) -> dict[str, dict[str, float]]:
         assert model.config._attn_implementation == "eager"
         assert not model.training
         assert len(model.model.layers) == len(weights.layers)
@@ -91,6 +93,7 @@ def assert_decoder_layer_parity(
         original_norm = decoder_module.rms_norm
         original_attention = decoder_module.output_projection
         original_mlp = decoder_module.swiglu
+        discrepancies: dict[str, dict[str, float]] = {}
 
         def snapshot(value: Tensor) -> Tensor:
             return value.detach().to("cpu", copy=True)
@@ -173,8 +176,16 @@ def assert_decoder_layer_parity(
                         rtol=tolerance,
                         msg=lambda message, label=label: f"{label}: {message}",
                     )
+                    error = (value.float() - target.float()).abs()
+                    # Use the same combined allowance as assert_close, including at zero.
+                    allowance = tolerance + tolerance * target.float().abs()
+                    discrepancies[label] = {
+                        "max_absolute_error": float(error.max().item()),
+                        "max_tolerance_ratio": float((error / allowance).max().item()),
+                    }
                 reference_cache = reference.past_key_values
                 # Replay reference tokens to isolate forward parity from generation/stopping.
                 input_ids = reference.logits[:, -1:].argmax(dim=-1)
+        return discrepancies
 
     return compare

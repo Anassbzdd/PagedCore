@@ -122,8 +122,36 @@ length, ignored EOS and maximum output. Scripted owned forwards also assert the
 consumed token, cache position and number of forwards, so stopping cannot hide
 an extra decode. This separates stopping behavior from checkpoint numerics.
 The [P3.5 CPU report](../results/validation/2026-10-18-p3.5-cpu.json) records local
-validation. P3.5 remains incomplete until the new cases execute on an actual T4;
-the October 18 archive predates them. Tolerances are unchanged.
+validation. The retained [October 19 T4 archive](../results/validation/2026-10-19-t4/pagedcore-p35-t4.zip)
+records all six greedy cases passing at `7bbcd6a`, along with the layer comparison
+and three environment/reference tests (ten passed, zero skipped). Its source hashes
+match that revision. Tolerances are unchanged.
+
+### Tolerance envelope
+
+The same layer comparison returns measurements for every named tensor during
+prefill and three reference-token cached decode steps. The T4 test records them
+in the GPU JUnit suite's `decoder_tolerance_envelope` property for prompt lengths
+1/15/16/17/49 and all 22 layers. No prompt or generated text is included.
+This is an observed envelope for those forwards, not an exhaustive bound over
+all inputs or the full 256-token generation path.
+
+Errors are computed from FP16 snapshots after conversion to FP32. Each entry
+records maximum absolute error and maximum `abs(actual - reference) /
+(atol + rtol * abs(reference))`. This ratio measures the fraction of the allowed
+error, remains defined at reference zero, and must be at most one. The existing
+finite-value, dtype and `assert_close` checks still run at unchanged tolerances.
+
+`bash scripts/validate_t4.sh` exports these measurements as
+`tolerance-envelope.json`, with separate intermediate/logit maxima and the case,
+step and tensor producing each maximum. The report includes the environment,
+source/lock provenance, selected T4 UUID, platform, CUDA/runtime settings, seed,
+model config and math policy. The bundle also retains setup/commands, JUnit
+reports and dependencies frozen explicitly from `.venv/bin/python`.
+Missing measurements reject the bundle. The October 19 archive predates this
+recorder and cannot establish the owned-decoder envelope; its `comparison.json`
+measures only Hugging Face repeatability. CPU tests validate measurement/export
+logic but cannot close the T4 measurement gate.
 
 ### Oracle harness
 

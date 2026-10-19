@@ -1,3 +1,4 @@
+import json
 from collections.abc import Callable
 from dataclasses import replace
 from types import SimpleNamespace
@@ -142,10 +143,63 @@ def test_generation_rejects_context_overflow_before_prefill(
 @pytest.mark.parametrize("tokens", [1, 15, 16, 17, 49])
 def test_all_layers_match_synthetic_hf_prefill_and_cached_decode(
     decoder: SimpleNamespace,
-    assert_decoder_layer_parity: Callable[[Any, TinyLlamaWeights, Tensor], None],
+    assert_decoder_layer_parity: Callable[
+        [Any, TinyLlamaWeights, Tensor], dict[str, dict[str, float]]
+    ],
+    record_testsuite_property: Callable[[str, object], None],
     tokens: int,
 ) -> None:
-    assert_decoder_layer_parity(decoder.model, decoder.weights, torch.arange(tokens)[None] % 31)
+    errors = assert_decoder_layer_parity(
+        decoder.model, decoder.weights, torch.arange(tokens)[None] % 31
+    )
+    assert len(errors) == 4 * (5 * len(decoder.weights.layers) + 3)
+    for step in ("prefill", "decode.1", "decode.2", "decode.3"):
+        assert errors[f"{step}.embedding"] == {
+            "max_absolute_error": 0.0,
+            "max_tolerance_ratio": 0.0,
+        }
+        assert f"{step}.logits" in errors
+    assert all(0 <= error["max_tolerance_ratio"] <= 1 for error in errors.values())
+    record_testsuite_property(
+        f"synthetic_decoder_errors_{tokens}", json.dumps(errors, allow_nan=False)
+    )
+
+
+@pytest.mark.parametrize("reference_value", [0.0, -2.0])
+def test_layer_measurements_use_fp32_errors_and_combined_tolerance(
+    decoder: SimpleNamespace,
+    assert_decoder_layer_parity: Callable[
+        [Any, TinyLlamaWeights, Tensor], dict[str, dict[str, float]]
+    ],
+    monkeypatch: pytest.MonkeyPatch,
+    reference_value: float,
+) -> None:
+    original = decoder_module.final_logits
+    actual_value = torch.tensor(reference_value + 0.003, dtype=torch.float16).item()
+
+    def logits(hidden: Tensor, weights: TinyLlamaWeights) -> Tensor:
+        # Still run final normalization so the comparison observes every layer.
+        result = original(hidden, weights)
+        return torch.full_like(result, actual_value)
+
+    def reference_logits(module: Any, args: Any, output: Tensor) -> Tensor:
+        return torch.full_like(output, reference_value)
+
+    handle = decoder.model.lm_head.register_forward_hook(reference_logits)
+    try:
+        with monkeypatch.context() as patch:
+            patch.setattr(decoder_module, "final_logits", logits)
+            errors = assert_decoder_layer_parity(
+                decoder.model, decoder.weights, torch.tensor([[1, 3]])
+            )
+    finally:
+        handle.remove()
+    absolute = abs(actual_value - reference_value)
+    for step in ("prefill", "decode.1", "decode.2", "decode.3"):
+        assert errors[f"{step}.logits"]["max_absolute_error"] == absolute
+        assert errors[f"{step}.logits"]["max_tolerance_ratio"] == pytest.approx(
+            absolute / (5e-3 + 5e-3 * abs(reference_value))
+        )
 
 
 def test_layer_comparison_identifies_owned_attention_mismatch(

@@ -1,31 +1,26 @@
 # Implementation and evidence status
 
-Snapshot: 2026-10-18. The [P3.5 CPU report](../results/validation/2026-10-18-p3.5-cpu.json)
-records 397 passing non-GPU tests and passing formatting/Ruff/strict mypy.
-The owned greedy loop and all-public-fixture T4 tests are implemented; seven
-selected decoder GPU cases skipped locally because CUDA is unavailable. The
-existing [October 18 T4 archive](../results/validation/2026-10-18-t4/t4-20261018T153034Z.zip)
-was inspected without modification: it proves the earlier P3.4 layer comparisons
-at `8940a1c`, and predates the new greedy loop/tests. No GPU execution occurred
-during this change. The [P3.4 CPU report](../results/validation/2026-10-17-p3.4-cpu.json)
-records 382 passing non-GPU tests, including six new comparison/detection cases,
-and passing formatting/Ruff/strict mypy. The
-[P3.3 CPU report](../results/validation/2026-10-16-p3.3-cpu.json)
-retains the earlier 376 passing non-GPU tests, including 30 contiguous-decoder cases,
-and passing formatting/Ruff/strict mypy. The
-[P3.2 report](../results/validation/2026-10-14-p3.2-cpu.json) retains earlier
-dense-component evidence. The
-[P3.1 report](../results/validation/2026-10-14-p3.1-cpu.json) retains the earlier
-weight-loading, distribution-build and real pinned-weight CPU-load evidence.
+Snapshot: 2026-10-19. Tolerance-envelope recording/export is implemented; see
+the [P3.6 CPU report](../results/validation/2026-10-19-p3.6-cpu.json): 401 non-GPU
+tests passed, as did formatting/Ruff/strict mypy. It records per-tensor absolute errors and fractions
+of the combined tolerance during existing layer comparisons, with separate
+intermediate/logit maxima and hardware/software metadata in the T4 bundle.
+No new GPU execution occurred; the measured T4 envelope remains pending.
+The existing [October 19 T4 archive](../results/validation/2026-10-19-t4/pagedcore-p35-t4.zip)
+was reviewed without modification: all ten GPU cases passed at `7bbcd6a`, including
+all six greedy fixtures, and recorded source/lock hashes match that revision.
+It predates the recorder and contains no owned-decoder discrepancy measurements.
+
+Earlier CPU reports and T4 observations remain below as historical evidence.
 
 ## Current gate
 
 Phase 3 dense decoder parity is the current runtime gate. P3.1 weight loading is
 implemented and CPU-validated, as are P3.2 dense components and P3.3 contiguous
 prefill/decode. P3.4 layer/logit comparisons passed on the pinned checkpoint/T4
-in the retained October 18 archive. P3.5 greedy selection/stopping is CPU-validated;
-its new pinned-checkpoint T4 cases remain unexecuted. Exact greedy T4 parity,
-the measured tolerance envelope and dense workspace remain unsatisfied. The October 13
+in the retained October 18 archive. P3.5 greedy selection/stopping passed all public
+T4 fixtures in the October 19 archive. P3.6 recording/export is CPU-validated;
+the measured T4 tolerance envelope and dense workspace remain unsatisfied. The October 13
 archive and successful hosted CI below supersede the earlier Phase 2 evidence
 blockers; the October 18 layer test supplies the narrower owned-forward evidence.
 
@@ -40,13 +35,22 @@ blockers; the October 18 layer test supplies the narrower owned-forward evidence
 | CPU CI | Push/PR workflow for frozen setup, format/lint/types/tests and distribution smoke | Hosted run `38445324328` succeeded for prior source; current owned decoder has local CPU evidence only |
 | Owned weight loading | Pinned safetensors/config validation, complete typed mapping, BF16-to-FP16 conversion, untied embedding/head | 69 synthetic contract cases, real pinned CPU load and owned-loader T4 execution in the October 18 layer test |
 | Dense decoder components | RMSNorm, Q/K/V, absolute RoPE, GQA mapping/dense attention, output projection, SwiGLU, final norm/LM head | Synthetic CPU components plus the pinned-checkpoint T4 layer comparisons at fixed tolerances |
-| Contiguous prefill/decode | Single-sequence owned forward, residuals, per-layer FP16 cache and one-token append at absolute positions | CPU orchestration and October 18 T4 prefill/three-step decode comparisons; no T4 greedy or workspace proof |
+| Contiguous prefill/decode | Single-sequence owned forward, residuals, per-layer FP16 cache and one-token append at absolute positions | CPU orchestration and October 18/19 T4 prefill/three-step decode comparisons; no workspace proof |
 | Layer comparisons | All-layer snapshots during prefill and three reference-token cached decode steps, with fixed intermediate/logit tolerances and named failures | Two-layer random-weight CPU evidence and passing 22-layer pinned-checkpoint T4 test at 1/15/16/17/49 prompt tokens |
-| Dense greedy generation | Local-cache argmax loop, exact selected/emitted IDs, EOS/length precedence and request bounds | Six synthetic HF generation cases and seven controlled stopping cases pass on CPU; all six public T4 fixture cases are added but unexecuted |
+| Dense greedy generation | Local-cache argmax loop, exact selected/emitted IDs, EOS/length precedence and request bounds | Synthetic stopping checks plus all six public T4 fixture cases passed in the October 19 archive |
+| Tolerance measurements | Per-tensor FP32 error analysis, combined-tolerance ratios, maxima and environment-attributed T4 export | CPU measurement/export checks; the new recorder has not executed on T4 |
 | Paging/worker/service | Not implemented | No paged reads, cleanup, concurrency, HTTP or GPU memory-safety proof |
 | Container/benchmark/report | Not implemented | No container, serving performance or comparative measurement proof |
 
 ## Current CPU evidence
+
+The [tolerance-measurement report](../results/validation/2026-10-19-p3.6-cpu.json)
+records local commands and source identity. Synthetic tests check measurement
+coverage, zero and negative references, FP16-to-FP32 error arithmetic, exporter
+maxima/locations, metadata retention, ZIP contents and rejection of missing
+measurements. The report distinguishes these CPU checks from the pending T4 run.
+
+Earlier CPU observations follow.
 
 The current [greedy-generation report](../results/validation/2026-10-18-p3.5-cpu.json)
 records commands, source/lock identity and CPU-only limits. All 397 selected CPU
@@ -108,6 +112,18 @@ Their old formatting failures do not describe the corrected current checkout.
 
 ## Saved T4 observations
 
+The [October 19 archive](../results/validation/2026-10-19-t4/pagedcore-p35-t4.zip)
+at clean source `7bbcd6a` retains 397 passing CPU tests and ten passing GPU cases
+with zero skips, including all public greedy fixtures and the layer comparison.
+Its recorded source hashes match that Git revision (local Windows line endings
+differ for some files); the lock also matches. The selected device is one
+CUDA-visible Tesla T4 with UUID, Torch 2.7.1+cu126, CUDA 12.6 and driver 580.178.04.
+Its `dependencies.txt` was frozen from the outer environment, so it does not
+identify the test interpreter's complete installed packages; the collector now
+targets `.venv/bin/python` explicitly. Manifest/test output establish the pinned
+Python, Torch and Transformers versions. `comparison.json` records HF-vs-HF
+repeatability only. No owned-decoder envelope or workspace measurement is retained.
+
 The [October 18 archive](../results/validation/2026-10-18-t4/t4-20261018T153034Z.zip)
 at clean source `8940a1c` retains four passing GPU tests without skips, including
 all-layer prefill/three-step cached-decode comparison. Its manifest source hashes
@@ -159,8 +175,8 @@ for these local edits.
 
 ## Remaining decoder gate
 
-Run the new greedy fixture tests and retain attributable T4 evidence, then
-measure the tolerance envelope and dense workspace before advancing to the allocator. Continue dense
+Run the updated collector on T4 and retain `tolerance-envelope.json`, then
+measure dense workspace before advancing to the allocator. Continue dense
 parity -> allocator -> paged attention -> lifecycle -> HTTP.
 
 All final MVP acceptance rows in [TRACEABILITY.md](TRACEABILITY.md) remain pending.

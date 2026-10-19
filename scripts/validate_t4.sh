@@ -29,10 +29,11 @@ else
     printf 'Setup: create a fresh environment.\n'
 fi
 uv sync --frozen --extra cuda --extra dev
-uv pip freeze > "$evidence_dir/dependencies.txt"
+uv pip freeze --python .venv/bin/python > "$evidence_dir/dependencies.txt"
 uv run --no-sync python - "$evidence_dir" <<'PY'
 import json
 import os
+import platform
 import sys
 from pathlib import Path
 
@@ -44,6 +45,7 @@ properties = torch.cuda.get_device_properties(0)
 if "t4" not in properties.name.casefold():
     raise SystemExit("Validation requires an NVIDIA T4.")
 target = {
+    "platform": platform.platform(),
     "device": "cuda:0",
     "cuda_visible_devices": os.environ["CUDA_VISIBLE_DEVICES"],
     "cuda_visible_device_count": torch.cuda.device_count(),
@@ -86,7 +88,8 @@ import zipfile
 from pathlib import Path
 
 directory = Path(sys.argv[1])
-cases = ET.parse(directory / "gpu-tests.xml").findall(".//testcase")
+report = ET.parse(directory / "gpu-tests.xml")
+cases = report.findall(".//testcase")
 required = {
     "test_pinned_checkpoint_loads_and_runs_one_reference_forward_pass",
     "test_seed_everything_repeats_cuda_random_streams",
@@ -102,6 +105,32 @@ if not required <= {case.attrib["name"] for case in cases} or any(
     case.find(tag) is not None for case in cases for tag in ("skipped", "failure", "error")
 ):
     raise SystemExit("GPU evidence rejected: required tests must execute and pass.")
+properties = report.findall(".//testsuite/properties/property[@name='decoder_tolerance_envelope']")
+if len(properties) != 1:
+    raise SystemExit("GPU evidence rejected: owned-decoder tolerance measurements are required.")
+envelope = json.loads(properties[0].attrib["value"])
+manifest = json.loads((directory / "manifest.json").read_text())
+envelope.update(
+    environment=manifest["environment"],
+    provenance=manifest["provenance"],
+    target=json.loads((directory / "target.json").read_text()),
+)
+maxima = {}
+for group in ("intermediates", "logits"):
+    entries = [
+        {"case": case, "tensor": tensor, **errors}
+        for case, measurement in envelope["cases"].items()
+        for tensor, errors in measurement["tensors"].items()
+        if tensor.endswith(".logits") == (group == "logits")
+    ]
+    maxima[group] = {
+        metric: max(entries, key=lambda entry: entry[metric])
+        for metric in ("max_absolute_error", "max_tolerance_ratio")
+    }
+envelope["maxima"] = maxima
+(directory / "tolerance-envelope.json").write_text(
+    json.dumps(envelope, indent=2, allow_nan=False) + "\n", encoding="utf-8"
+)
 archive = directory.with_suffix(".zip")
 with zipfile.ZipFile(archive, "x", zipfile.ZIP_DEFLATED) as bundle:
     for path in sorted(directory.iterdir()):

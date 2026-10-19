@@ -1,0 +1,298 @@
+{
+  "task": "P3.6",
+  "captured_at_utc": "2026-10-19T16:52:02.137921+00:00",
+  "validation": "Windows/CPU-only; synthetic measurements and exporter tests",
+  "gate_status": "Recording/export implemented and CPU-validated; real-T4 envelope pending",
+  "setup": "Existing frozen CPU/dev environment; no installation changes",
+  "seed": 0,
+  "environment": {
+    "python": "3.11.15",
+    "package": {
+      "name": "pagedcore",
+      "version": "0.1.0"
+    },
+    "dependencies": {
+      "torch": "2.7.1+cpu",
+      "transformers": "4.52.4"
+    },
+    "cuda": {
+      "available": false,
+      "runtime": null
+    },
+    "driver": null,
+    "gpu": [],
+    "model": {
+      "id": "TinyLlama/TinyLlama-1.1B-Chat-v1.0",
+      "revision": "af8e934848d8dd00074cc2cd8a40a9b05c3b011e"
+    },
+    "settings": {
+      "model_id": "TinyLlama/TinyLlama-1.1B-Chat-v1.0",
+      "model_revision": "af8e934848d8dd00074cc2cd8a40a9b05c3b011e",
+      "context_limit": 2048,
+      "min_new_tokens": 1,
+      "default_max_new_tokens": 128,
+      "max_new_tokens": 256,
+      "block_tokens": 16,
+      "kv_pool_mib": 8192,
+      "workspace_margin_mib": 1024,
+      "max_pending_requests": 64,
+      "max_active_sequences": 32,
+      "token_queue_size": 32,
+      "bind_address": "localhost",
+      "log_level": "INFO"
+    }
+  },
+  "platform": "Windows-10-10.0.26200-SP0",
+  "processor": "Intel64 Family 6 Model 186 Stepping 3, GenuineIntel",
+  "python_executable": "C:\\Users\\user\\OneDrive\\Desktop\\PagedCore\\.venv\\Scripts\\python.exe",
+  "installed_dependencies": [
+    "annotated-doc==0.0.5",
+    "annotated-types==0.8.0",
+    "anyio==4.15.1",
+    "ast-serialize==0.11.2",
+    "build==1.6.1",
+    "certifi==2026.7.22",
+    "charset-normalizer==3.5.1",
+    "click==8.5.0",
+    "colorama==0.4.6",
+    "fastapi==0.141.1",
+    "filelock==4.0.6",
+    "fsspec==2026.9.0",
+    "h11==0.16.0",
+    "httpcore==1.0.9",
+    "httptools==0.8.0",
+    "httpx==0.28.1",
+    "huggingface-hub==0.36.2",
+    "hypothesis==6.168.3",
+    "idna==3.20",
+    "iniconfig==2.3.0",
+    "jinja2==3.1.6",
+    "librt==0.16.0",
+    "markupsafe==3.0.3",
+    "mpmath==1.3.0",
+    "mypy==2.3.1",
+    "mypy-extensions==1.1.0",
+    "networkx==3.6.1",
+    "numpy==2.4.6",
+    "packaging==26.3",
+    "-e file:///C:/Users/user/OneDrive/Desktop/PagedCore",
+    "pathspec==1.1.1",
+    "pip==24.0",
+    "pluggy==1.6.0",
+    "pydantic==2.13.5",
+    "pydantic-core==2.46.5",
+    "pygments==2.21.0",
+    "pyproject-hooks==1.3.3",
+    "pytest==9.1.1",
+    "pytest-asyncio==1.4.0",
+    "python-dotenv==1.2.3",
+    "pyyaml==6.0.3",
+    "regex==2026.9.29",
+    "requests==2.34.2",
+    "ruff==0.16.9",
+    "safetensors==0.8.0",
+    "setuptools==79.0.1",
+    "sortedcontainers==2.4.0",
+    "starlette==1.7.0",
+    "sympy==1.14.0",
+    "tokenizers==0.21.4",
+    "torch==2.7.1+cpu",
+    "tqdm==4.70.1",
+    "transformers==4.52.4",
+    "typing-extensions==4.16.0",
+    "typing-inspection==0.4.4",
+    "urllib3==2.8.0",
+    "uvicorn==0.54.0",
+    "watchfiles==1.3.0",
+    "websockets==17.1"
+  ],
+  "provenance": {
+    "setup_command": null,
+    "command_arguments": null,
+    "git_revision": "7bbcd6aca8f36487bf7c5844b8ce0502462c324e",
+    "working_tree_clean": false,
+    "uv_lock_sha256": "46700b60b0a8d492fc673aec8a0e12c27ae43124dd8e194f8c754dbd6ca7ea48",
+    "source_sha256": {
+      ".python-version": "db82937e1f1830581a9553c7814f5c5fcacb6dfdef8310b43e9a812c887acaf5",
+      "pyproject.toml": "55b3d48fd0a5297b3adea9b812bad4c561751c84d95e2d0d2d8a0b588ce78a71",
+      "src/pagedcore/__init__.py": "42b1e9884f56caa6de42f8177eedcc2f9b81ae2df2f9db28e45114117e8f3d29",
+      "src/pagedcore/cli.py": "e36cb0cf9e342e76787b3d74e98b778c22b1b76b580bf76e556a5f03aa6c2c16",
+      "src/pagedcore/config.py": "1d53260eb14a72385186915dbf28e30c4a13180cff54c3769e872874d3736ac8",
+      "src/pagedcore/decoder.py": "0481e99304089068ae3615aff578326140d80d7760f5d374eb789ff2ae578873",
+      "src/pagedcore/dense.py": "2c927378c4a06b6ec5680b9a1540d46908748088991aa35525d0c9a1e27bb342",
+      "src/pagedcore/determinism.py": "2fdcba5697c59b4f68942fb7d3a14baff46cc4d0d70470c7f23e5c56a437afa2",
+      "src/pagedcore/engine_types.py": "db31cb04b5dd4e127d37f1b3a4b88bc20f2272520893a150428197713c6cae40",
+      "src/pagedcore/measurements.py": "760946d8dac98f4a9bfcc182a2426a5b92af62aa23fb859d239895d42ca5c3f0",
+      "src/pagedcore/oracle.py": "6fbc7fe7fdd01eb7cb23055ad3189fad00b733bc1dcd727e091306dcf34f9eb8",
+      "src/pagedcore/verification.py": "4e6b77ea1e88b81ae96047b59b4e5fa859c4237251d9e674a6ee27c2fbd75044",
+      "src/pagedcore/weights.py": "1a0b9f34003ab9ca99ccd00e2f193253071d45b480adce7ed809e65ffa72ec5b",
+      "tests/conftest.py": "8e2695fd83e7aad2a579d3a2b959aa6cdfe8a3391352accb5ec4d70e07bd5f89",
+      "tests/gpu/test_decoder_parity.py": "3dc55dce6a8149eac5cd14ca261a833c67c5f5f91949785340b94cf973f97473",
+      "tests/gpu/test_oracle_reference.py": "6617aa0cc73197779f22c52441d85a34e1c3e38e9090fb08a9bd871510f53a78",
+      "tests/gpu/test_target_verification.py": "c40e8cf67d0b972f6737b71787a8d2c8ce4231538ca9b1503da6d65722c5e554",
+      "tests/unit/test_cli.py": "f1d72b629020a78f89f50b1b8ccdb01a69ac28fb2f2a4d80405f770bcb22b5f2",
+      "tests/unit/test_config.py": "ed028751b20e50dd2b74cf5a7b9e7539c517341390102abdfd10e5b376bc2422",
+      "tests/unit/test_decoder.py": "b42c4d12b6f8149ebe87c294bd73da052e53d2aeedd834865ce941ce60c96888",
+      "tests/unit/test_dense.py": "346107a33eae54cdfd5b9a8bfb38017e95379338e6574049521b060c814d3d92",
+      "tests/unit/test_determinism.py": "4da0279f676caced156a2db72ebc0c691ff787f22ac15c9635e85d723835eefa",
+      "tests/unit/test_engine_types.py": "ea9c52b46ac60f72c0dc95ade581b799e2b6746d627c9334c4ba7e8ab11193f3",
+      "tests/unit/test_measurements.py": "469ae30346ef880b1bbfadc58af72320f7597d3a658a0fda017c9df8fbddd00a",
+      "tests/unit/test_oracle.py": "b47f8f38a3988704da5bc5b2b11d9539728a0d86fba414f46cdfab4ef8f8166b",
+      "tests/unit/test_reference_fixtures.py": "13b2af5294380e4426f77f2955c217e4483418305360526cbbe22ea7984fe90d",
+      "tests/unit/test_t4_evidence.py": "4614a33a1cbfe091e9d02c760e29714054d8a6eeb5296a5aaf617115e4a0655e",
+      "tests/unit/test_verification.py": "75df0ea776fd91478db64e74b0861be1cb9e49a1cbb8464fbff1ceeb49cfb2b1",
+      "tests/unit/test_weights.py": "5555b55d797ddd5020887016ff19f9b7dfb54432f09a95b17ffe42ab58ea64ae"
+    },
+    "collector_sha256": "d360766011492f2326adeede898ede0ff81c27f58732e3694ec1ccb73b7a6854"
+  },
+  "checks": [
+    {
+      "command": "uv run --no-sync python -m ruff format --check .",
+      "exit_code": 0,
+      "result": "36 files already formatted"
+    },
+    {
+      "command": "uv run --no-sync python -m ruff check .",
+      "exit_code": 0,
+      "result": "All checks passed"
+    },
+    {
+      "command": "uv run --no-sync python -m mypy --strict src/pagedcore",
+      "exit_code": 0,
+      "result": "No issues in 11 source files"
+    },
+    {
+      "command": "uv run --no-sync python -m pytest tests/unit/test_decoder.py tests/unit/test_t4_evidence.py -q",
+      "exit_code": 0,
+      "result": "55 passed in 25.82s"
+    },
+    {
+      "command": "uv run --no-sync python -m pytest -m \"not gpu and not benchmark\" -ra --junitxml=results/local/p3.6-cpu-tests.xml",
+      "exit_code": 0,
+      "collected": 411,
+      "deselected": 10,
+      "selected": 401,
+      "executed": 401,
+      "passed": 401,
+      "failed": 0,
+      "skipped": 0,
+      "result": "401 passed, 10 deselected in 25.04s"
+    },
+    {
+      "command": "uv run --no-sync python -m pytest -m gpu -ra --junitxml=results/local/p3.6-gpu-tests.xml",
+      "exit_code": 0,
+      "collected": 411,
+      "deselected": 401,
+      "selected": 10,
+      "executed": 0,
+      "passed": 0,
+      "failed": 0,
+      "skipped": 10,
+      "result": "10 skipped: requires CUDA; 401 deselected in 5.94s"
+    },
+    {
+      "command": "& 'C:\\Program Files\\Git\\bin\\bash.exe' -n scripts/validate_t4.sh",
+      "exit_code": 0,
+      "result": "Bash syntax only; no T4 collector execution"
+    },
+    {
+      "command": "uv run --no-sync python - (compile both Python heredocs in scripts/validate_t4.sh)",
+      "exit_code": 0,
+      "result": "2 collector Python blocks compile"
+    },
+    {
+      "command": "git diff --check",
+      "exit_code": 0,
+      "result": "Passed; Git emitted existing Windows line-ending conversion notices"
+    }
+  ],
+  "synthetic_measurements": {
+    "scope": "Random-weight, two-layer CPU Llama; not the pinned checkpoint or T4",
+    "prompt_lengths": [
+      1,
+      15,
+      16,
+      17,
+      49
+    ],
+    "steps_per_prompt": [
+      "prefill",
+      "decode.1",
+      "decode.2",
+      "decode.3"
+    ],
+    "attention_backend": "eager",
+    "dtype": "float16 snapshots; float32 error arithmetic",
+    "tolerances": {
+      "intermediates": {
+        "atol": 0.002,
+        "rtol": 0.002
+      },
+      "logits": {
+        "atol": 0.005,
+        "rtol": 0.005
+      }
+    },
+    "max_tolerance_ratio_definition": "max(abs(actual-reference)/(atol+rtol*abs(reference)))",
+    "maxima": {
+      "intermediates": {
+        "tensor_comparisons": 240,
+        "max_absolute_error": {
+          "prompt_tokens": 1,
+          "tensor": "prefill.embedding",
+          "max_absolute_error": 0.0,
+          "max_tolerance_ratio": 0.0
+        },
+        "max_tolerance_ratio": {
+          "prompt_tokens": 1,
+          "tensor": "prefill.embedding",
+          "max_absolute_error": 0.0,
+          "max_tolerance_ratio": 0.0
+        }
+      },
+      "logits": {
+        "tensor_comparisons": 20,
+        "max_absolute_error": {
+          "prompt_tokens": 1,
+          "tensor": "prefill.logits",
+          "max_absolute_error": 0.0,
+          "max_tolerance_ratio": 0.0
+        },
+        "max_tolerance_ratio": {
+          "prompt_tokens": 1,
+          "tensor": "prefill.logits",
+          "max_absolute_error": 0.0,
+          "max_tolerance_ratio": 0.0
+        }
+      }
+    }
+  },
+  "reviewed_existing_t4_archive": {
+    "path": "results/validation/2026-10-19-t4/pagedcore-p35-t4.zip",
+    "sha256": "a1f5dce0b0ce56cd28eac5ed103900b587f585d191c10ae94f2225e25c9d3a54",
+    "git_revision": "7bbcd6aca8f36487bf7c5844b8ce0502462c324e",
+    "source_hashes_match_recorded_git_revision": true,
+    "lock_hash_matches_current_lock": true,
+    "gpu_test_counts": {
+      "selected": 10,
+      "executed": 10,
+      "passed": 10,
+      "failed": 0,
+      "skipped": 0
+    },
+    "observations": [
+      "All six public greedy fixture cases and the layer comparison passed; the archive was not modified",
+      "Windows checkout line endings differ for some files; recorded hashes match Git blobs",
+      "comparison.json measures HF-vs-HF repeatability, not PagedCore-vs-HF errors",
+      "No owned-decoder tolerance measurements are retained",
+      "dependencies.txt describes the outer environment; test interpreter full dependency identity is incomplete"
+    ]
+  },
+  "limitations": [
+    "All 10 selected GPU tests skipped locally because CUDA is unavailable",
+    "No real-T4 execution or owned-decoder T4 error maximum was measured in this change",
+    "The updated collector must execute on a real T4 and its bundle must be reviewed before P3.6 closes",
+    "The recorded forward envelope covers prefill and three reference-token decode steps at lengths 1/15/16/17/49, not all possible inputs or full 256-token generation",
+    "No tolerance was relaxed; dense workspace remains the separate P3.7 gate"
+  ]
+}
