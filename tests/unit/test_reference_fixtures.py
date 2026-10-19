@@ -3,12 +3,16 @@ import importlib
 import json
 from pathlib import Path
 from typing import Any, cast
+from unittest.mock import Mock
 
 import pytest
 import torch
 
+import pagedcore.decoder as decoder_module
 from pagedcore.config import MODEL_ID, MODEL_REVISION, PagedCoreConfig
+from pagedcore.decoder import ContiguousCache, generate
 from pagedcore.engine_types import FinishReason
+from pagedcore.weights import TinyLlamaWeights
 
 pytestmark = pytest.mark.unit
 
@@ -165,8 +169,9 @@ def synthetic_model() -> Any:
         "maximum_output",
     ],
 )
-def test_synthetic_stopping_reference(
+def test_owned_stopping_matches_synthetic_reference(
     synthetic_model: Any,
+    monkeypatch: pytest.MonkeyPatch,
     script: tuple[int, ...],
     maximum: int,
     ignore_eos: bool,
@@ -174,7 +179,7 @@ def test_synthetic_stopping_reference(
     reason: FinishReason,
     calls: int,
 ) -> None:
-    """HF's controlled CPU reference is test data, not owned-decoder or checkpoint parity."""
+    """Controlled forwards test owned selection/stopping, not checkpoint math."""
     transformers = importlib.import_module("transformers")
     prompt = torch.tensor([[1]], dtype=torch.long)
     logits = ControlledLogits(script, prompt_tokens=prompt.shape[-1])
@@ -197,3 +202,41 @@ def test_synthetic_stopping_reference(
     assert tuple(emitted) == expected
     assert actual_reason is reason
     assert logits.calls == calls
+
+    weights = Mock(spec=TinyLlamaWeights)
+    consumed: list[int] = []
+
+    def forward(ids: torch.Tensor, cache_length: int) -> tuple[torch.Tensor, ContiguousCache]:
+        assert torch.is_inference_mode_enabled()
+        if consumed:
+            assert ids.tolist() == [[script[len(consumed) - 1]]]
+            assert cache_length == prompt.shape[-1] + len(consumed) - 1
+        else:
+            assert torch.equal(ids, prompt)
+            assert cache_length == 0
+        consumed.append(int(ids.item()))
+        scores = torch.full((1, 1, 8), -1.0)
+        scores[0, 0, script[len(consumed) - 1]] = 1.0
+        storage = torch.empty(1, 4, cache_length + 1, 64, dtype=torch.float16)
+        return scores, ContiguousCache(((storage, storage),))
+
+    def prefill(
+        ids: torch.Tensor, supplied_weights: TinyLlamaWeights
+    ) -> tuple[torch.Tensor, ContiguousCache]:
+        assert supplied_weights is weights
+        return forward(ids, 0)
+
+    def decode(
+        ids: torch.Tensor, cache: ContiguousCache, supplied_weights: TinyLlamaWeights
+    ) -> tuple[torch.Tensor, ContiguousCache]:
+        assert supplied_weights is weights
+        return forward(ids, cache.length)
+
+    monkeypatch.setattr(decoder_module, "prefill", prefill)
+    monkeypatch.setattr(decoder_module, "decode", decode)
+    actual = generate(prompt, weights, max_new_tokens=maximum, ignore_eos=ignore_eos)
+    assert actual.greedy_ids == tuple(selected)
+    assert actual.emitted_ids == expected
+    assert actual.finish_reason is reason
+    # The final selected token never needs another forward, including first-step EOS.
+    assert len(consumed) == calls

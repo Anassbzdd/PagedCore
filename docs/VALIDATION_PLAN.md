@@ -96,9 +96,34 @@ the comparisons detect a named owned-layer mismatch.
 
 The [pinned-checkpoint T4 test](../tests/gpu/test_decoder_parity.py) uses the owned
 weight loader and eager HF with all 22 layers, prompt lengths 1/15/16/17/49 and
-three cached decode steps each. It is required by the T4 collector but has not yet
-executed; CPU success and GPU collection/skips do not satisfy P3.4's T4 evidence.
-See the [P3.4 CPU report](../results/validation/2026-10-17-p3.4-cpu.json).
+three cached decode steps each. It is required by the T4 collector. The retained
+[October 18 T4 archive](../results/validation/2026-10-18-t4/t4-20261018T153034Z.zip)
+records its passing execution at source `8940a1c`, with four GPU tests passing
+without skips. This proves the listed layer comparisons, not owned generation
+or workspace safety. See also the [P3.4 CPU report](../results/validation/2026-10-17-p3.4-cpu.json).
+
+### Greedy parity
+
+[`decoder.generate`](../src/pagedcore/decoder.py) selects tokens from the owned
+prefill/decode logits with argmax and applies the pinned EOS/length policy.
+The [shared comparison](../tests/conftest.py) runs an independent eager FP16 HF
+model with the same input IDs and fresh greedy generation settings under the
+same reference math policy. It checks exact selected IDs, emitted IDs and finish
+reason. Stopping EOS is included only in selected IDs; ignored EOS is emitted.
+The [T4 cases](../tests/gpu/test_decoder_parity.py) cover every public prompt at
+its declared output limit/EOS policy, including 256 output tokens. The collector
+requires every named fixture case to execute and pass before accepting a bundle.
+
+[Synthetic CPU generation tests](../tests/unit/test_decoder.py) use two random
+layers at prompt lengths 1/15/16/17/32/49 and check independent invocations and
+input bounds. The [controlled stopping cases](../tests/unit/test_reference_fixtures.py)
+compare the owned loop against HF for immediate/delayed EOS, EOS at the limit,
+length, ignored EOS and maximum output. Scripted owned forwards also assert the
+consumed token, cache position and number of forwards, so stopping cannot hide
+an extra decode. This separates stopping behavior from checkpoint numerics.
+The [P3.5 CPU report](../results/validation/2026-10-18-p3.5-cpu.json) records local
+validation. P3.5 remains incomplete until the new cases execute on an actual T4;
+the October 18 archive predates them. Tolerances are unchanged.
 
 ### Oracle harness
 
@@ -129,7 +154,7 @@ bash scripts/validate_t4.sh
 
 This [collector](../scripts/validate_t4.sh) logs frozen environment setup, source/lock
 identity, physical GPU inventory and the single selected CUDA-visible T4. It runs
-the CPU checks, all four required GPU tests, reference capture and comparison, then
+the CPU checks, all ten required GPU cases, reference capture and comparison, then
 creates a ZIP under `results/local/`. A failed run leaves its raw directory intact;
 no successful bundle is accepted with missing or skipped required GPU tests. Review
 and retain that bundle under `results/validation/` before closing the gate. The
@@ -215,8 +240,9 @@ before accepting changed public prompts or IDs. Controlled logits on a tiny,
 randomly initialized CPU Llama model establish synthetic greedy stopping reference
 cases: immediate/delayed EOS, EOS at the output limit, length stopping, ignored EOS
 and 256-token output. HF returns a stopping EOS; the reference test excludes it
-from emitted IDs to match the public contract. These cases do not validate the
-pinned checkpoint, owned generation loop, streaming, timestamps or T4 parity.
+from emitted IDs to match the public contract. The same scripts now exercise
+the owned generation loop with controlled forwards. They do not validate the
+pinned checkpoint's math, streaming, timestamps or T4 parity.
 
 ### Numerical comparisons
 

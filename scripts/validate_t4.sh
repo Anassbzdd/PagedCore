@@ -79,6 +79,7 @@ exec 1>&3 2>&4 3>&- 4>&-
 wait "$log_pid"
 
 uv run --no-sync python - "$evidence_dir" <<'PY'
+import json
 import sys
 import xml.etree.ElementTree as ET
 import zipfile
@@ -92,6 +93,11 @@ required = {
     "test_public_reference_capture_and_repeatability_on_t4",
     "test_pinned_decoder_layer_parity_on_t4",
 }
+fixtures = json.loads(Path("tests/fixtures/reference_prompts.json").read_text())
+required.update(
+    f"test_pinned_decoder_greedy_parity_on_t4[{case['name']}]"
+    for case in fixtures["prompts"]
+)
 if not required <= {case.attrib["name"] for case in cases} or any(
     case.find(tag) is not None for case in cases for tag in ("skipped", "failure", "error")
 ):

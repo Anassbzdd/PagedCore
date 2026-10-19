@@ -1,0 +1,314 @@
+{
+  "task": "P3.5",
+  "captured_at_utc": "2026-10-18T16:05:35.962330+00:00",
+  "validation": "Windows/CPU-only",
+  "setup": "Existing frozen CPU/dev environment; no dependency or runtime installation changes.",
+  "seed": 0,
+  "environment": {
+    "python": "3.11.15",
+    "package": {
+      "name": "pagedcore",
+      "version": "0.1.0"
+    },
+    "dependencies": {
+      "torch": "2.7.1+cpu",
+      "transformers": "4.52.4"
+    },
+    "cuda": {
+      "available": false,
+      "runtime": null
+    },
+    "driver": null,
+    "gpu": [],
+    "model": {
+      "id": "TinyLlama/TinyLlama-1.1B-Chat-v1.0",
+      "revision": "af8e934848d8dd00074cc2cd8a40a9b05c3b011e"
+    },
+    "settings": {
+      "model_id": "TinyLlama/TinyLlama-1.1B-Chat-v1.0",
+      "model_revision": "af8e934848d8dd00074cc2cd8a40a9b05c3b011e",
+      "context_limit": 2048,
+      "min_new_tokens": 1,
+      "default_max_new_tokens": 128,
+      "max_new_tokens": 256,
+      "block_tokens": 16,
+      "kv_pool_mib": 8192,
+      "workspace_margin_mib": 1024,
+      "max_pending_requests": 64,
+      "max_active_sequences": 32,
+      "token_queue_size": 32,
+      "bind_address": "localhost",
+      "log_level": "INFO"
+    }
+  },
+  "provenance": {
+    "setup_command": null,
+    "command_arguments": null,
+    "git_revision": "8940a1c6bc04febecb07cb06a8d981cb9b42c8bf",
+    "working_tree_clean": false,
+    "uv_lock_sha256": "46700b60b0a8d492fc673aec8a0e12c27ae43124dd8e194f8c754dbd6ca7ea48",
+    "source_sha256": {
+      ".python-version": "db82937e1f1830581a9553c7814f5c5fcacb6dfdef8310b43e9a812c887acaf5",
+      "pyproject.toml": "55b3d48fd0a5297b3adea9b812bad4c561751c84d95e2d0d2d8a0b588ce78a71",
+      "src/pagedcore/__init__.py": "42b1e9884f56caa6de42f8177eedcc2f9b81ae2df2f9db28e45114117e8f3d29",
+      "src/pagedcore/cli.py": "e36cb0cf9e342e76787b3d74e98b778c22b1b76b580bf76e556a5f03aa6c2c16",
+      "src/pagedcore/config.py": "1d53260eb14a72385186915dbf28e30c4a13180cff54c3769e872874d3736ac8",
+      "src/pagedcore/decoder.py": "0481e99304089068ae3615aff578326140d80d7760f5d374eb789ff2ae578873",
+      "src/pagedcore/dense.py": "2c927378c4a06b6ec5680b9a1540d46908748088991aa35525d0c9a1e27bb342",
+      "src/pagedcore/determinism.py": "2fdcba5697c59b4f68942fb7d3a14baff46cc4d0d70470c7f23e5c56a437afa2",
+      "src/pagedcore/engine_types.py": "db31cb04b5dd4e127d37f1b3a4b88bc20f2272520893a150428197713c6cae40",
+      "src/pagedcore/measurements.py": "760946d8dac98f4a9bfcc182a2426a5b92af62aa23fb859d239895d42ca5c3f0",
+      "src/pagedcore/oracle.py": "6fbc7fe7fdd01eb7cb23055ad3189fad00b733bc1dcd727e091306dcf34f9eb8",
+      "src/pagedcore/verification.py": "4e6b77ea1e88b81ae96047b59b4e5fa859c4237251d9e674a6ee27c2fbd75044",
+      "src/pagedcore/weights.py": "1a0b9f34003ab9ca99ccd00e2f193253071d45b480adce7ed809e65ffa72ec5b",
+      "tests/conftest.py": "3f2a9e20d644510575be794e51de1ed0d21970330b2351959b725bf3f2ed66ea",
+      "tests/gpu/test_decoder_parity.py": "1cd3ffd6c5da08da08923319225fde85be5cffc5856bd6ef5b202d8be3a65873",
+      "tests/gpu/test_oracle_reference.py": "6617aa0cc73197779f22c52441d85a34e1c3e38e9090fb08a9bd871510f53a78",
+      "tests/gpu/test_target_verification.py": "c40e8cf67d0b972f6737b71787a8d2c8ce4231538ca9b1503da6d65722c5e554",
+      "tests/unit/test_cli.py": "f1d72b629020a78f89f50b1b8ccdb01a69ac28fb2f2a4d80405f770bcb22b5f2",
+      "tests/unit/test_config.py": "ed028751b20e50dd2b74cf5a7b9e7539c517341390102abdfd10e5b376bc2422",
+      "tests/unit/test_decoder.py": "6891fd82616b8542408634af4d2c65899d946c20d72b1ba96ab9f50aab635978",
+      "tests/unit/test_dense.py": "346107a33eae54cdfd5b9a8bfb38017e95379338e6574049521b060c814d3d92",
+      "tests/unit/test_determinism.py": "4da0279f676caced156a2db72ebc0c691ff787f22ac15c9635e85d723835eefa",
+      "tests/unit/test_engine_types.py": "ea9c52b46ac60f72c0dc95ade581b799e2b6746d627c9334c4ba7e8ab11193f3",
+      "tests/unit/test_measurements.py": "469ae30346ef880b1bbfadc58af72320f7597d3a658a0fda017c9df8fbddd00a",
+      "tests/unit/test_oracle.py": "b47f8f38a3988704da5bc5b2b11d9539728a0d86fba414f46cdfab4ef8f8166b",
+      "tests/unit/test_reference_fixtures.py": "13b2af5294380e4426f77f2955c217e4483418305360526cbbe22ea7984fe90d",
+      "tests/unit/test_verification.py": "75df0ea776fd91478db64e74b0861be1cb9e49a1cbb8464fbff1ceeb49cfb2b1",
+      "tests/unit/test_weights.py": "5555b55d797ddd5020887016ff19f9b7dfb54432f09a95b17ffe42ab58ea64ae"
+    }
+  },
+  "checks": [
+    {
+      "argv": [
+        "uv",
+        "run",
+        "--no-sync",
+        "python",
+        "-m",
+        "ruff",
+        "format",
+        "--check",
+        "."
+      ],
+      "exit_code": 0,
+      "stdout": "35 files already formatted\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "uv",
+        "run",
+        "--no-sync",
+        "python",
+        "-m",
+        "ruff",
+        "check",
+        "."
+      ],
+      "exit_code": 0,
+      "stdout": "All checks passed!\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "uv",
+        "run",
+        "--no-sync",
+        "python",
+        "-m",
+        "mypy",
+        "--strict",
+        "src/pagedcore"
+      ],
+      "exit_code": 0,
+      "stdout": "Success: no issues found in 11 source files\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "uv",
+        "run",
+        "--no-sync",
+        "python",
+        "-m",
+        "pytest",
+        "-m",
+        "not gpu and not benchmark",
+        "-ra",
+        "--junitxml=results/local/p3.5-cpu-tests.xml"
+      ],
+      "exit_code": 0,
+      "stdout": "============================= test session starts =============================\nplatform win32 -- Python 3.11.15, pytest-9.1.1, pluggy-1.6.0\nrootdir: C:\\Users\\user\\OneDrive\\Desktop\\PagedCore\nconfigfile: pyproject.toml\ntestpaths: tests\nplugins: anyio-4.15.1, hypothesis-6.168.3, asyncio-1.4.0\nasyncio: mode=Mode.STRICT, debug=False, asyncio_default_fixture_loop_scope=None, asyncio_default_test_loop_scope=function\ncollected 407 items / 10 deselected / 397 selected\n\ntests\\unit\\test_cli.py ...................                               [  4%]\ntests\\unit\\test_config.py ..........................                     [ 11%]\ntests\\unit\\test_decoder.py ............................................. [ 22%]\n......                                                                   [ 24%]\ntests\\unit\\test_dense.py ......................                          [ 29%]\ntests\\unit\\test_determinism.py .....                                     [ 30%]\ntests\\unit\\test_engine_types.py ........................................ [ 41%]\n....................................................................     [ 58%]\ntests\\unit\\test_measurements.py ..................                       [ 62%]\ntests\\unit\\test_oracle.py .............................................. [ 74%]\n..                                                                       [ 74%]\ntests\\unit\\test_reference_fixtures.py ................                   [ 78%]\ntests\\unit\\test_verification.py ...............                          [ 82%]\ntests\\unit\\test_weights.py ............................................. [ 93%]\n........................                                                 [100%]\n\n- generated xml file: C:\\Users\\user\\OneDrive\\Desktop\\PagedCore\\results\\local\\p3.5-cpu-tests.xml -\n===================== 397 passed, 10 deselected in 10.48s =====================\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "uv",
+        "run",
+        "--no-sync",
+        "python",
+        "-m",
+        "pytest",
+        "tests/gpu/test_decoder_parity.py",
+        "-ra",
+        "--junitxml=results/local/p3.5-gpu-tests.xml"
+      ],
+      "exit_code": 0,
+      "stdout": "============================= test session starts =============================\nplatform win32 -- Python 3.11.15, pytest-9.1.1, pluggy-1.6.0\nrootdir: C:\\Users\\user\\OneDrive\\Desktop\\PagedCore\nconfigfile: pyproject.toml\nplugins: anyio-4.15.1, hypothesis-6.168.3, asyncio-1.4.0\nasyncio: mode=Mode.STRICT, debug=False, asyncio_default_fixture_loop_scope=None, asyncio_default_test_loop_scope=function\ncollected 7 items\n\ntests\\gpu\\test_decoder_parity.py sssssss                                 [100%]\n\n- generated xml file: C:\\Users\\user\\OneDrive\\Desktop\\PagedCore\\results\\local\\p3.5-gpu-tests.xml -\n=========================== short test summary info ===========================\nSKIPPED [1] tests\\gpu\\test_decoder_parity.py:45: requires CUDA\nSKIPPED [6] tests\\gpu\\test_decoder_parity.py:58: requires CUDA\n============================= 7 skipped in 0.79s ==============================\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "C:/Program Files/Git/bin/bash.exe",
+        "-n",
+        "scripts/validate_t4.sh"
+      ],
+      "exit_code": 0,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "git",
+        "diff",
+        "--check"
+      ],
+      "exit_code": 0,
+      "stdout": "",
+      "stderr": "warning: in the working copy of 'docs/DESIGN.md', LF will be replaced by CRLF the next time Git touches it\nwarning: in the working copy of 'docs/VALIDATION_PLAN.md', LF will be replaced by CRLF the next time Git touches it\nwarning: in the working copy of 'scripts/validate_t4.sh', LF will be replaced by CRLF the next time Git touches it\nwarning: in the working copy of 'src/pagedcore/decoder.py', LF will be replaced by CRLF the next time Git touches it\nwarning: in the working copy of 'tests/conftest.py', LF will be replaced by CRLF the next time Git touches it\nwarning: in the working copy of 'tests/gpu/test_decoder_parity.py', LF will be replaced by CRLF the next time Git touches it\nwarning: in the working copy of 'tests/unit/test_decoder.py', LF will be replaced by CRLF the next time Git touches it\n"
+    }
+  ],
+  "tests": {
+    "cpu": {
+      "selected": 397,
+      "executed": 397,
+      "passed": 397,
+      "failed": 0,
+      "skipped": 0
+    },
+    "decoder_gpu": {
+      "selected": 7,
+      "executed": 0,
+      "passed": 0,
+      "failed": 0,
+      "skipped": 7,
+      "skip_reason": "requires CUDA"
+    },
+    "collected": 407,
+    "gpu_deselected": 10,
+    "new_cpu_cases": 15
+  },
+  "focused_check": {
+    "argv": [
+      "uv",
+      "run",
+      "--no-sync",
+      "python",
+      "-m",
+      "pytest",
+      "tests/unit/test_decoder.py",
+      "tests/unit/test_reference_fixtures.py",
+      "-k",
+      "generation or owned_stopping",
+      "-q"
+    ],
+    "exit_code": 0,
+    "passed": 22,
+    "deselected": 45
+  },
+  "comparison": {
+    "reference": "Independent eager HF generation, identical input IDs, FP16 weights, do_sample=False, num_beams=1, fresh GenerationConfig, explicit EOS policy and reference_math for both models.",
+    "cpu_model": "Two random-weight layers with pinned head geometry and reduced MLP/vocabulary; FP32 reference RoPE frequencies.",
+    "cpu_generation_prompt_lengths": [
+      1,
+      15,
+      16,
+      17,
+      32,
+      49
+    ],
+    "controlled_stopping": [
+      "immediate_eos",
+      "immediate_eos_at_limit",
+      "delayed_eos",
+      "length",
+      "eos_at_limit",
+      "ignored_eos",
+      "maximum_output"
+    ],
+    "controlled_boundary": "HF uses controlled logits; owned loop uses scripted forwards that assert consumed IDs, cache positions, inference mode and forward counts. This proves selection/stopping flow, not checkpoint numerics.",
+    "gpu_cases": [
+      "boundary_15",
+      "boundary_16",
+      "boundary_17",
+      "multiple_full_blocks",
+      "maximum_output",
+      "eos_enabled"
+    ],
+    "exact_checks": [
+      "selected greedy IDs including stopping EOS",
+      "emitted IDs excluding stopping EOS",
+      "finish_reason"
+    ],
+    "tolerances": "Unchanged: intermediate atol=rtol=0.002; logit atol=rtol=0.005; greedy equality is exact.",
+    "controlled_reference_model": "Tiny random CPU Llama in FP32; controlled logits and scripted owned forwards isolate stopping behavior."
+  },
+  "reviewed_existing_t4_evidence": {
+    "archive": "results/validation/2026-10-18-t4/t4-20261018T153034Z.zip",
+    "sha256": "ef2dce5cfabd120ea9402f8e1f60d8899d86417589a44bb0fd9b02f027a7174b",
+    "git_revision": "8940a1c6bc04febecb07cb06a8d981cb9b42c8bf",
+    "manifest_source_hash_mismatches_against_revision": [],
+    "target": {
+      "device": "cuda:0",
+      "cuda_visible_devices": "0",
+      "cuda_visible_device_count": 1,
+      "name": "Tesla T4",
+      "uuid": "eddd756d-56e3-8031-6f66-09e6867a6bc5",
+      "compute_capability": "7.5",
+      "memory_bytes": 15636037632,
+      "torch": "2.7.1+cu126",
+      "cuda_runtime": "12.6",
+      "cublas_workspace_config": ":4096:8"
+    },
+    "gpu_tests": [
+      {
+        "name": "test_pinned_decoder_layer_parity_on_t4",
+        "passed": true
+      },
+      {
+        "name": "test_public_reference_capture_and_repeatability_on_t4",
+        "passed": true
+      },
+      {
+        "name": "test_pinned_checkpoint_loads_and_runs_one_reference_forward_pass",
+        "passed": true
+      },
+      {
+        "name": "test_seed_everything_repeats_cuda_random_streams",
+        "passed": true
+      }
+    ],
+    "boundary": "Retained pre-change T4 run validates P3.4 layer comparisons, not the new owned greedy loop, tolerance envelope or workspace. Archive was read without modification."
+  },
+  "documentation_and_collector_sha256": {
+    "docs/DESIGN.md": "4c3727840f3685571b2dc2dd620f87fa47edf2f8ef78337b48499f26297a100c",
+    "docs/VALIDATION_PLAN.md": "92b2a95a25c1619e9f88a876381e6854fade86afa961abe80d95430ae5292ecf",
+    "docs/STATUS.md": "5ae18a592f54a3ac5d2b036f4f11483b276213a63abfd5fa3b5e7b8971e3013a",
+    "docs/task.md": "9fa43202b3c7df0903a217ae59fd83167490e8d1e98b1c2dc448b23fccd63ade",
+    "scripts/validate_t4.sh": "104bbaa9cae099ecfc4d2808e6955cfc7800e76be423bbdf2a52d7ee94031fc2"
+  },
+  "limits": [
+    "No CUDA/T4 available locally; new pinned-checkpoint greedy cases are collected but skipped. P3.5 remains incomplete pending actual T4 execution.",
+    "Synthetic stopping coverage and random-weight CPU generation do not prove pinned-checkpoint greedy parity.",
+    "No tolerance-envelope measurement, workspace, paging, batching, service, memory-safety or performance proof.",
+    "Local checks only. No hosted CI or T4 collector execution; collector receives syntax validation only."
+  ],
+  "collector_python_syntax": {
+    "blocks_compiled": 2,
+    "passed": true
+  },
+  "fixture_sha256": {
+    "tests/fixtures/reference_prompts.json": "143f89f62b0b85956ddd7ab94cd7b7ec559799725b947b5404409dcdf6365190"
+  }
+}

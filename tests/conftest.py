@@ -5,10 +5,12 @@ from typing import Any
 import pytest
 import torch
 from torch import Tensor
+from transformers import GenerationConfig
 
 import pagedcore.decoder as decoder_module
 import pagedcore.dense as dense_module
 from pagedcore.determinism import seed_everything
+from pagedcore.engine_types import FinishReason
 from pagedcore.oracle import reference_math
 from pagedcore.weights import LayerWeights, TinyLlamaWeights
 
@@ -19,6 +21,48 @@ TEST_SEED = 0
 def deterministic_test_state() -> None:
     """Start every test with the same Python and PyTorch RNG state."""
     seed_everything(TEST_SEED)
+
+
+@pytest.fixture
+def assert_decoder_greedy_parity() -> Callable[..., decoder_module.GreedyResult]:
+    def compare(
+        model: Any,
+        weights: TinyLlamaWeights,
+        input_ids: Tensor,
+        max_new_tokens: int,
+        ignore_eos: bool,
+    ) -> decoder_module.GreedyResult:
+        assert model.config._attn_implementation == "eager"
+        assert not model.training
+        generation = GenerationConfig(
+            do_sample=False,
+            num_beams=1,
+            max_new_tokens=max_new_tokens,
+            eos_token_id=None if ignore_eos else 2,
+            bos_token_id=1,
+            pad_token_id=2,
+            use_cache=True,
+        )
+        with reference_math(), torch.inference_mode():
+            reference = model.generate(
+                input_ids=input_ids,
+                attention_mask=torch.ones_like(input_ids),
+                generation_config=generation,
+                use_model_defaults=False,
+                eos_token_id=None if ignore_eos else 2,
+                logits_to_keep=0,
+            )
+            actual = decoder_module.generate(
+                input_ids, weights, max_new_tokens=max_new_tokens, ignore_eos=ignore_eos
+            )
+        expected = tuple(reference[0, input_ids.shape[1] :].tolist())
+        stopped = not ignore_eos and expected[-1] == 2
+        assert actual.greedy_ids == expected, "selected greedy IDs differ"
+        assert actual.emitted_ids == (expected[:-1] if stopped else expected), "emitted IDs differ"
+        assert actual.finish_reason is (FinishReason.EOS if stopped else FinishReason.LENGTH)
+        return actual
+
+    return compare
 
 
 @pytest.fixture

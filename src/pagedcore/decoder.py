@@ -17,6 +17,7 @@ from pagedcore.dense import (
     rms_norm,
     swiglu,
 )
+from pagedcore.engine_types import FinishReason
 from pagedcore.weights import TinyLlamaWeights
 
 
@@ -51,6 +52,48 @@ class ContiguousCache:
     @property
     def length(self) -> int:
         return int(self.layers[0][0].shape[2])
+
+
+@dataclass(frozen=True, slots=True)
+class GreedyResult:
+    """A stopping EOS is selected but excluded from emitted IDs."""
+
+    greedy_ids: tuple[int, ...]
+    emitted_ids: tuple[int, ...]
+    finish_reason: FinishReason
+
+
+@torch.inference_mode()
+def generate(
+    input_ids: Tensor,
+    weights: TinyLlamaWeights,
+    *,
+    max_new_tokens: int = 128,
+    ignore_eos: bool = False,
+) -> GreedyResult:
+    """Run single-sequence greedy generation with the dense correctness cache."""
+    if type(max_new_tokens) is not int or not 1 <= max_new_tokens <= 256:
+        raise ValueError("max_new_tokens must be an integer from 1 to 256")
+    if type(ignore_eos) is not bool:
+        raise ValueError("ignore_eos must be a boolean")
+    if input_ids.ndim != 2 or input_ids.shape[0] != 1:
+        raise ValueError("input_ids must be int64 [1, tokens]")
+    if input_ids.shape[1] + max_new_tokens > 2048:
+        raise ValueError("prompt tokens plus requested output must not exceed 2048")
+
+    logits, cache = prefill(input_ids, weights)
+    selected: list[int] = []
+    for step in range(max_new_tokens):
+        token = logits[:, -1:].argmax(dim=-1)
+        token_id = int(token.item())
+        selected.append(token_id)
+        # EOS takes precedence even when selected at the output limit.
+        if token_id == 2 and not ignore_eos:
+            return GreedyResult(tuple(selected), tuple(selected[:-1]), FinishReason.EOS)
+        if step + 1 < max_new_tokens:
+            logits, cache = decode(token, cache, weights)
+    ids = tuple(selected)
+    return GreedyResult(ids, ids, FinishReason.LENGTH)
 
 
 @torch.inference_mode()

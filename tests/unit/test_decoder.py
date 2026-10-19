@@ -10,8 +10,9 @@ from transformers import LlamaConfig, LlamaForCausalLM
 from transformers.models.llama.modeling_llama import LlamaRotaryEmbedding
 
 import pagedcore.decoder as decoder_module
-from pagedcore.decoder import ContiguousCache, decode, prefill
+from pagedcore.decoder import ContiguousCache, GreedyResult, decode, generate, prefill
 from pagedcore.dense import apply_rope, project_qkv, rms_norm
+from pagedcore.engine_types import FinishReason
 from pagedcore.weights import LayerWeights, TinyLlamaWeights
 
 pytestmark = pytest.mark.unit
@@ -90,6 +91,52 @@ def test_prefill_matches_synthetic_hf_and_caches_prompt(
     _, rotated = apply_rope(query, key, torch.arange(tokens)[None])
     torch.testing.assert_close(cache.layers[0][0], rotated, atol=0, rtol=0)
     torch.testing.assert_close(cache.layers[0][1], value, atol=0, rtol=0)
+
+
+@pytest.mark.parametrize(
+    "tokens,maximum,ignore_eos",
+    [(1, 1, False), (15, 8, False), (16, 8, True), (17, 8, True), (32, 8, True), (49, 8, True)],
+)
+def test_greedy_generation_matches_synthetic_hf(
+    decoder: SimpleNamespace,
+    assert_decoder_greedy_parity: Callable[..., GreedyResult],
+    tokens: int,
+    maximum: int,
+    ignore_eos: bool,
+) -> None:
+    ids = torch.arange(tokens)[None] % 31
+    actual = assert_decoder_greedy_parity(decoder.model, decoder.weights, ids, maximum, ignore_eos)
+    if ignore_eos:
+        assert len(actual.emitted_ids) == maximum
+        assert actual.finish_reason is FinishReason.LENGTH
+    assert torch.equal(ids, torch.arange(tokens)[None] % 31)
+    # A fresh invocation cannot inherit the previous request's cache or counters.
+    assert generate(ids, decoder.weights, max_new_tokens=maximum, ignore_eos=ignore_eos) == actual
+
+
+@pytest.mark.parametrize("maximum", [0, 257, True, 1.0, "1"])
+def test_generation_rejects_invalid_output_limit(decoder: SimpleNamespace, maximum: Any) -> None:
+    with pytest.raises(ValueError, match="max_new_tokens"):
+        generate(torch.tensor([[1]]), decoder.weights, max_new_tokens=maximum)
+
+
+@pytest.mark.parametrize("ignore_eos", [0, None, "false"])
+def test_generation_rejects_nonboolean_eos_policy(
+    decoder: SimpleNamespace, ignore_eos: Any
+) -> None:
+    with pytest.raises(ValueError, match="ignore_eos"):
+        generate(torch.tensor([[1]]), decoder.weights, ignore_eos=ignore_eos)
+
+
+def test_generation_rejects_context_overflow_before_prefill(
+    decoder: SimpleNamespace, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    def unexpected_prefill(*args: Any) -> None:
+        pytest.fail("context overflow must fail before allocating a prompt cache")
+
+    monkeypatch.setattr(decoder_module, "prefill", unexpected_prefill)
+    with pytest.raises(ValueError, match="2048"):
+        generate(torch.ones(1, 2048, dtype=torch.int64), decoder.weights, max_new_tokens=1)
 
 
 @pytest.mark.parametrize("tokens", [1, 15, 16, 17, 49])

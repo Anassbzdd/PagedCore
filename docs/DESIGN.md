@@ -69,6 +69,18 @@ nor full-history KV-head expansion is permitted in that path. The prefill/decode
 boundary takes IDs and returns logits/cache without any Transformers cache API.
 Synthetic CPU orchestration tests do not close the T4 parity or workspace gate.
 
+### Dense greedy generation
+
+`decoder.generate` owns a single sequence's selection and stopping loop above
+`prefill`/`decode`. It accepts token IDs, validates the 1-256 output limit and
+`prompt_tokens + max_new_tokens <= 2048`, and returns selected IDs, emitted IDs
+and a `FinishReason`. The pinned EOS ID is 2. A stopping EOS is selected but not
+emitted, including at the output limit; ignored EOS is emitted and counts toward
+that limit. The first selection uses the last prefill logits. Further forwards
+consume only the previously emitted token; the final selection requires no decode.
+The cache stays local to the call. This is a dense correctness runner; batching,
+streaming and paged cache ownership remain worker work.
+
 ## Components
 
 ```
