@@ -1,15 +1,22 @@
 # Implementation and evidence status
 
-Snapshot: 2026-10-19. Tolerance-envelope recording/export is implemented; see
-the [P3.6 CPU report](../results/validation/2026-10-19-p3.6-cpu.json): 401 non-GPU
-tests passed, as did formatting/Ruff/strict mypy. It records per-tensor absolute errors and fractions
-of the combined tolerance during existing layer comparisons, with separate
-intermediate/logit maxima and hardware/software metadata in the T4 bundle.
-No new GPU execution occurred; the measured T4 envelope remains pending.
-The existing [October 19 T4 archive](../results/validation/2026-10-19-t4/pagedcore-p35-t4.zip)
-was reviewed without modification: all ten GPU cases passed at `7bbcd6a`, including
-all six greedy fixtures, and recorded source/lock hashes match that revision.
-It predates the recorder and contains no owned-decoder discrepancy measurements.
+Snapshot: 2026-10-21. Dense-workspace recording is implemented in the
+[recorder](../scripts/measure_dense_workspace.py) and [T4 collector](../scripts/validate_t4.sh).
+It measures maximum direct prefill, maximum generation prompt and maximum output
+paths in a separate owned-model process, retaining raw allocator/device samples,
+peaks, repeated-run cleanup checks and allocator diagnostics. Actual T4 workspace
+measurements remain pending; no GPU execution occurred locally.
+
+The [P3.6 T4 archive](../results/validation/2026-10-20-t4/pagedcore-p36-t4.zip)
+and [review](../results/validation/2026-10-20-t4/review.json) establish the measured
+tolerance envelope at clean source `88be0f8`. All 2,260 tensor/logit records have
+zero absolute error and zero tolerance ratio for the five tested prompt lengths,
+prefill and three cached decode steps. All 401 CPU tests and ten GPU cases passed
+without skips, as did formatting/Ruff/strict mypy. Source, lock, collector and
+fixture hashes were verified against that revision; environment and measurements
+agree across the JSON, manifest, selected-device record and GPU JUnit report.
+This was a local review of the retained T4 run; no new GPU execution occurred here.
+P3.6 is complete. P3.7 dense workspace remains unmeasured.
 
 Earlier CPU reports and T4 observations remain below as historical evidence.
 
@@ -19,8 +26,9 @@ Phase 3 dense decoder parity is the current runtime gate. P3.1 weight loading is
 implemented and CPU-validated, as are P3.2 dense components and P3.3 contiguous
 prefill/decode. P3.4 layer/logit comparisons passed on the pinned checkpoint/T4
 in the retained October 18 archive. P3.5 greedy selection/stopping passed all public
-T4 fixtures in the October 19 archive. P3.6 recording/export is CPU-validated;
-the measured T4 tolerance envelope and dense workspace remain unsatisfied. The October 13
+T4 fixtures in the October 19 and October 20 archives. P3.6 tolerance measurements
+passed on T4 in the October 20 archive. P3.7 dense maximum-path workspace is the
+remaining Phase 3 gate before allocator work. The October 13
 archive and successful hosted CI below supersede the earlier Phase 2 evidence
 blockers; the October 18 layer test supplies the narrower owned-forward evidence.
 
@@ -38,17 +46,29 @@ blockers; the October 18 layer test supplies the narrower owned-forward evidence
 | Contiguous prefill/decode | Single-sequence owned forward, residuals, per-layer FP16 cache and one-token append at absolute positions | CPU orchestration and October 18/19 T4 prefill/three-step decode comparisons; no workspace proof |
 | Layer comparisons | All-layer snapshots during prefill and three reference-token cached decode steps, with fixed intermediate/logit tolerances and named failures | Two-layer random-weight CPU evidence and passing 22-layer pinned-checkpoint T4 test at 1/15/16/17/49 prompt tokens |
 | Dense greedy generation | Local-cache argmax loop, exact selected/emitted IDs, EOS/length precedence and request bounds | Synthetic stopping checks plus all six public T4 fixture cases passed in the October 19 archive |
-| Tolerance measurements | Per-tensor FP32 error analysis, combined-tolerance ratios, maxima and environment-attributed T4 export | CPU measurement/export checks; the new recorder has not executed on T4 |
+| Tolerance measurements | Per-tensor FP32 error analysis, combined-tolerance ratios, maxima and environment-attributed T4 export | October 20 T4 evidence at `88be0f8`: all 2,260 FP16 snapshot comparisons have zero discrepancy; limited to the recorded forwards/environment |
+| Dense workspace recording | Separate owned-model process, maximum prefill/output paths, raw samples/peaks, allocator diagnostics and collector acceptance checks | CPU recording/export checks only; actual T4 memory and safe pool capacity remain unmeasured |
 | Paging/worker/service | Not implemented | No paged reads, cleanup, concurrency, HTTP or GPU memory-safety proof |
 | Container/benchmark/report | Not implemented | No container, serving performance or comparative measurement proof |
 
 ## Current CPU evidence
 
+The [workspace tests](../tests/unit/test_dense_workspace.py) and
+[collector tests](../tests/unit/test_t4_evidence.py) exercise boundary workloads,
+transient peaks, allocator reuse, first-use workspace, stable cleanup, failure
+retention and rejection of incomplete evidence with synthetic CPU fakes. On
+2026-10-21, `python -m pytest -m "not gpu and not benchmark" -ra` passed 419 tests
+with ten GPU cases deselected; Ruff, formatting and strict mypy passed, including
+strict typing of the recorder. The [local JUnit report](../results/local/p3.7-cpu-tests.xml)
+retains the CPU result. The local PyTorch build is `2.7.1+cpu` with no CUDA device;
+these checks cannot close P3.7.
+
 The [tolerance-measurement report](../results/validation/2026-10-19-p3.6-cpu.json)
 records local commands and source identity. Synthetic tests check measurement
 coverage, zero and negative references, FP16-to-FP32 error arithmetic, exporter
 maxima/locations, metadata retention, ZIP contents and rejection of missing
-measurements. The report distinguishes these CPU checks from the pending T4 run.
+measurements. It records the original CPU-only limitation; the October 20 T4
+archive now supplies the required hardware-backed measurement evidence.
 
 Earlier CPU observations follow.
 
@@ -111,6 +131,24 @@ and [marker selection](../results/validation/2026-10-12-p2.5-cpu.json).
 Their old formatting failures do not describe the corrected current checkout.
 
 ## Saved T4 observations
+
+The [October 20 archive](../results/validation/2026-10-20-t4/pagedcore-p36-t4.zip)
+at clean source `88be0f8` retains 401 passing CPU tests, ten passing GPU cases and
+the owned-decoder `tolerance-envelope.json`. The [review](../results/validation/2026-10-20-t4/review.json)
+verifies its CRC, all 29 recorded source hashes, lock/collector/fixture identity,
+complete measurement labels and JSON/JUnit/metadata agreement. All 22 layers are
+covered at prompt lengths 1/15/16/17/49, with prefill and three reference-token
+cached decode steps: 2,240 intermediate and 20 logit comparisons all have zero
+absolute error and zero tolerance ratio. Displayed `bos_only` maximum locations
+are the first entries in a tie, not the only measured input.
+
+The selected device is one CUDA-visible Tesla T4 with UUID, compute capability
+7.5 and 15,636,037,632 bytes of reported memory. The bundle records Linux,
+Python 3.11.15, Torch 2.7.1+cu126, Transformers 4.52.4, CUDA 12.6 and driver
+580.178.04, fresh frozen setup and dependencies from the actual `.venv` interpreter.
+Tolerances remain unchanged. This establishes the observed FP16 envelope for
+those inputs/configuration, not a bound over all inputs, cross-platform equality,
+or maximum-path workspace safety.
 
 The [October 19 archive](../results/validation/2026-10-19-t4/pagedcore-p35-t4.zip)
 at clean source `7bbcd6a` retains 397 passing CPU tests and ten passing GPU cases
@@ -175,8 +213,9 @@ for these local edits.
 
 ## Remaining decoder gate
 
-Run the updated collector on T4 and retain `tolerance-envelope.json`, then
-measure dense workspace before advancing to the allocator. Continue dense
+Run the updated collector and retain reviewed `dense-workspace.json` and allocator
+diagnostics from an actual T4 before advancing to the allocator; P3.7 remains open.
+P3.6 tolerance-envelope evidence is retained and reviewed. Continue dense
 parity -> allocator -> paged attention -> lifecycle -> HTTP.
 
 All final MVP acceptance rows in [TRACEABILITY.md](TRACEABILITY.md) remain pending.

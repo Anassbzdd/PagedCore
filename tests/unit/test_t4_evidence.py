@@ -13,8 +13,9 @@ ROOT = Path(__file__).parents[2]
 
 
 @pytest.mark.parametrize("include_measurements", [False, True])
+@pytest.mark.parametrize("workspace_state", ["missing", "partial", "missing_samples", "complete"])
 def test_collector_requires_and_retains_owned_decoder_measurements(
-    tmp_path: Path, include_measurements: bool
+    tmp_path: Path, include_measurements: bool, workspace_state: str
 ) -> None:
     directory = tmp_path / "evidence"
     directory.mkdir()
@@ -65,6 +66,33 @@ def test_collector_requires_and_retains_owned_decoder_measurements(
     target = {"name": "synthetic device", "uuid": "test-device"}
     (directory / "manifest.json").write_text(json.dumps(manifest))
     (directory / "target.json").write_text(json.dumps(target))
+    workspace_runs = [
+        {
+            "case": name,
+            "prompt_tokens": prompt,
+            "output_tokens": output,
+            "repetition": repetition,
+            "status": "passed",
+            "samples": [
+                {"phase": phase, "allocator_stats": {"num_ooms": 0}}
+                for phase in ("before_forward", "after_forward", "after_cleanup")
+            ],
+        }
+        for name, prompt, output in (
+            ("maximum_prefill", 2048, 0),
+            ("maximum_prompt", 2047, 1),
+            ("maximum_output", 1792, 256),
+        )
+        for repetition in range(3)
+    ]
+    workspace = {"status": "passed", "runs": workspace_runs}
+    if workspace_state == "partial":
+        workspace_runs.pop()
+    elif workspace_state == "missing_samples":
+        workspace_runs[0]["samples"] = []
+    if workspace_state != "missing":
+        (directory / "dense-workspace.json").write_text(json.dumps(workspace))
+        (directory / "dense-workspace-allocator.txt").write_text("synthetic diagnostics")
     # Execute the collector's exporter itself without requiring Bash or a GPU.
     script = (ROOT / "scripts/validate_t4.sh").read_text().rsplit("<<'PY'\n", 1)[1]
     script = script.removesuffix("PY\n")
@@ -82,6 +110,11 @@ def test_collector_requires_and_retains_owned_decoder_measurements(
         assert "tolerance measurements are required" in result.stderr
         assert not archive.exists()
         return
+    if workspace_state != "complete":
+        assert result.returncode != 0
+        assert "dense workspace" in result.stderr
+        assert not archive.exists()
+        return
     assert result.returncode == 0, result.stderr
     report = json.loads((directory / "tolerance-envelope.json").read_text())
     assert report["cases"] == measurements["cases"]
@@ -95,3 +128,5 @@ def test_collector_requires_and_retains_owned_decoder_measurements(
     assert maxima["logits"]["max_tolerance_ratio"]["max_tolerance_ratio"] == 0.8
     with zipfile.ZipFile(archive) as bundle:
         assert json.loads(bundle.read("evidence/tolerance-envelope.json")) == report
+        assert json.loads(bundle.read("evidence/dense-workspace.json")) == workspace
+        assert bundle.read("evidence/dense-workspace-allocator.txt") == b"synthetic diagnostics"

@@ -153,6 +153,56 @@ recorder and cannot establish the owned-decoder envelope; its `comparison.json`
 measures only Hugging Face repeatability. CPU tests validate measurement/export
 logic but cannot close the T4 measurement gate.
 
+The reviewed [October 20 T4 archive](../results/validation/2026-10-20-t4/pagedcore-p36-t4.zip)
+closes P3.6 at clean source `88be0f8`; see the [evidence review](../results/validation/2026-10-20-t4/review.json).
+All 2,240 intermediate and 20 logit records have zero absolute error and zero
+tolerance ratio across the five prompts, all 22 layers and four forwards per
+prompt. The review checks every measurement label, recomputes maxima and verifies
+source/lock/collector/fixture hashes, JSON/JUnit agreement and environment identity.
+The bundle retains 401 passing CPU tests and ten passing GPU cases without skips.
+This is the observed envelope for the recorded T4/math configuration; dense
+maximum-path workspace remains the separate P3.7 gate.
+
+### Dense workspace
+
+P3.7 runs [the workspace recorder](../scripts/measure_dense_workspace.py) in a
+separate process through `bash scripts/validate_t4.sh`, before GPU parity tests.
+Only the owned pinned FP16 weights are loaded; no HF model or paged pool is present.
+Use an otherwise idle T4 with exactly one CUDA-visible device and the native CUDA
+caching allocator. The recorder uses the same seed and strict math policy as parity.
+
+Measure these single-sequence paths using fixed synthetic IDs:
+
+| Path | Prompt tokens | Requested output | Decode forwards |
+|---|---:|---:|---:|
+| Maximum direct prefill | 2,048 | 0 | 0 |
+| Maximum generation prompt | 2,047 | 1 | 0 |
+| Maximum output at the context limit | 1,792 | 256 | 255 |
+
+Each path runs three times: once after releasing unused allocator segments, then
+twice reusing the allocator cache. Generation ignores EOS so it reaches the output
+limit. Reset allocator peaks immediately before each path, including input creation.
+Synchronize raw samples before/after the forward and after returned tensors are
+released; retain [first-use library workspace growth](https://docs.pytorch.org/docs/2.7/notes/cuda.html#cublas-workspaces)
+and require stable live
+allocations on repeats. Allocation retries or OOMs fail the run.
+
+Retain `dense-workspace.json` with device-free/total bytes, live/reserved bytes,
+allocator peaks and full allocator statistics at each boundary, plus model-loading
+baselines, all nine runs, math settings, source/lock/recorder hashes and environment
+identity. `dense-workspace-allocator.txt` retains allocator summaries. Failures leave
+partial samples and diagnostics in the raw directory; the collector rejects missing
+or incomplete workspace evidence before producing a successful ZIP.
+
+The peak increment above a run's baseline includes input, KV and logits as well as
+temporary tensors; it is not an isolated scratch-buffer size. Boundary device-free
+samples can miss transients, and allocator peaks exclude allocations outside
+PyTorch's allocator. These measurements do not certify a pool size from nominal
+VRAM or close the later paged/batched/service memory gates. Review actual T4 results
+before revising capacity or the provisional workspace margin. CPU tests validate
+recording and evidence rejection only; P3.7 remains open until reviewed T4 evidence
+is retained.
+
 ### Oracle harness
 
 Run from the repository root with the frozen CUDA/dev environment on an actual T4:
@@ -182,7 +232,8 @@ bash scripts/validate_t4.sh
 
 This [collector](../scripts/validate_t4.sh) logs frozen environment setup, source/lock
 identity, physical GPU inventory and the single selected CUDA-visible T4. It runs
-the CPU checks, all ten required GPU cases, reference capture and comparison, then
+the CPU checks, separate dense-workspace recording, all ten required GPU cases,
+reference capture and comparison, then
 creates a ZIP under `results/local/`. A failed run leaves its raw directory intact;
 no successful bundle is accepted with missing or skipped required GPU tests. Review
 and retain that bundle under `results/validation/` before closing the gate. The

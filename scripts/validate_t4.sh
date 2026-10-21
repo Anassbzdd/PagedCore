@@ -18,7 +18,7 @@ set -x
 date -u
 git rev-parse HEAD
 git status --porcelain
-sha256sum uv.lock scripts/validate_t4.sh
+sha256sum uv.lock scripts/validate_t4.sh scripts/measure_dense_workspace.py
 export CUDA_VISIBLE_DEVICES=0
 export CUBLAS_WORKSPACE_CONFIG=:4096:8
 nvidia-smi > "$evidence_dir/physical-gpus.txt"
@@ -65,6 +65,7 @@ uv run --no-sync python -m ruff check .
 uv run --no-sync python -m mypy --strict src/pagedcore
 uv run --no-sync python -m pytest -m "not gpu and not benchmark" -ra \
     --junitxml="$evidence_dir/cpu-tests.xml"
+uv run --no-sync python scripts/measure_dense_workspace.py "$evidence_dir"
 uv run --no-sync python -m pytest -m gpu -v -ra \
     --junitxml="$evidence_dir/gpu-tests.xml"
 uv run --no-sync pagedcore oracle --case boundary_15 \
@@ -131,6 +132,37 @@ envelope["maxima"] = maxima
 (directory / "tolerance-envelope.json").write_text(
     json.dumps(envelope, indent=2, allow_nan=False) + "\n", encoding="utf-8"
 )
+workspace_path = directory / "dense-workspace.json"
+diagnostics_path = directory / "dense-workspace-allocator.txt"
+if not workspace_path.is_file() or not diagnostics_path.is_file() or not diagnostics_path.stat().st_size:
+    raise SystemExit("GPU evidence rejected: dense workspace measurements and diagnostics are required.")
+workspace = json.loads(workspace_path.read_text())
+expected_runs = {
+    (name, prompt, output, repetition)
+    for name, prompt, output in (
+        ("maximum_prefill", 2048, 0),
+        ("maximum_prompt", 2047, 1),
+        ("maximum_output", 1792, 256),
+    )
+    for repetition in range(3)
+}
+runs = workspace.get("runs", [])
+if (
+    workspace.get("status") != "passed"
+    or len(runs) != len(expected_runs)
+    or {
+        (run["case"], run["prompt_tokens"], run["output_tokens"], run["repetition"])
+        for run in runs
+    } != expected_runs
+    or any(
+        run.get("status") != "passed"
+        or [sample["phase"] for sample in run["samples"]]
+        != ["before_forward", "after_forward", "after_cleanup"]
+        or any(not sample.get("allocator_stats") for sample in run["samples"])
+        for run in runs
+    )
+):
+    raise SystemExit("GPU evidence rejected: all dense workspace paths and raw samples must pass.")
 archive = directory.with_suffix(".zip")
 with zipfile.ZipFile(archive, "x", zipfile.ZIP_DEFLATED) as bundle:
     for path in sorted(directory.iterdir()):

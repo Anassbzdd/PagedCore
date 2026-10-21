@@ -1,0 +1,185 @@
+{
+  "task": "P3.6",
+  "reviewed_on": "2026-10-20",
+  "decision": "accepted; required real-T4 tolerance-envelope evidence is retained",
+  "review_scope": "Local archive/source review of retained Linux/T4 execution; no new local GPU execution",
+  "artifact": {
+    "path": "results/validation/2026-10-20-t4/pagedcore-p36-t4.zip",
+    "sha256": "4dad1cab232f55d6fd34527f3065aa2027f92ae69529af919fcdefdacbeaebac",
+    "internal_directory": "t4-20261020T231757Z",
+    "crc_check": "passed"
+  },
+  "measurement_captured_at_utc": "2026-10-20T23:21:47.648989+00:00",
+  "provenance": {
+    "git_revision": "88be0f8704004dc947a782d95c1ea45aac7a3acb",
+    "recorded_working_tree_clean": true,
+    "source_hashes_checked_against_git_blobs": 29,
+    "source_mismatches": [],
+    "uv_lock_sha256": "46700b60b0a8d492fc673aec8a0e12c27ae43124dd8e194f8c754dbd6ca7ea48",
+    "collector_sha256_from_command_log_matches_git_blob": "d360766011492f2326adeede898ede0ff81c27f58732e3694ec1ccb73b7a6854",
+    "fixture_sha256_from_reference_metadata_matches_git_blob": "e7b266732b235e44b3b43fff949e8bbb6e40ecb12e661cb482aa660144b355d6"
+  },
+  "environment": {
+    "cuda": {
+      "available": true,
+      "runtime": "12.6"
+    },
+    "dependencies": {
+      "torch": "2.7.1+cu126",
+      "transformers": "4.52.4"
+    },
+    "driver": "580.178.04",
+    "gpu": [
+      {
+        "memory_mib": 15360,
+        "name": "Tesla T4"
+      },
+      {
+        "memory_mib": 15360,
+        "name": "Tesla T4"
+      }
+    ],
+    "model": {
+      "id": "TinyLlama/TinyLlama-1.1B-Chat-v1.0",
+      "revision": "af8e934848d8dd00074cc2cd8a40a9b05c3b011e"
+    },
+    "package": {
+      "name": "pagedcore",
+      "version": "0.1.0"
+    },
+    "python": "3.11.15",
+    "settings": {
+      "bind_address": "localhost",
+      "block_tokens": 16,
+      "context_limit": 2048,
+      "default_max_new_tokens": 128,
+      "kv_pool_mib": 8192,
+      "log_level": "INFO",
+      "max_active_sequences": 32,
+      "max_new_tokens": 256,
+      "max_pending_requests": 64,
+      "min_new_tokens": 1,
+      "model_id": "TinyLlama/TinyLlama-1.1B-Chat-v1.0",
+      "model_revision": "af8e934848d8dd00074cc2cd8a40a9b05c3b011e",
+      "token_queue_size": 32,
+      "workspace_margin_mib": 1024
+    }
+  },
+  "target": {
+    "platform": "Linux-6.18.48+-x86_64-with-glibc2.39",
+    "device": "cuda:0",
+    "cuda_visible_devices": "0",
+    "cuda_visible_device_count": 1,
+    "name": "Tesla T4",
+    "uuid": "e4bda957-699c-ef6f-a88e-47a002c75dee",
+    "compute_capability": "7.5",
+    "memory_bytes": 15636037632,
+    "torch": "2.7.1+cu126",
+    "cuda_runtime": "12.6",
+    "cublas_workspace_config": ":4096:8"
+  },
+  "setup": "Command log retains fresh .venv creation, uv sync --frozen --extra cuda --extra dev, and dependency freeze explicitly from .venv/bin/python",
+  "validation": {
+    "cpu": {
+      "collected": 411,
+      "deselected": 10,
+      "selected": 401,
+      "executed": 401,
+      "passed": 401,
+      "failed": 0,
+      "skipped": 0
+    },
+    "gpu": {
+      "collected": 411,
+      "deselected": 401,
+      "selected": 10,
+      "executed": 10,
+      "passed": 10,
+      "failed": 0,
+      "skipped": 0,
+      "executed_cases": [
+        "test_pinned_decoder_layer_parity_on_t4",
+        "test_pinned_decoder_greedy_parity_on_t4[boundary_15]",
+        "test_pinned_decoder_greedy_parity_on_t4[boundary_16]",
+        "test_pinned_decoder_greedy_parity_on_t4[boundary_17]",
+        "test_pinned_decoder_greedy_parity_on_t4[multiple_full_blocks]",
+        "test_pinned_decoder_greedy_parity_on_t4[maximum_output]",
+        "test_pinned_decoder_greedy_parity_on_t4[eos_enabled]",
+        "test_public_reference_capture_and_repeatability_on_t4",
+        "test_pinned_checkpoint_loads_and_runs_one_reference_forward_pass",
+        "test_seed_everything_repeats_cuda_random_streams"
+      ]
+    },
+    "format": "36 files already formatted",
+    "ruff": "passed",
+    "strict_mypy": "passed, 11 source files"
+  },
+  "measurements": {
+    "reference": "Independent eager Hugging Face pinned TinyLlama; PagedCore owns its forward/cache path",
+    "dtype": "float16",
+    "seed": 0,
+    "case_prompt_lengths": {
+      "bos_only": 1,
+      "boundary_15": 15,
+      "boundary_16": 16,
+      "boundary_17": 17,
+      "maximum_output": 49
+    },
+    "layers": 22,
+    "forward_steps_per_case": [
+      "prefill",
+      "decode.1",
+      "decode.2",
+      "decode.3"
+    ],
+    "tensors_per_forward": 113,
+    "tensor_records_per_case": 452,
+    "total_tensor_records": 2260,
+    "intermediate_tensor_records": 2240,
+    "logit_tensor_records": 20,
+    "max_absolute_error": {
+      "intermediates": 0.0,
+      "logits": 0.0
+    },
+    "max_tolerance_ratio": {
+      "intermediates": 0.0,
+      "logits": 0.0
+    },
+    "tolerances": {
+      "intermediates": {
+        "atol": 0.002,
+        "rtol": 0.002
+      },
+      "logits": {
+        "atol": 0.005,
+        "rtol": 0.005
+      }
+    },
+    "math_settings": {
+      "matmul_allow_tf32": false,
+      "fp16_reduced_precision_reduction": false,
+      "bf16_reduced_precision_reduction": false,
+      "cudnn_allow_tf32": false,
+      "cudnn_benchmark": false,
+      "cudnn_deterministic": true,
+      "float32_matmul_precision": "highest",
+      "deterministic_algorithms": true,
+      "deterministic_warn_only": false,
+      "cublas_workspace_config": ":4096:8"
+    },
+    "coverage_and_finite_zero_values_checked": true,
+    "maxima_recomputed_from_every_record": true,
+    "json_matches_junit_property": true,
+    "json_environment_provenance_target_match_bundle": true
+  },
+  "interpretation": [
+    "Every retained FP16 tensor/logit snapshot matches the independent HF reference for the tested forwards.",
+    "The displayed bos_only locations are the first entries in a tie: all 2260 measurements have zero discrepancy.",
+    "comparison.json remains HF-vs-HF repeatability only; tolerance-envelope.json and the layer-parity GPU test establish the owned-decoder measurements."
+  ],
+  "limitations": [
+    "Observed on this T4/software/math configuration at the recorded revision; no universal or cross-platform equality claim.",
+    "Envelope covers five prompt lengths and three reference-token cached decode steps, not every input or every step of the separate 256-token greedy test.",
+    "P3.7 dense maximum-path workspace is unmeasured; Phase 3 remains open before allocator work."
+  ]
+}
