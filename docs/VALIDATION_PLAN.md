@@ -214,7 +214,7 @@ or OOMs. Values below are recomputed from raw bytes (`MiB = bytes / 2**20`):
 | Maximum output | 2,979.72 | 847.54 |
 
 Retain this no-pool record unchanged as the dense baseline. The 1,128.05 MiB
-increment exceeds the provisional 1,024 MiB margin, but includes dense KV,
+increment exceeds the former provisional 1,024 MiB margin, but includes dense KV,
 inputs, logits and temporary tensors. It neither isolates workspace demand nor
 certifies the configured 8,192 MiB pool or 32-active workload.
 
@@ -235,7 +235,18 @@ all raw samples/peaks and the observed margin comparison. A passed measurement
 means the recorded paths ran successfully; `capacity_validated` remains `false`,
 including when the dense increment fits the margin. The collector requires both
 complete reports and verifies reservation/configuration agreement before packaging.
-No actual T4 execution of this new mode has been retained yet.
+The [October 22 T4 archive](../results/validation/2026-10-22-pool-memory-cpu/pagedcore-pool-memory-t4.zip)
+and [review](../results/validation/2026-10-22-pool-memory-cpu/t4-review.json)
+retain this probe at clean source `6c6eec8`: all nine pressure runs passed,
+with zero retries/OOMs, 464 passing CPU tests and ten passing GPU tests without
+skips. The exact 8,192 MiB reservation stayed live through all 27 run boundaries.
+Peak allocated memory reached 11,420.22 MiB and allocator reserved memory
+11,626 MiB; the minimum boundary free sample was 3,128.81 MiB.
+The dense increment remained 1,128.05 MiB. Repeated cleanup allocations stabilized
+after one first-use 32 MiB increase. This is single-sequence reservation evidence.
+The run used the former 1,024 MiB margin; the revised provisional default is
+1,536 MiB and requires a new T4 run before claiming validation of that setting.
+Actual paged/batched/service capacity gates remain pending.
 
 Run the full attributable procedure on T4 from a clean committed checkout:
 

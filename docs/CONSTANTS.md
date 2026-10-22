@@ -29,7 +29,7 @@ selects PyTorch `2.7.1+cpu` for non-GPU development.
 | Constant                   |    Value | Contract                                                         |
 | -------------------------- | -------: | ---------------------------------------------------------------- |
 | `kv_pool_mib`              |   `8192` | Initial FP16 KV-pool size on the T4 target                       |
-| `workspace_margin_mib`     |   `1024` | Memory kept free for model work and temporary tensors            |
+| `workspace_margin_mib`     |   `1536` | Memory kept free for model work and temporary tensors            |
 | `max_request_body_bytes`   | `262144` | Limit for the complete HTTP request body; reject with `413`      |
 | `shutdown_timeout_seconds` |     `10` | Cooperative shutdown waiting budget; escalate through process termination |
 | `max_preprocessing_requests` |      `4` | Concurrent body-read/validation/tokenization slots; reject overflow |
@@ -39,8 +39,12 @@ The future pool startup check uses actual free device memory after model loading
 
 The [retained dense baseline review](../results/validation/2026-10-21-t4/review.json)
 records 3,228.22 MiB peak allocated and a 1,128.05 MiB increment, including dense
-KV, inputs, logits and temporaries. Keep `8192`/`1024` provisional; the margin is a
+KV, inputs, logits and temporaries. Keep `8192`/`1536` provisional; the margin is a
 startup headroom threshold, not a separately allocated buffer or a runtime cap.
+The [October 22 T4 review](../results/validation/2026-10-22-pool-memory-cpu/t4-review.json)
+records successful dense paths with an 8,192 MiB reservation and the former
+1,024 MiB margin. The revised 1,536 MiB margin is 407.95 MiB above the observed
+increment; it requires a new T4 run and is not final capacity certification.
 The [combined memory protocol](VALIDATION_PLAN.md#combined-memory-validation-before-capacity-freeze)
 requires pool-pressure, actual paged/batched and final service evidence before
 freezing the pool, margin and active limit.
@@ -74,7 +78,7 @@ environment values with the `PAGEDCORE_` prefix. It does not load a `.env` file.
 | Maximum requested output | `PAGEDCORE_MAX_NEW_TOKENS` | `256` |
 | Tokens per KV block | `PAGEDCORE_BLOCK_TOKENS` | `16` |
 | KV pool size in MiB | `PAGEDCORE_KV_POOL_MIB` | `8192` |
-| Workspace margin in MiB | `PAGEDCORE_WORKSPACE_MARGIN_MIB` | `1024` |
+| Workspace margin in MiB | `PAGEDCORE_WORKSPACE_MARGIN_MIB` | `1536` |
 | Pending request limit | `PAGEDCORE_MAX_PENDING_REQUESTS` | `64` |
 | Active sequence limit | `PAGEDCORE_MAX_ACTIVE_SEQUENCES` | `32` |
 | Per-request token queue size | `PAGEDCORE_TOKEN_QUEUE_SIZE` | `32` |

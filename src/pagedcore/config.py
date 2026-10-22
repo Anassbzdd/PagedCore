@@ -31,7 +31,7 @@ class PagedCoreConfig:
     max_new_tokens: int = 256
     block_tokens: int = 16
     kv_pool_mib: int = 8192
-    workspace_margin_mib: int = 1024
+    workspace_margin_mib: int = 1536
     max_pending_requests: int = 64
     max_active_sequences: int = 32
     token_queue_size: int = 32
@@ -119,7 +119,7 @@ def load_config(environment: Mapping[str, str] | None = None) -> PagedCoreConfig
         max_new_tokens=_read_int(source, "PAGEDCORE_MAX_NEW_TOKENS", 256),
         block_tokens=_read_int(source, "PAGEDCORE_BLOCK_TOKENS", 16),
         kv_pool_mib=_read_int(source, "PAGEDCORE_KV_POOL_MIB", 8192),
-        workspace_margin_mib=_read_int(source, "PAGEDCORE_WORKSPACE_MARGIN_MIB", 1024),
+        workspace_margin_mib=_read_int(source, "PAGEDCORE_WORKSPACE_MARGIN_MIB", 1536),
         max_pending_requests=_read_int(source, "PAGEDCORE_MAX_PENDING_REQUESTS", 64),
         max_active_sequences=_read_int(source, "PAGEDCORE_MAX_ACTIVE_SEQUENCES", 32),
         token_queue_size=_read_int(source, "PAGEDCORE_TOKEN_QUEUE_SIZE", 32),

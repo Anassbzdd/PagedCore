@@ -27,7 +27,7 @@ def test_load_config_uses_documented_defaults() -> None:
         max_new_tokens=256,
         block_tokens=16,
         kv_pool_mib=8192,
-        workspace_margin_mib=1024,
+        workspace_margin_mib=1536,
         max_pending_requests=64,
         max_active_sequences=32,
         token_queue_size=32,
@@ -40,7 +40,7 @@ def test_load_config_applies_operational_overrides() -> None:
     config = load_config(
         {
             "PAGEDCORE_KV_POOL_MIB": "7168",
-            "PAGEDCORE_WORKSPACE_MARGIN_MIB": "1536",
+            "PAGEDCORE_WORKSPACE_MARGIN_MIB": "2048",
             "PAGEDCORE_MAX_PENDING_REQUESTS": "12",
             "PAGEDCORE_MAX_ACTIVE_SEQUENCES": "6",
             "PAGEDCORE_TOKEN_QUEUE_SIZE": "8",
@@ -50,7 +50,7 @@ def test_load_config_applies_operational_overrides() -> None:
     )
 
     assert config.kv_pool_mib == 7168
-    assert config.workspace_margin_mib == 1536
+    assert config.workspace_margin_mib == 2048
     assert config.max_pending_requests == 12
     assert config.max_active_sequences == 6
     assert config.token_queue_size == 8

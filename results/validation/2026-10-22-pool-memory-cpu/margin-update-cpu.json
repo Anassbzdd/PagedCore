@@ -1,0 +1,38 @@
+{
+  "observed_on": "2026-10-22",
+  "scope": "CPU validation of provisional workspace-margin default update",
+  "workspace_margin_mib": 1536,
+  "cpu_passed": 464,
+  "gpu_deselected": 10,
+  "gpu_executed_locally": false,
+  "source_sha256": {
+    "src/pagedcore/config.py": "9ad8fceb558dafef9274d6c83bfe9bcf904a97e3df3fa2cec4d08551e490dccb",
+    "tests/unit/test_config.py": "9625b57c40407152e93bf39d4d518a2b735212efadd2a48804ed0abdefff9996"
+  },
+  "commands": [
+    {
+      "command": ".venv/Scripts/python.exe -m ruff check .",
+      "exit_code": 0
+    },
+    {
+      "command": ".venv/Scripts/python.exe -m ruff format --check --no-cache .",
+      "exit_code": 0
+    },
+    {
+      "command": ".venv/Scripts/python.exe -m mypy --strict src/pagedcore scripts/measure_dense_workspace.py",
+      "exit_code": 0
+    },
+    {
+      "command": ".venv/Scripts/python.exe -m pytest -m \"not gpu and not benchmark\" -ra --junitxml=results/local/margin-update-cpu-tests.xml",
+      "exit_code": 0
+    },
+    {
+      "command": "git diff --check",
+      "exit_code": 0
+    }
+  ],
+  "limitations": [
+    "Revised 1536 MiB margin needs a new T4 run.",
+    "Paged/batched/service capacity remains unvalidated."
+  ]
+}

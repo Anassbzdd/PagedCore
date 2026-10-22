@@ -14,8 +14,12 @@ The [baseline review](../results/validation/2026-10-21-t4/review.json) retains t
 raw-byte arithmetic and attribution checks. The recorder/collector now also
 implement a separate pool-pressure mode: hold one unused FP16 reservation of the
 configured pool size through all dense paths, check startup headroom and preserve
-raw failures. This measurement tooling is CPU-tested only; its T4 run remains
-pending. The reservation does not implement the runtime paged pool. Memory
+raw failures. The [October 22 T4 archive](../results/validation/2026-10-22-pool-memory-cpu/pagedcore-pool-memory-t4.zip)
+and [review](../results/validation/2026-10-22-pool-memory-cpu/t4-review.json) at
+clean source `6c6eec8` record all nine pressure runs passing with zero retries/OOMs,
+464 passing CPU tests and ten passing GPU tests without skips. Local review
+verified archive integrity, all 30 source hashes, lock and recorder/collector hashes.
+The reservation does not implement the runtime paged pool. Memory
 defaults stay provisional under the
 [combined memory protocol](VALIDATION_PLAN.md#combined-memory-validation-before-capacity-freeze).
 
@@ -58,11 +62,17 @@ blockers; the October 18 layer test supplies the narrower owned-forward evidence
 | Dense greedy generation | Local-cache argmax loop, exact selected/emitted IDs, EOS/length precedence and request bounds | Synthetic stopping checks plus all six public T4 fixture cases passed in the October 19 archive |
 | Tolerance measurements | Per-tensor FP32 error analysis, combined-tolerance ratios, maxima and environment-attributed T4 export | October 20 T4 evidence at `88be0f8`: all 2,260 FP16 snapshot comparisons have zero discrepancy; limited to the recorded forwards/environment |
 | Dense workspace recording | Separate owned-model process, maximum prefill/output paths, raw samples/peaks, allocator diagnostics and collector acceptance checks | October 21 T4 archive at `e9e21fb`: all nine runs passed; dense single-sequence evidence only, safe pool capacity remains unproven |
-| Pool-pressure recording | Separate process holds configured pool bytes during dense paths; headroom checks, margin observation and independent artifacts | CPU synthetic tests only; T4 execution pending; no paged/batched/service capacity certification |
+| Pool-pressure recording | Separate process holds configured pool bytes during dense paths; headroom checks, margin observation and independent artifacts | October 22 T4 archive at `6c6eec8`: nine runs passed with an 8,192 MiB reservation and former 1,024 MiB margin; no paged/batched/service capacity certification |
 | Paging/worker/service | Not implemented | No paged reads, cleanup, concurrency, HTTP or GPU memory-safety proof |
 | Container/benchmark/report | Not implemented | No container, serving performance or comparative measurement proof |
 
 ## Current CPU evidence
+
+The [margin-update CPU report](../results/validation/2026-10-22-pool-memory-cpu/margin-update-cpu.json)
+and [JUnit result](../results/validation/2026-10-22-pool-memory-cpu/margin-update-cpu-tests.xml)
+record 464 passing tests and ten GPU cases deselected on 2026-10-22 after the
+default changed to 1,536 MiB. Ruff, formatting, strict mypy over runtime and
+recorder, and `git diff --check` passed. This is CPU-only validation.
 
 On 2026-10-22, the [pool-pressure CPU report](../results/validation/2026-10-22-pool-memory-cpu/report.json)
 and [JUnit result](../results/validation/2026-10-22-pool-memory-cpu/cpu-tests.xml)
@@ -70,9 +80,15 @@ record 464 passing CPU tests with ten GPU cases deselected. Ruff, formatting,
 strict mypy over runtime and recorder, Bash syntax and `git diff --check` passed.
 Tests verify reservation lifetime, unchanged baseline artifacts, headroom/OOM/retry
 failures, and rejection of incomplete or mismatched pool-pressure evidence.
-The local Torch build remains `2.7.1+cpu`; pool-pressure and later integrated
-paged/batched/service T4 measurements remain pending. The 8,192 MiB pool and
-1,024 MiB margin are unchanged and provisional.
+The local Torch build remains `2.7.1+cpu`. The separate October 22 T4 archive
+now supplies pool-pressure evidence for the former 1,024 MiB margin. The default
+margin is raised to a provisional 1,536 MiB because the observed dense increment
+is 1,128.05 MiB, exceeding the former threshold by 104.05 MiB. Peak allocated
+memory with the reservation was 11,420.22 MiB; allocator reserved memory reached
+11,626 MiB, with 3,128.81 MiB free at the lowest sampled boundary. These are
+not device-wide transient peaks. The 8,192 MiB pool remains unchanged.
+The revised margin needs a new T4 run; integrated paged/batched/service memory
+measurements also remain pending. No new GPU execution occurred locally.
 
 The [workspace tests](../tests/unit/test_dense_workspace.py) and
 [collector tests](../tests/unit/test_t4_evidence.py) exercise boundary workloads,

@@ -1,0 +1,82 @@
+{
+  "reviewed_on": "2026-10-22",
+  "archive": "pagedcore-pool-memory-t4.zip",
+  "archive_sha256": "ce7e083afdb66d49f9ad98224e2fa32cae45b5c23f4f5667ab6cea7f8a7c05f0",
+  "tested_git_revision": "6c6eec8b00bb00b00dcf8c363fa8d37cbb72edaa",
+  "archive_crc_passed": true,
+  "verified_source_hash_count": 30,
+  "lock_and_collector_recorder_hashes_verified": true,
+  "passing_test_counts": {
+    "cpu-tests.xml": 464,
+    "gpu-tests.xml": 10
+  },
+  "tolerance_measurements": 2260,
+  "all_observed_discrepancies_zero": true,
+  "memory_bytes": {
+    "dense-workspace.json": [
+      {
+        "case": "maximum_prefill",
+        "peak_allocated_bytes": 3385036800,
+        "max_increment_bytes": 1182842880,
+        "peak_reserved_bytes": 3600809984,
+        "minimum_boundary_free_bytes": 11870732288
+      },
+      {
+        "case": "maximum_prompt",
+        "peak_allocated_bytes": 3385001984,
+        "max_increment_bytes": 1149253632,
+        "peak_reserved_bytes": 3600809984,
+        "minimum_boundary_free_bytes": 11870732288
+      },
+      {
+        "case": "maximum_output",
+        "peak_allocated_bytes": 3124459520,
+        "max_increment_bytes": 888711168,
+        "peak_reserved_bytes": 3388997632,
+        "minimum_boundary_free_bytes": 12082544640
+      }
+    ],
+    "pool-dense-workspace.json": [
+      {
+        "case": "maximum_prefill",
+        "peak_allocated_bytes": 11974971392,
+        "max_increment_bytes": 1182842880,
+        "peak_reserved_bytes": 12190744576,
+        "minimum_boundary_free_bytes": 3280797696
+      },
+      {
+        "case": "maximum_prompt",
+        "peak_allocated_bytes": 11974936576,
+        "max_increment_bytes": 1149253632,
+        "peak_reserved_bytes": 12190744576,
+        "minimum_boundary_free_bytes": 3280797696
+      },
+      {
+        "case": "maximum_output",
+        "peak_allocated_bytes": 11714394112,
+        "max_increment_bytes": 888711168,
+        "peak_reserved_bytes": 11978932224,
+        "minimum_boundary_free_bytes": 3492610048
+      }
+    ]
+  },
+  "measured_pool_pressure": {
+    "kind": "unused_fp16_reservation",
+    "requested_bytes": 8589934592,
+    "tensor_bytes": 8589934592,
+    "workspace_margin_bytes": 1073741824,
+    "configured_max_active_sequences": 32,
+    "measured_active_sequences": 1,
+    "capacity_validated": false,
+    "max_dense_increment_bytes": 1182842880,
+    "dense_increment_exceeds_margin": true
+  },
+  "new_default_workspace_margin_mib": 1536,
+  "new_default_t4_validated": false,
+  "limitations": [
+    "Review of retained T4 evidence; no new local GPU execution.",
+    "Tested source used the former 1024 MiB margin; repeat T4 measurements for the revised default.",
+    "Unused reservation and single sequence do not prove paged/batched/service capacity.",
+    "Boundary device-free samples can miss transients; allocator peaks exclude outside allocations."
+  ]
+}

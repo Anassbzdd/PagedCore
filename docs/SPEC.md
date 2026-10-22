@@ -29,7 +29,7 @@ This document defines required MVP behavior. It does not describe everything as 
 | Preprocessing capacity | Four concurrent body-read/validation/tokenization operations by default; no waiting queue |
 | Stream write deadline | 10 seconds per transport write by default; a stalled writer is a slow consumer |
 | Request body        | 262,144 bytes maximum (`max_request_body_bytes`)                                          |
-| KV pool             | 8,192 MiB initial pool; 1,024 MiB workspace margin                                        |
+| KV pool             | 8,192 MiB initial pool; 1,536 MiB provisional workspace margin                                        |
 | Deployment          | Linux with CUDA; Docker image and direct install; bind to `localhost` by default           |
 | Graceful shutdown   | 10-second graceful waiting budget; process termination is the escalation path             |
 
