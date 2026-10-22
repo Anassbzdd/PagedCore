@@ -1,4 +1,5 @@
 import json
+import weakref
 from contextlib import nullcontext
 from pathlib import Path
 from types import SimpleNamespace
@@ -8,6 +9,7 @@ import pytest
 import torch
 from scripts import measure_dense_workspace as workspace
 
+from pagedcore.config import PagedCoreConfig
 from pagedcore.decoder import GreedyResult
 from pagedcore.engine_types import FinishReason
 
@@ -16,7 +18,9 @@ pytestmark = pytest.mark.unit
 
 @pytest.fixture
 def recorder(monkeypatch: pytest.MonkeyPatch) -> SimpleNamespace:
-    state = SimpleNamespace(allocated=100, reserved=128, peak=100, retries=0, ooms=0, events=[])
+    state = SimpleNamespace(
+        allocated=100, reserved=128, peak=100, retries=0, ooms=0, events=[], total=16 * 2**20
+    )
     monkeypatch.setattr(torch.cuda, "is_available", lambda: True)
     monkeypatch.setattr(torch.cuda, "device_count", lambda: 1)
     monkeypatch.setattr(
@@ -31,7 +35,9 @@ def recorder(monkeypatch: pytest.MonkeyPatch) -> SimpleNamespace:
     monkeypatch.setattr(
         torch.cuda, "synchronize", lambda device: state.events.append("synchronize")
     )
-    monkeypatch.setattr(torch.cuda, "mem_get_info", lambda device: (4096 - state.reserved, 4096))
+    monkeypatch.setattr(
+        torch.cuda, "mem_get_info", lambda device: (state.total - state.reserved, state.total)
+    )
     monkeypatch.setattr(torch.cuda, "memory_allocated", lambda device: state.allocated)
     monkeypatch.setattr(torch.cuda, "memory_reserved", lambda device: state.reserved)
     monkeypatch.setattr(torch.cuda, "max_memory_allocated", lambda device: state.peak)
@@ -47,7 +53,7 @@ def recorder(monkeypatch: pytest.MonkeyPatch) -> SimpleNamespace:
 
     def empty_cache() -> None:
         state.events.append("empty_cache")
-        state.reserved = 128
+        state.reserved = state.allocated + 28
 
     def reset(device: int) -> None:
         state.events.append("reset")
@@ -66,7 +72,7 @@ def recorder(monkeypatch: pytest.MonkeyPatch) -> SimpleNamespace:
     def path(weights: object, prompt: int, output: int) -> dict[str, Any]:
         state.events.append((prompt, output))
         baseline = state.allocated
-        state.allocated, state.reserved, state.peak = baseline + 50, 1024, baseline + 800
+        state.allocated, state.reserved, state.peak = baseline + 50, baseline + 924, baseline + 800
         sample = workspace._sample("after_forward")
         state.allocated = baseline
         return sample
@@ -106,13 +112,110 @@ def test_recorder_retains_transient_peaks_boundaries_and_warm_reuse(
         assert run["peak_allocated_above_baseline_bytes"] == 800
         assert cleanup["allocated_bytes"] == before["allocated_bytes"]
         assert cleanup["reserved_bytes"] > cleanup["allocated_bytes"]
-        assert after["device_free_bytes"] == 3072
+        assert after["device_free_bytes"] == recorder.total - 1024
         assert before["monotonic_ns"] <= after["monotonic_ns"] <= cleanup["monotonic_ns"]
     diagnostics = (tmp_path / "dense-workspace-allocator.txt").read_text()
     assert "maximum_prefill repetition=0" in diagnostics
     assert "maximum_output repetition=2" in diagnostics
     assert "synthetic allocator diagnostics" in diagnostics
     assert "greedy_ids" not in json.dumps(report)
+
+
+@pytest.fixture
+def pool_recorder(recorder: SimpleNamespace, monkeypatch: pytest.MonkeyPatch) -> SimpleNamespace:
+    monkeypatch.setattr(
+        workspace,
+        "load_config",
+        lambda: PagedCoreConfig(kv_pool_mib=1, workspace_margin_mib=1, max_active_sequences=4),
+    )
+    empty = torch.empty
+
+    def allocate(count: int, *, dtype: torch.dtype, device: str) -> torch.Tensor:
+        assert dtype is torch.float16 and device == "cuda:0"
+        tensor = empty(count, dtype=dtype)
+        size = tensor.numel() * tensor.element_size()
+        recorder.events.append(("pool", size))
+        recorder.allocated += size
+        recorder.reserved += size
+        recorder.pool_reference = weakref.ref(tensor)
+
+        def release() -> None:
+            recorder.allocated -= size
+
+        weakref.finalize(tensor, release)
+        return tensor
+
+    monkeypatch.setattr(torch, "empty", allocate)
+    return recorder
+
+
+def test_pool_pressure_holds_one_allocation_and_preserves_dense_baseline(
+    pool_recorder: SimpleNamespace, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    workspace.measure(tmp_path)
+    baseline = (tmp_path / "dense-workspace.json").read_bytes()
+
+    def path(weights: object, prompt: int, output: int) -> dict[str, Any]:
+        assert pool_recorder.pool_reference() is not None
+        sample = pool_recorder.path(weights, prompt, output)
+        # An increment above the margin is an observation, not isolated scratch demand.
+        sample["peak_allocated_bytes"] += 2**20
+        return sample
+
+    monkeypatch.setattr(workspace, "_run_path", path)
+    workspace.measure(tmp_path, with_pool=True)
+    report = json.loads((tmp_path / "pool-dense-workspace.json").read_text())
+    assert (tmp_path / "dense-workspace.json").read_bytes() == baseline
+    assert report["status"] == "passed"
+    assert report["mode"] == "pool_pressure"
+    assert report["pool_pressure"] == {
+        "kind": "unused_fp16_reservation",
+        "requested_bytes": 2**20,
+        "tensor_bytes": 2**20,
+        "workspace_margin_bytes": 2**20,
+        "configured_max_active_sequences": 4,
+        "measured_active_sequences": 1,
+        "capacity_validated": False,
+        "max_dense_increment_bytes": 2**20 + 800,
+        "dense_increment_exceeds_margin": True,
+    }
+    assert pool_recorder.events.count(("pool", 2**20)) == 1
+    assert report["pool_baseline"]["allocated_bytes"] == 100 + 2**20
+    assert all(run["samples"][0]["allocated_bytes"] == 100 + 2**20 for run in report["runs"])
+    assert pool_recorder.pool_reference() is None
+    assert pool_recorder.allocated == 100
+    assert "pool_baseline" in (tmp_path / "pool-dense-workspace-allocator.txt").read_text()
+
+
+@pytest.mark.parametrize("failure", ["headroom", "oom", "post_allocation_headroom", "retry"])
+def test_pool_pressure_retains_failure_and_never_starts_forwards(
+    pool_recorder: SimpleNamespace, monkeypatch: pytest.MonkeyPatch, tmp_path: Path, failure: str
+) -> None:
+    allocate = torch.empty
+
+    def fail_allocation(*args: Any, **kwargs: Any) -> torch.Tensor:
+        if failure == "oom":
+            raise torch.OutOfMemoryError("synthetic pool exhaustion")
+        tensor = allocate(*args, **kwargs)
+        if failure == "retry":
+            pool_recorder.retries += 1
+        else:
+            pool_recorder.reserved = pool_recorder.total - 2**20 + 1
+        return tensor
+
+    if failure == "headroom":
+        pool_recorder.total = 2 * 2**20
+    else:
+        monkeypatch.setattr(torch, "empty", fail_allocation)
+    with pytest.raises(RuntimeError):
+        workspace.measure(tmp_path, with_pool=True)
+    report = json.loads((tmp_path / "pool-dense-workspace.json").read_text())
+    assert report["status"] == "failed"
+    assert report["runs"] == []
+    assert report["pool_pressure"]["capacity_validated"] is False
+    assert report["failure"]["type"] == ("OutOfMemoryError" if failure == "oom" else "RuntimeError")
+    assert report["failure_sample"]["phase"] == "failure"
+    assert not (tmp_path / "dense-workspace.json").exists()
 
 
 @pytest.mark.parametrize("failure", ["oom", "retained_tensor", "retry"])

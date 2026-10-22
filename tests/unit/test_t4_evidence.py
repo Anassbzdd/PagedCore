@@ -3,6 +3,7 @@ import subprocess
 import sys
 import xml.etree.ElementTree as ET
 import zipfile
+from copy import deepcopy
 from pathlib import Path
 
 import pytest
@@ -14,8 +15,12 @@ ROOT = Path(__file__).parents[2]
 
 @pytest.mark.parametrize("include_measurements", [False, True])
 @pytest.mark.parametrize("workspace_state", ["missing", "partial", "missing_samples", "complete"])
+@pytest.mark.parametrize(
+    "pool_state",
+    ["complete", "missing", "partial", "unreserved", "mismatch", "false_certification"],
+)
 def test_collector_requires_and_retains_owned_decoder_measurements(
-    tmp_path: Path, include_measurements: bool, workspace_state: str
+    tmp_path: Path, include_measurements: bool, workspace_state: str, pool_state: str
 ) -> None:
     directory = tmp_path / "evidence"
     directory.mkdir()
@@ -62,7 +67,13 @@ def test_collector_requires_and_retains_owned_decoder_measurements(
             value=json.dumps(measurements),
         )
     ET.ElementTree(root).write(directory / "gpu-tests.xml")
-    manifest = {"environment": {"python": "synthetic"}, "provenance": {"git_revision": "test"}}
+    manifest = {
+        "environment": {
+            "python": "synthetic",
+            "settings": {"kv_pool_mib": 1, "workspace_margin_mib": 1, "max_active_sequences": 4},
+        },
+        "provenance": {"git_revision": "test"},
+    }
     target = {"name": "synthetic device", "uuid": "test-device"}
     (directory / "manifest.json").write_text(json.dumps(manifest))
     (directory / "target.json").write_text(json.dumps(target))
@@ -86,6 +97,46 @@ def test_collector_requires_and_retains_owned_decoder_measurements(
         for repetition in range(3)
     ]
     workspace = {"status": "passed", "runs": workspace_runs}
+    pool_workspace = deepcopy(workspace)
+    pool_workspace.update(
+        mode="pool_pressure",
+        model_baseline={
+            "allocated_bytes": 100,
+            "device_free_bytes": 16 * 2**20,
+            "allocator_stats": {"num_alloc_retries": 0, "num_ooms": 0},
+        },
+        pool_baseline={
+            "allocated_bytes": 100 + 2**20,
+            "device_free_bytes": 15 * 2**20,
+            "allocator_stats": {"num_alloc_retries": 0, "num_ooms": 0},
+        },
+        pool_pressure={
+            "kind": "unused_fp16_reservation",
+            "requested_bytes": 2**20,
+            "tensor_bytes": 2**20,
+            "workspace_margin_bytes": 2**20,
+            "configured_max_active_sequences": 4,
+            "measured_active_sequences": 1,
+            "capacity_validated": False,
+            "max_dense_increment_bytes": 800,
+            "dense_increment_exceeds_margin": False,
+        },
+    )
+    for run in pool_workspace["runs"]:
+        run["peak_allocated_above_baseline_bytes"] = 800
+        for sample in run["samples"]:
+            sample["allocated_bytes"] = 100 + 2**20
+    if pool_state == "partial":
+        pool_workspace["runs"].pop()
+    elif pool_state == "unreserved":
+        pool_workspace["runs"][0]["samples"][0]["allocated_bytes"] = 100
+    elif pool_state == "mismatch":
+        pool_workspace["pool_pressure"]["requested_bytes"] = 2 * 2**20
+    elif pool_state == "false_certification":
+        pool_workspace["pool_pressure"]["capacity_validated"] = True
+    if pool_state != "missing":
+        (directory / "pool-dense-workspace.json").write_text(json.dumps(pool_workspace))
+        (directory / "pool-dense-workspace-allocator.txt").write_text("synthetic pool diagnostics")
     if workspace_state == "partial":
         workspace_runs.pop()
     elif workspace_state == "missing_samples":
@@ -115,6 +166,11 @@ def test_collector_requires_and_retains_owned_decoder_measurements(
         assert "dense workspace" in result.stderr
         assert not archive.exists()
         return
+    if pool_state != "complete":
+        assert result.returncode != 0
+        assert "pool" in result.stderr
+        assert not archive.exists()
+        return
     assert result.returncode == 0, result.stderr
     report = json.loads((directory / "tolerance-envelope.json").read_text())
     assert report["cases"] == measurements["cases"]
@@ -130,3 +186,8 @@ def test_collector_requires_and_retains_owned_decoder_measurements(
         assert json.loads(bundle.read("evidence/tolerance-envelope.json")) == report
         assert json.loads(bundle.read("evidence/dense-workspace.json")) == workspace
         assert bundle.read("evidence/dense-workspace-allocator.txt") == b"synthetic diagnostics"
+        assert json.loads(bundle.read("evidence/pool-dense-workspace.json")) == pool_workspace
+        assert (
+            bundle.read("evidence/pool-dense-workspace-allocator.txt")
+            == b"synthetic pool diagnostics"
+        )

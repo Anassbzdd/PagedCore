@@ -1,34 +1,44 @@
 # Implementation and evidence status
 
-Snapshot: 2026-10-21. Dense-workspace recording is implemented in the
-[recorder](../scripts/measure_dense_workspace.py) and [T4 collector](../scripts/validate_t4.sh).
-It measures maximum direct prefill, maximum generation prompt and maximum output
-paths in a separate owned-model process, retaining raw allocator/device samples,
-peaks, repeated-run cleanup checks and allocator diagnostics. Actual T4 workspace
-measurements remain pending; no GPU execution occurred locally.
+Snapshot: 2026-10-22. Phase 3 dense decoder parity is complete. The retained
+[October 21 T4 archive](../results/validation/2026-10-21-t4/pagedcore-p37-t4.zip)
+at clean source `e9e21fb` supplies `dense-workspace.json` and allocator diagnostics
+for maximum direct prefill, maximum generation prompt and maximum output paths.
+All nine runs passed with 27 boundary samples, stable repeated-run cleanup and
+zero allocation retries or OOMs. The archive also retains 419 passing CPU tests,
+ten passing GPU cases without skips, and passing formatting/Ruff/strict mypy.
+Local review verified ZIP integrity, all 30 recorded source hashes and the lock
+against that revision. No new GPU execution occurred locally.
 
-The [P3.6 T4 archive](../results/validation/2026-10-20-t4/pagedcore-p36-t4.zip)
-and [review](../results/validation/2026-10-20-t4/review.json) establish the measured
-tolerance envelope at clean source `88be0f8`. All 2,260 tensor/logit records have
-zero absolute error and zero tolerance ratio for the five tested prompt lengths,
-prefill and three cached decode steps. All 401 CPU tests and ten GPU cases passed
-without skips, as did formatting/Ruff/strict mypy. Source, lock, collector and
-fixture hashes were verified against that revision; environment and measurements
-agree across the JSON, manifest, selected-device record and GPU JUnit report.
-This was a local review of the retained T4 run; no new GPU execution occurred here.
-P3.6 is complete. P3.7 dense workspace remains unmeasured.
+The [baseline review](../results/validation/2026-10-21-t4/review.json) retains the
+raw-byte arithmetic and attribution checks. The recorder/collector now also
+implement a separate pool-pressure mode: hold one unused FP16 reservation of the
+configured pool size through all dense paths, check startup headroom and preserve
+raw failures. This measurement tooling is CPU-tested only; its T4 run remains
+pending. The reservation does not implement the runtime paged pool. Memory
+defaults stay provisional under the
+[combined memory protocol](VALIDATION_PLAN.md#combined-memory-validation-before-capacity-freeze).
+
+The [October 20 T4 archive](../results/validation/2026-10-20-t4/pagedcore-p36-t4.zip)
+and [review](../results/validation/2026-10-20-t4/review.json) retain the separate
+owned-decoder tolerance envelope: all 2,260 tensor/logit records have zero observed
+discrepancy at clean source `88be0f8`. Dense single-sequence measurements close
+P3.7; they do not establish safe pool capacity, paged/batched workspace or service
+memory safety. Phase 4 GPU paged KV cache is the next implementation gate.
 
 Earlier CPU reports and T4 observations remain below as historical evidence.
 
 ## Current gate
 
-Phase 3 dense decoder parity is the current runtime gate. P3.1 weight loading is
+Phase 4 GPU paged KV cache is the next implementation gate. P3.1 weight loading is
 implemented and CPU-validated, as are P3.2 dense components and P3.3 contiguous
 prefill/decode. P3.4 layer/logit comparisons passed on the pinned checkpoint/T4
 in the retained October 18 archive. P3.5 greedy selection/stopping passed all public
 T4 fixtures in the October 19 and October 20 archives. P3.6 tolerance measurements
-passed on T4 in the October 20 archive. P3.7 dense maximum-path workspace is the
-remaining Phase 3 gate before allocator work. The October 13
+passed on T4 in the October 20 archive. P3.7 dense maximum-path workspace is
+recorded in the October 21 archive, satisfying the Phase 3 exit gate. Phase 4
+pool allocation, block ownership and capacity accounting remain unimplemented.
+The October 13
 archive and successful hosted CI below supersede the earlier Phase 2 evidence
 blockers; the October 18 layer test supplies the narrower owned-forward evidence.
 
@@ -40,18 +50,29 @@ blockers; the October 18 layer test supplies the narrower owned-forward evidence
 | Public fixtures | Exact pinned IDs at 15/16/17 and 32/49 tokens, whitespace, mixed lengths, maximum output and synthetic EOS cases | Current cached-tokenizer integration check executed and passed; these inputs do not prove batching or an owned generation loop |
 | HF oracle | Frozen eager FP16 capture/comparison, strict deterministic policy, snapshots and safe artifact persistence | October 13 T4 reference repeatability for `boundary_15`, with setup and selected-device attribution |
 | Internal timing analyzer | Separate generation/delivery durations, TTFT/ITL/TPOT and missing zero/one-token values | 18 synthetic CPU cases; early transport closure is valid, impossible generation ordering and invalid timestamps still fail |
-| CPU CI | Push/PR workflow for frozen setup, format/lint/types/tests and distribution smoke | Hosted run `38445324328` succeeded for prior source; current owned decoder has local CPU evidence only |
+| CPU CI | Push/PR workflow for frozen setup, format/lint/types/tests and distribution smoke | Hosted run `38445324328` succeeded for prior source; owned-decoder CPU/static checks also passed in the October 21 T4 collection, without a newer hosted CI claim |
 | Owned weight loading | Pinned safetensors/config validation, complete typed mapping, BF16-to-FP16 conversion, untied embedding/head | 69 synthetic contract cases, real pinned CPU load and owned-loader T4 execution in the October 18 layer test |
 | Dense decoder components | RMSNorm, Q/K/V, absolute RoPE, GQA mapping/dense attention, output projection, SwiGLU, final norm/LM head | Synthetic CPU components plus the pinned-checkpoint T4 layer comparisons at fixed tolerances |
-| Contiguous prefill/decode | Single-sequence owned forward, residuals, per-layer FP16 cache and one-token append at absolute positions | CPU orchestration and October 18/19 T4 prefill/three-step decode comparisons; no workspace proof |
+| Contiguous prefill/decode | Single-sequence owned forward, residuals, per-layer FP16 cache and one-token append at absolute positions | CPU orchestration and October 18/19 T4 prefill/three-step decode comparisons; October 21 dense workspace below, no paged/batched proof |
 | Layer comparisons | All-layer snapshots during prefill and three reference-token cached decode steps, with fixed intermediate/logit tolerances and named failures | Two-layer random-weight CPU evidence and passing 22-layer pinned-checkpoint T4 test at 1/15/16/17/49 prompt tokens |
 | Dense greedy generation | Local-cache argmax loop, exact selected/emitted IDs, EOS/length precedence and request bounds | Synthetic stopping checks plus all six public T4 fixture cases passed in the October 19 archive |
 | Tolerance measurements | Per-tensor FP32 error analysis, combined-tolerance ratios, maxima and environment-attributed T4 export | October 20 T4 evidence at `88be0f8`: all 2,260 FP16 snapshot comparisons have zero discrepancy; limited to the recorded forwards/environment |
-| Dense workspace recording | Separate owned-model process, maximum prefill/output paths, raw samples/peaks, allocator diagnostics and collector acceptance checks | CPU recording/export checks only; actual T4 memory and safe pool capacity remain unmeasured |
+| Dense workspace recording | Separate owned-model process, maximum prefill/output paths, raw samples/peaks, allocator diagnostics and collector acceptance checks | October 21 T4 archive at `e9e21fb`: all nine runs passed; dense single-sequence evidence only, safe pool capacity remains unproven |
+| Pool-pressure recording | Separate process holds configured pool bytes during dense paths; headroom checks, margin observation and independent artifacts | CPU synthetic tests only; T4 execution pending; no paged/batched/service capacity certification |
 | Paging/worker/service | Not implemented | No paged reads, cleanup, concurrency, HTTP or GPU memory-safety proof |
 | Container/benchmark/report | Not implemented | No container, serving performance or comparative measurement proof |
 
 ## Current CPU evidence
+
+On 2026-10-22, the [pool-pressure CPU report](../results/validation/2026-10-22-pool-memory-cpu/report.json)
+and [JUnit result](../results/validation/2026-10-22-pool-memory-cpu/cpu-tests.xml)
+record 464 passing CPU tests with ten GPU cases deselected. Ruff, formatting,
+strict mypy over runtime and recorder, Bash syntax and `git diff --check` passed.
+Tests verify reservation lifetime, unchanged baseline artifacts, headroom/OOM/retry
+failures, and rejection of incomplete or mismatched pool-pressure evidence.
+The local Torch build remains `2.7.1+cpu`; pool-pressure and later integrated
+paged/batched/service T4 measurements remain pending. The 8,192 MiB pool and
+1,024 MiB margin are unchanged and provisional.
 
 The [workspace tests](../tests/unit/test_dense_workspace.py) and
 [collector tests](../tests/unit/test_t4_evidence.py) exercise boundary workloads,
@@ -61,7 +82,8 @@ retention and rejection of incomplete evidence with synthetic CPU fakes. On
 with ten GPU cases deselected; Ruff, formatting and strict mypy passed, including
 strict typing of the recorder. The [local JUnit report](../results/local/p3.7-cpu-tests.xml)
 retains the CPU result. The local PyTorch build is `2.7.1+cpu` with no CUDA device;
-these checks cannot close P3.7.
+these checks alone cannot close P3.7. The October 21 T4 archive now supplies its
+required hardware-backed measurements.
 
 The [tolerance-measurement report](../results/validation/2026-10-19-p3.6-cpu.json)
 records local commands and source identity. Synthetic tests check measurement
@@ -131,6 +153,24 @@ and [marker selection](../results/validation/2026-10-12-p2.5-cpu.json).
 Their old formatting failures do not describe the corrected current checkout.
 
 ## Saved T4 observations
+
+The [October 21 archive](../results/validation/2026-10-21-t4/pagedcore-p37-t4.zip)
+at clean source `e9e21fb` retains `dense-workspace.json`,
+`dense-workspace-allocator.txt`, command logs, environment/source attribution,
+419 passing CPU tests and ten passing GPU cases without skips. The workspace
+recorder used a separate owned-model process with no HF model or paged KV pool
+on one CUDA-visible Tesla T4, UUID `16f24614-365b-0803-b469-e55e0ebaebdc`.
+Each path ran three times: 2,048-token direct prefill, 2,047+1 generation and
+1,792+256 generation with EOS ignored. All nine runs passed, all 27 samples
+record zero allocation retries/OOMs, and cleanup live allocation is stable on
+repeats. Peak allocated memory reached 3,228.22 MiB; the largest increment above
+the corresponding pre-forward baseline was 1,128.05 MiB.
+
+That increment includes input, dense KV, logits and temporary tensors; it is not
+an isolated scratch-space bound. The initial 1,024 MiB workspace margin is below
+this observed increment, and neither that margin nor the 8,192 MiB pool default
+is certified safe by this run. Pool plus paged/batched measurements and final
+maximum-context/32-active service checks remain separate P5.7/P8.6 gates.
 
 The [October 20 archive](../results/validation/2026-10-20-t4/pagedcore-p36-t4.zip)
 at clean source `88be0f8` retains 401 passing CPU tests, ten passing GPU cases and
@@ -211,12 +251,14 @@ status was rechecked through GitHub's API on October 14. That run predates the
 weight loader, dense components and contiguous decoder; no hosted run was triggered
 for these local edits.
 
-## Remaining decoder gate
+## Next implementation gate
 
-Run the updated collector and retain reviewed `dense-workspace.json` and allocator
-diagnostics from an actual T4 before advancing to the allocator; P3.7 remains open.
-P3.6 tolerance-envelope evidence is retained and reviewed. Continue dense
-parity -> allocator -> paged attention -> lifecycle -> HTTP.
+Phase 3 is complete with the reviewed T4 parity, tolerance-envelope and dense
+workspace evidence above. Begin Phase 4 GPU paged KV cache: allocate the FP16 pool
+once, implement block ownership and capacity accounting, and prove allocator
+invariants with boundary and property tests. Phase 4 remains unsatisfied; later
+paged/batched and service memory gates also remain open. Continue allocator ->
+paged attention -> lifecycle -> HTTP.
 
 All final MVP acceptance rows in [TRACEABILITY.md](TRACEABILITY.md) remain pending.
 The [public validation plan](VALIDATION_PLAN.md#build-order) defines gate ownership;

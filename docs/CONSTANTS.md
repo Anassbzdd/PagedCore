@@ -37,6 +37,14 @@ selects PyTorch `2.7.1+cpu` for non-GPU development.
 
 The future pool startup check uses actual free device memory after model loading. Validate dense workspace during parity, pool/batched workspace during paged decode, and final worst-case service memory before official measurements. The defaults do not certify any GPU memory margin. A graceful waiting budget does not promise safe interruption of a running thread or CUDA operation.
 
+The [retained dense baseline review](../results/validation/2026-10-21-t4/review.json)
+records 3,228.22 MiB peak allocated and a 1,128.05 MiB increment, including dense
+KV, inputs, logits and temporaries. Keep `8192`/`1024` provisional; the margin is a
+startup headroom threshold, not a separately allocated buffer or a runtime cap.
+The [combined memory protocol](VALIDATION_PLAN.md#combined-memory-validation-before-capacity-freeze)
+requires pool-pressure, actual paged/batched and final service evidence before
+freezing the pool, margin and active limit.
+
 ## Reproducibility controls
 
 `pagedcore.determinism.seed_everything(seed)` seeds Python's `random` generator and

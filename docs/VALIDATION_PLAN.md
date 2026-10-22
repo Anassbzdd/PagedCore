@@ -200,8 +200,70 @@ samples can miss transients, and allocator peaks exclude allocations outside
 PyTorch's allocator. These measurements do not certify a pool size from nominal
 VRAM or close the later paged/batched/service memory gates. Review actual T4 results
 before revising capacity or the provisional workspace margin. CPU tests validate
-recording and evidence rejection only; P3.7 remains open until reviewed T4 evidence
-is retained.
+recording and evidence rejection only.
+
+The retained [October 21 T4 archive](../results/validation/2026-10-21-t4/pagedcore-p37-t4.zip)
+and [baseline review](../results/validation/2026-10-21-t4/review.json) close P3.7
+at source `e9e21fb`. All nine runs and 27 samples passed, with no allocator retries
+or OOMs. Values below are recomputed from raw bytes (`MiB = bytes / 2**20`):
+
+| Path | Peak allocated MiB | Largest increment above its run baseline MiB |
+|---|---:|---:|
+| Maximum direct prefill | 3,228.22 | 1,128.05 |
+| Maximum generation prompt | 3,228.19 | 1,096.01 |
+| Maximum output | 2,979.72 | 847.54 |
+
+Retain this no-pool record unchanged as the dense baseline. The 1,128.05 MiB
+increment exceeds the provisional 1,024 MiB margin, but includes dense KV,
+inputs, logits and temporary tensors. It neither isolates workspace demand nor
+certifies the configured 8,192 MiB pool or 32-active workload.
+
+### Combined memory validation before capacity freeze
+
+The collector now also runs the recorder with `--with-pool` in a fresh process.
+After loading weights, this mode checks actual free device bytes against
+`kv_pool_mib + workspace_margin_mib`, allocates and zeroes one unused FP16 tensor
+of exactly the configured pool bytes, then holds it through the same nine dense
+runs. It checks headroom again after allocation, rejects allocator retries/OOMs,
+and retains failures with partial samples. This is an early memory-pressure probe;
+the tensor does not implement the paged pool, ownership or block-table attention.
+The existing dense cache remains present, so its increment still includes dense KV.
+
+The separate `pool-dense-workspace.json` and `pool-dense-workspace-allocator.txt`
+record reservation bytes, model/pool baselines, configured margin and active limit,
+all raw samples/peaks and the observed margin comparison. A passed measurement
+means the recorded paths ran successfully; `capacity_validated` remains `false`,
+including when the dense increment fits the margin. The collector requires both
+complete reports and verifies reservation/configuration agreement before packaging.
+No actual T4 execution of this new mode has been retained yet.
+
+Run the full attributable procedure on T4 from a clean committed checkout:
+
+```bash
+bash scripts/validate_t4.sh
+```
+
+For a focused pressure probe in an already configured CUDA environment, choose a
+new output directory; it does not replace the collector's complete evidence bundle:
+
+```bash
+export CUBLAS_WORKSPACE_CONFIG=:4096:8
+uv run --no-sync python scripts/measure_dense_workspace.py results/local/pool-pressure --with-pool
+```
+
+Capacity remains provisional until all of these have reviewed T4 evidence:
+
+1. The pool-reservation probe above, alongside the retained no-pool baseline.
+2. **P5.7:** the implemented paged pool with maximum active batched decode, and
+   long prefill while other sequences retain KV; include page-write/copy overlap
+   and ordered page reuse. Measure actual paged code, not an unused reservation.
+3. **P8.6/P8.7:** the actual maximum-context/32-active service workload and mixed
+   cancellation/fault/soak runs, with allocator/device memory and cleanup checks.
+
+If those runs expose OOMs, retries or unsafe headroom, raise the margin or lower
+the pool/active limit and repeat the affected tests before freezing capacity.
+Changing the pool, margin or active limit invalidates the relevant capacity result.
+These later gates remain pending while paging, batching and service are absent.
 
 ### Oracle harness
 
@@ -232,7 +294,7 @@ bash scripts/validate_t4.sh
 
 This [collector](../scripts/validate_t4.sh) logs frozen environment setup, source/lock
 identity, physical GPU inventory and the single selected CUDA-visible T4. It runs
-the CPU checks, separate dense-workspace recording, all ten required GPU cases,
+the CPU checks, separate no-pool and pool-pressure dense recording, all ten required GPU cases,
 reference capture and comparison, then
 creates a ZIP under `results/local/`. A failed run leaves its raw directory intact;
 no successful bundle is accepted with missing or skipped required GPU tests. Review

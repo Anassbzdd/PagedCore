@@ -1,4 +1,4 @@
-"""Record single-sequence dense memory in a process without an HF model or KV pool."""
+"""Record dense memory, optionally holding an unused FP16 pool-sized reservation."""
 
 from __future__ import annotations
 
@@ -15,6 +15,7 @@ from typing import Any, TextIO
 import torch
 
 from pagedcore.cli import collect_environment_diagnostics, collect_validation_provenance
+from pagedcore.config import load_config
 from pagedcore.decoder import generate, prefill
 from pagedcore.determinism import seed_everything
 from pagedcore.engine_types import FinishReason
@@ -70,7 +71,7 @@ def _run_path(weights: TinyLlamaWeights, prompt_tokens: int, output_tokens: int)
     return _sample("after_forward")
 
 
-def measure(directory: Path) -> None:
+def measure(directory: Path, *, with_pool: bool = False) -> None:
     if not torch.cuda.is_available() or torch.cuda.device_count() != 1:
         raise RuntimeError("dense workspace measurement requires exactly one CUDA-visible T4")
     properties = torch.cuda.get_device_properties(0)
@@ -83,9 +84,15 @@ def measure(directory: Path) -> None:
         raise RuntimeError("dense workspace peaks require the native CUDA caching allocator")
 
     directory.mkdir(parents=True, exist_ok=True)
-    report_path = directory / "dense-workspace.json"
+    stem = "pool-dense-workspace" if with_pool else "dense-workspace"
+    report_path = directory / f"{stem}.json"
     report: dict[str, Any] = {
-        "scope": "Single-sequence owned dense decoder; no HF model or paged KV pool",
+        "scope": (
+            "Single-sequence owned dense decoder with an unused FP16 pool-sized reservation"
+            if with_pool
+            else "Single-sequence owned dense decoder; no HF model or paged KV pool"
+        ),
+        "mode": "pool_pressure" if with_pool else "dense_baseline",
         "status": "running",
         "captured_at_utc": datetime.now(UTC).isoformat(),
         "recorder_sha256": hashlib.sha256(Path(__file__).read_bytes()).hexdigest(),
@@ -113,7 +120,8 @@ def measure(directory: Path) -> None:
             "Device-free samples are synchronized boundaries, not device-wide transient peaks.",
             "Allocator peaks exclude allocations made outside PyTorch's CUDA allocator.",
             "Peak increments include input, KV cache and logits as well as temporary tensors.",
-            "No pool, batched decode or service memory safety is established by this record.",
+            "Pool reservations, when enabled, do not exercise paged KV writes, reads or ownership.",
+            "No paged/batched decode or service memory safety is established by this record.",
         ],
     }
     # Refuse stale evidence; subsequent writes preserve progress if a later path fails.
@@ -125,7 +133,7 @@ def measure(directory: Path) -> None:
             json.dumps(report, indent=2, allow_nan=False) + "\n", encoding="utf-8"
         )
 
-    with (directory / "dense-workspace-allocator.txt").open("x", encoding="utf-8") as diagnostics:
+    with (directory / f"{stem}-allocator.txt").open("x", encoding="utf-8") as diagnostics:
         try:
             seed_everything(0)
             with reference_math() as math_settings:
@@ -138,6 +146,39 @@ def measure(directory: Path) -> None:
                 report["model_baseline"] = _sample("model_baseline")
                 _diagnostics(diagnostics, "model_baseline")
                 save()
+                if with_pool:
+                    config = load_config()
+                    pool_bytes = config.kv_pool_mib * 2**20
+                    margin_bytes = config.workspace_margin_mib * 2**20
+                    report["pool_pressure"] = {
+                        "kind": "unused_fp16_reservation",
+                        "requested_bytes": pool_bytes,
+                        "tensor_bytes": 0,
+                        "workspace_margin_bytes": margin_bytes,
+                        "configured_max_active_sequences": config.max_active_sequences,
+                        "measured_active_sequences": 1,
+                        "capacity_validated": False,
+                    }
+                    save()
+                    if report["model_baseline"]["device_free_bytes"] < pool_bytes + margin_bytes:
+                        raise RuntimeError("pool reservation and workspace margin do not fit")
+                    # Hold the full configured bytes, including any future whole-block remainder.
+                    pool = torch.empty(pool_bytes // 2, dtype=torch.float16, device="cuda:0")
+                    pool.zero_()
+                    report["pool_pressure"]["tensor_bytes"] = pool.numel() * pool.element_size()
+                    report["pool_baseline"] = _sample("pool_baseline")
+                    _diagnostics(diagnostics, "pool_baseline")
+                    save()
+                    if report["pool_baseline"]["device_free_bytes"] < margin_bytes:
+                        raise RuntimeError("pool allocation leaves less than the workspace margin")
+                    for counter in ("num_alloc_retries", "num_ooms"):
+                        if (
+                            report["pool_baseline"]["allocator_stats"][counter]
+                            != report["model_baseline"]["allocator_stats"][counter]
+                        ):
+                            raise RuntimeError(
+                                f"pool allocation increased allocator counter {counter}"
+                            )
                 for name, prompt_tokens, output_tokens in CASES:
                     # Only the first run of each path releases cached allocator segments.
                     torch.cuda.empty_cache()
@@ -186,6 +227,16 @@ def measure(directory: Path) -> None:
                                 )
                         run["status"] = "passed"
                         save()
+                if with_pool:
+                    peak_increment = max(
+                        run["peak_allocated_above_baseline_bytes"] for run in report["runs"]
+                    )
+                    report["pool_pressure"]["max_dense_increment_bytes"] = peak_increment
+                    report["pool_pressure"]["dense_increment_exceeds_margin"] = (
+                        peak_increment > margin_bytes
+                    )
+                    # The reservation stays live through all forwards and their cleanup samples.
+                    del pool
             report["status"] = "passed"
             save()
         except Exception as error:
@@ -205,4 +256,6 @@ def measure(directory: Path) -> None:
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("directory", type=Path)
-    measure(parser.parse_args().directory)
+    parser.add_argument("--with-pool", action="store_true", help="hold the configured pool bytes")
+    arguments = parser.parse_args()
+    measure(arguments.directory, with_pool=arguments.with_pool)

@@ -66,6 +66,7 @@ uv run --no-sync python -m mypy --strict src/pagedcore
 uv run --no-sync python -m pytest -m "not gpu and not benchmark" -ra \
     --junitxml="$evidence_dir/cpu-tests.xml"
 uv run --no-sync python scripts/measure_dense_workspace.py "$evidence_dir"
+uv run --no-sync python scripts/measure_dense_workspace.py "$evidence_dir" --with-pool
 uv run --no-sync python -m pytest -m gpu -v -ra \
     --junitxml="$evidence_dir/gpu-tests.xml"
 uv run --no-sync pagedcore oracle --case boundary_15 \
@@ -132,11 +133,6 @@ envelope["maxima"] = maxima
 (directory / "tolerance-envelope.json").write_text(
     json.dumps(envelope, indent=2, allow_nan=False) + "\n", encoding="utf-8"
 )
-workspace_path = directory / "dense-workspace.json"
-diagnostics_path = directory / "dense-workspace-allocator.txt"
-if not workspace_path.is_file() or not diagnostics_path.is_file() or not diagnostics_path.stat().st_size:
-    raise SystemExit("GPU evidence rejected: dense workspace measurements and diagnostics are required.")
-workspace = json.loads(workspace_path.read_text())
 expected_runs = {
     (name, prompt, output, repetition)
     for name, prompt, output in (
@@ -146,23 +142,66 @@ expected_runs = {
     )
     for repetition in range(3)
 }
-runs = workspace.get("runs", [])
-if (
-    workspace.get("status") != "passed"
-    or len(runs) != len(expected_runs)
-    or {
-        (run["case"], run["prompt_tokens"], run["output_tokens"], run["repetition"])
-        for run in runs
-    } != expected_runs
-    or any(
-        run.get("status") != "passed"
-        or [sample["phase"] for sample in run["samples"]]
-        != ["before_forward", "after_forward", "after_cleanup"]
-        or any(not sample.get("allocator_stats") for sample in run["samples"])
-        for run in runs
-    )
-):
-    raise SystemExit("GPU evidence rejected: all dense workspace paths and raw samples must pass.")
+for stem in ("dense-workspace", "pool-dense-workspace"):
+    workspace_path = directory / f"{stem}.json"
+    diagnostics_path = directory / f"{stem}-allocator.txt"
+    if (
+        not workspace_path.is_file()
+        or not diagnostics_path.is_file()
+        or not diagnostics_path.stat().st_size
+    ):
+        raise SystemExit(f"GPU evidence rejected: {stem} dense workspace data/diagnostics required.")
+    workspace = json.loads(workspace_path.read_text())
+    runs = workspace.get("runs", [])
+    if (
+        workspace.get("status") != "passed"
+        or len(runs) != len(expected_runs)
+        or {
+            (run["case"], run["prompt_tokens"], run["output_tokens"], run["repetition"])
+            for run in runs
+        } != expected_runs
+        or any(
+            run.get("status") != "passed"
+            or [sample["phase"] for sample in run["samples"]]
+            != ["before_forward", "after_forward", "after_cleanup"]
+            or any(not sample.get("allocator_stats") for sample in run["samples"])
+            for run in runs
+        )
+    ):
+        raise SystemExit(f"GPU evidence rejected: all {stem} dense workspace paths/samples must pass.")
+    if stem != "pool-dense-workspace":
+        continue
+    pool = workspace.get("pool_pressure", {})
+    settings = manifest["environment"]["settings"]
+    pool_bytes = settings["kv_pool_mib"] * 2**20
+    margin_bytes = settings["workspace_margin_mib"] * 2**20
+    model = workspace["model_baseline"]
+    baseline = workspace["pool_baseline"]
+    increment = max(run["peak_allocated_above_baseline_bytes"] for run in runs)
+    if (
+        workspace.get("mode") != "pool_pressure"
+        or pool.get("kind") != "unused_fp16_reservation"
+        or pool.get("requested_bytes") != pool_bytes
+        or pool.get("tensor_bytes") != pool_bytes
+        or pool.get("workspace_margin_bytes") != margin_bytes
+        or pool.get("configured_max_active_sequences") != settings["max_active_sequences"]
+        or pool.get("measured_active_sequences") != 1
+        or pool.get("capacity_validated") is not False
+        or pool.get("max_dense_increment_bytes") != increment
+        or pool.get("dense_increment_exceeds_margin") is not (increment > margin_bytes)
+        or model["device_free_bytes"] < pool_bytes + margin_bytes
+        or baseline["device_free_bytes"] < margin_bytes
+        or baseline["allocated_bytes"] < model["allocated_bytes"] + pool_bytes
+        or any(
+            sample["allocated_bytes"] < model["allocated_bytes"] + pool_bytes
+            for run in runs for sample in run["samples"]
+        )
+        or any(
+            baseline["allocator_stats"][counter] != model["allocator_stats"][counter]
+            for counter in ("num_alloc_retries", "num_ooms")
+        )
+    ):
+        raise SystemExit("GPU evidence rejected: pool pressure reservation/settings do not match.")
 archive = directory.with_suffix(".zip")
 with zipfile.ZipFile(archive, "x", zipfile.ZIP_DEFLATED) as bundle:
     for path in sorted(directory.iterdir()):

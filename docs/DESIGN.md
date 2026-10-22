@@ -185,6 +185,14 @@ Preemption may improve this later, but do not add it to the MVP unless it is exp
 
 When the server starts, load the model first and check how much GPU memory is still free. Create the KV-cache pool using the configured `kv_pool_mib` (initial default: `8192` MiB), while keeping the `workspace_margin_mib` default of `1024` MiB free for temporary model work. These are configuration defaults, not proof that the final margin is safe.
 Measure dense prefill workspace before adding the pool, paged/batched workspace when decode is implemented, and the final end-to-end maximum-context/32-active workload. Increase the margin or reduce capacity if unsafe, documenting changes before freezing benchmarks. If `max_active_sequences` changes, repeat relevant memory tests.
+The retained dense baseline peaks 1,128.05 MiB above its run baseline, including
+dense KV, inputs and logits. This exceeds the provisional margin without isolating
+workspace demand. Before the real pool is available, the recorder's unused
+pool-sized reservation can probe combined dense memory pressure. It does not
+replace integrated pool/prefill, paged/batched or service measurements. Keep the
+8,192 MiB pool, 1,024 MiB margin and 32-active capacity provisional until the
+[combined memory gates](VALIDATION_PLAN.md#combined-memory-validation-before-capacity-freeze)
+pass on T4; repeat affected measurements after changing any of these values.
 If the requested KV pool does not fit in GPU memory, stop startup and show a clear error.
 
 The initial pool has 23,831 whole blocks. Thirty-two maximum-context reservations use at most 4,096 blocks (1,408 MiB), so the default active-slot limit binds before KV credits. The two fixed workloads reserve about 110 and 440 MiB at 32 active requests. These are derived upper bounds, not GPU measurements. Keep defaults provisional until measured; use separately labeled smaller-pool/mixed-length experiments to exercise credit pressure and FIFO blocking.

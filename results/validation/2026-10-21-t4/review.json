@@ -1,0 +1,70 @@
+{
+  "reviewed_at_utc": "2026-10-22T08:48:16.145612+00:00",
+  "archive": "pagedcore-p37-t4.zip",
+  "archive_sha256": "741c9cc4859f55b5b610a4c82e2a098a3464010f29b0e85deffc8c074c7c28e1",
+  "implementation_revision": "e9e21fb6e3c543f29ca883bf49c1c0d0bb1abc15",
+  "scope": "Reviewed retained single-sequence dense T4 baseline; no new GPU execution",
+  "checks": {
+    "zip_crc": "passed",
+    "recorded_source_hashes_verified": 30,
+    "lock_recorder_collector_hashes": "passed",
+    "cpu_tests_passed": 419,
+    "gpu_tests_passed": 10,
+    "workspace_runs_passed": 9,
+    "boundary_samples": 27,
+    "allocation_retries": 0,
+    "ooms": 0,
+    "repeat_cleanup": "stable"
+  },
+  "target": {
+    "device": "cuda:0",
+    "name": "Tesla T4",
+    "uuid": "16f24614-365b-0803-b469-e55e0ebaebdc",
+    "compute_capability": "7.5",
+    "memory_bytes": 15636037632,
+    "cuda_visible_devices": "0",
+    "cuda_visible_device_count": 1
+  },
+  "model_baseline_allocated_bytes": 2202193920,
+  "cases": {
+    "maximum_prefill": {
+      "prompt_tokens": 2048,
+      "output_tokens": 0,
+      "peak_allocated_bytes": 3385036800,
+      "max_increment_bytes": 1182842880,
+      "peak_allocated_mib": 3228.22265625,
+      "max_increment_mib": 1128.046875
+    },
+    "maximum_prompt": {
+      "prompt_tokens": 2047,
+      "output_tokens": 1,
+      "peak_allocated_bytes": 3385001984,
+      "max_increment_bytes": 1149253632,
+      "peak_allocated_mib": 3228.189453125,
+      "max_increment_mib": 1096.013671875
+    },
+    "maximum_output": {
+      "prompt_tokens": 1792,
+      "output_tokens": 256,
+      "peak_allocated_bytes": 3124459520,
+      "max_increment_bytes": 888711168,
+      "peak_allocated_mib": 2979.716796875,
+      "max_increment_mib": 847.541015625
+    }
+  },
+  "memory_defaults": {
+    "kv_pool_mib": 8192,
+    "workspace_margin_mib": 1024,
+    "status": "provisional",
+    "capacity_validated": false
+  },
+  "required_before_capacity_freeze": [
+    "T4 pool-reservation plus dense paths",
+    "Integrated paged/batched decode and long prefill with resident sequences",
+    "Maximum-context 32-active service and soak/fault workloads"
+  ],
+  "limitations": [
+    "Dense increment includes inputs, KV, logits and temporaries; not isolated workspace.",
+    "No KV pool was present. No paging, batching or service memory safety is established."
+  ]
+}

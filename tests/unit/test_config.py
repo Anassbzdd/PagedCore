@@ -40,7 +40,7 @@ def test_load_config_applies_operational_overrides() -> None:
     config = load_config(
         {
             "PAGEDCORE_KV_POOL_MIB": "7168",
-            "PAGEDCORE_WORKSPACE_MARGIN_MIB": "1536", 
+            "PAGEDCORE_WORKSPACE_MARGIN_MIB": "1536",
             "PAGEDCORE_MAX_PENDING_REQUESTS": "12",
             "PAGEDCORE_MAX_ACTIVE_SEQUENCES": "6",
             "PAGEDCORE_TOKEN_QUEUE_SIZE": "8",
