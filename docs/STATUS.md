@@ -1,6 +1,6 @@
 # Implementation and evidence status
 
-Snapshot: 2026-10-22. Phase 3 dense decoder parity is complete. The retained
+Snapshot: 2026-10-23. Phase 3 dense decoder parity is complete. The retained
 [October 21 T4 archive](../results/validation/2026-10-21-t4/pagedcore-p37-t4.zip)
 at clean source `e9e21fb` supplies `dense-workspace.json` and allocator diagnostics
 for maximum direct prefill, maximum generation prompt and maximum output paths.
@@ -40,8 +40,14 @@ prefill/decode. P3.4 layer/logit comparisons passed on the pinned checkpoint/T4
 in the retained October 18 archive. P3.5 greedy selection/stopping passed all public
 T4 fixtures in the October 19 and October 20 archives. P3.6 tolerance measurements
 passed on T4 in the October 20 archive. P3.7 dense maximum-path workspace is
-recorded in the October 21 archive, satisfying the Phase 3 exit gate. Phase 4
-pool allocation, block ownership and capacity accounting remain unimplemented.
+recorded in the October 21 archive, satisfying the Phase 3 exit gate. The
+[pool allocation function](../src/pagedcore/kv_cache.py) now constructs one FP16
+tensor with shape `[22, 2, num_blocks, 16, 4, 64]`, rounds the configured byte
+budget down to whole blocks and checks workspace headroom before and after
+allocation. The caller retains this storage for the worker's lifetime; worker
+startup integration, block ownership and capacity accounting remain unimplemented.
+Pool construction is CPU-tested with mocked CUDA calls; actual T4 execution is
+pending, so P4.1 and the Phase 4 exit gate remain unsatisfied.
 The October 13
 archive and successful hosted CI below supersede the earlier Phase 2 evidence
 blockers; the October 18 layer test supplies the narrower owned-forward evidence.
@@ -63,10 +69,25 @@ blockers; the October 18 layer test supplies the narrower owned-forward evidence
 | Tolerance measurements | Per-tensor FP32 error analysis, combined-tolerance ratios, maxima and environment-attributed T4 export | October 20 T4 evidence at `88be0f8`: all 2,260 FP16 snapshot comparisons have zero discrepancy; limited to the recorded forwards/environment |
 | Dense workspace recording | Separate owned-model process, maximum prefill/output paths, raw samples/peaks, allocator diagnostics and collector acceptance checks | October 21 T4 archive at `e9e21fb`: all nine runs passed; dense single-sequence evidence only, safe pool capacity remains unproven |
 | Pool-pressure recording | Separate process holds configured pool bytes during dense paths; headroom checks, margin observation and independent artifacts | October 22 T4 archive at `6c6eec8`: nine runs passed with an 8,192 MiB reservation and former 1,024 MiB margin; no paged/batched/service capacity certification |
+| Runtime KV pool construction | One CUDA FP16 tensor, whole-block sizing and pre/post-allocation workspace checks | Nine CPU cases cover sizing, storage reuse and startup failures; the small T4 storage test is added but has not executed |
 | Paging/worker/service | Not implemented | No paged reads, cleanup, concurrency, HTTP or GPU memory-safety proof |
 | Container/benchmark/report | Not implemented | No container, serving performance or comparative measurement proof |
 
 ## Current CPU evidence
+
+On 2026-10-23, all nine [pool unit cases](../tests/unit/test_kv_cache.py) passed.
+They use mocked CUDA memory/allocation calls with CPU or meta storage, including
+the default 8,192 MiB sizing without allocating that much host memory. The full
+CPU suite passed 473 tests with 11 GPU cases deselected; formatting, Ruff,
+strict mypy and `git diff --check` passed. The local-only
+[JUnit report](../results/local/p41-cpu.xml) records this run. Commands used
+`.venv/Scripts/python.exe -m ruff format --check .`, `-m ruff check .`,
+`-m mypy --strict src/pagedcore`, and
+`-m pytest -m "not gpu and not benchmark" -ra --junitxml=results/local/p41-cpu.xml`
+with `HF_HUB_OFFLINE=1` for pytest.
+The [T4 storage test](../tests/gpu/test_kv_pool_cuda.py) was skipped locally because
+Torch is `2.7.1+cpu`. It must execute on an actual T4 to validate CUDA FP16 storage
+and stable backing allocation; CPU results do not establish GPU memory safety.
 
 The [margin-update CPU report](../results/validation/2026-10-22-pool-memory-cpu/margin-update-cpu.json)
 and [JUnit result](../results/validation/2026-10-22-pool-memory-cpu/margin-update-cpu-tests.xml)
@@ -270,10 +291,12 @@ for these local edits.
 ## Next implementation gate
 
 Phase 3 is complete with the reviewed T4 parity, tolerance-envelope and dense
-workspace evidence above. Begin Phase 4 GPU paged KV cache: allocate the FP16 pool
-once, implement block ownership and capacity accounting, and prove allocator
-invariants with boundary and property tests. Phase 4 remains unsatisfied; later
-paged/batched and service memory gates also remain open. Continue allocator ->
+workspace evidence above. Phase 4 GPU paged KV cache remains current: pool
+construction is implemented with CPU evidence and still needs T4 storage
+validation. The next implementation task is P4.2 block allocation and ownership,
+followed by capacity accounting and allocator boundary/property tests. Phase 4
+remains unsatisfied; later paged/batched and service memory gates also remain
+open. Continue allocator ->
 paged attention -> lifecycle -> HTTP.
 
 All final MVP acceptance rows in [TRACEABILITY.md](TRACEABILITY.md) remain pending.
