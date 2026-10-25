@@ -2,9 +2,9 @@ Purpose: Record the architecture, memory rules, and technical decisions that imp
 
 # PagedCore Technical Design
 
-This is the required target architecture. Owned weights, dense math components
-and single-sequence contiguous prefill/decode exist. Paging, the worker and HTTP
-components remain planned.
+This is the required target architecture. Owned weights, dense math components,
+single-sequence contiguous prefill/decode, the KV pool and its basic allocator
+exist. Paged attention, the worker and HTTP components remain planned.
 [STATUS.md](STATUS.md) distinguishes delivered code from evidence and planned work.
 
 ## Core design decision
@@ -166,6 +166,18 @@ The metrics name `occupied_blocks` means the same count as ledger `owned_blocks`
 Releasing a block requires all previously launched accesses to it to be ordered before any reuse. Keep model work on one worker-owned CUDA stream; order reuse on that stream and use completion events where host-side publication or shutdown requires completion. Never return pages for unsynchronized use by another stream. CUDA-context failure makes continued serving unsafe: mark readiness false and terminate rather than issuing speculative recovery operations on the broken context.
 
 The physical pool is allocated at startup. “Allocate on demand” means assigning a free physical block to a sequence when needed, not asking CUDA for a new tensor per token. Track both pool occupancy and live token-slot utilization; they answer different questions.
+
+[`KVAllocator`](../src/pagedcore/kv_cache.py) wraps that pool on its creating
+worker thread and CUDA stream. `create` registers an admitted request without
+assigning blocks. `append` takes rotated K and unrotated V, each
+`[22, tokens, 4, 64]`, assigns free blocks as needed and publishes the new valid
+length after issuing both writes. `block_table` returns an immutable tuple;
+`cached_length` tracks valid positions. `read_block` returns borrowed K/V views
+`[22, valid_slots, 4, 64]` for one logical block, including a partial final block.
+Treat these views as read-only and discard them before changing that request's
+cache. `release_all` returns its physical blocks without freeing the pool; an
+unknown or already released request raises `KeyError`. The allocator does not
+yet implement reservation accounting or integrate with decoder/worker cleanup.
 
 ## Admission without preemption
 
