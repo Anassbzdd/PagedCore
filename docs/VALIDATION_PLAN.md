@@ -37,6 +37,13 @@ A Git revision alone does not identify dirty source. Retain sanitized difference
 
 Test reports must state collected, selected, executed, passed, failed and skipped counts/reasons. A successful process exit with no executed required GPU tests is insufficient. Environment reference verification and CUDA RNG repeatability are separate Phase 1 checks; neither substitutes for future custom-engine parity/lifecycle suites. Label CPU results explicitly and keep failed runs rather than replacing them with only a successful summary.
 
+The [October 26 collector review](validation/2026-10-26-p42-t4-review.md#findings-and-remaining-work)
+found that the required-test guard omits `test_kv_pool_storage_on_t4` and
+`test_kv_allocator_storage_and_stream_ownership_on_t4`. Both executed and passed
+in the October 25 archive. Requiring both names and testing rejection of their
+absence remain open code follow-ups; until fixed, inspect their actual execution
+in each report before accepting pool/allocator evidence.
+
 ## Reference and numerical policy
 
 The P2 oracle explicitly loads the pinned HF model with `attn_implementation="eager"`, FP16 weights and evaluation/inference mode. Record the resolved backend, Torch/CUDA math settings, model configuration and tokenizer settings in reference artifacts. The existing Phase 1 verifier does not explicitly freeze that attention backend; its saved forward pass is only environment smoke evidence.
@@ -244,9 +251,17 @@ Peak allocated memory reached 11,420.22 MiB and allocator reserved memory
 11,626 MiB; the minimum boundary free sample was 3,128.81 MiB.
 The dense increment remained 1,128.05 MiB. Repeated cleanup allocations stabilized
 after one first-use 32 MiB increase. This is single-sequence reservation evidence.
-The run used the former 1,024 MiB margin; the revised provisional default is
-1,536 MiB and requires a new T4 run before claiming validation of that setting.
-Actual paged/batched/service capacity gates remain pending.
+That run used the former 1,024 MiB margin. The [October 25 T4 archive](../results/validation/2026-10-25/pagedcore-p42-t4-20261025T153708Z.zip)
+and [October 26 review](validation/2026-10-26-p42-t4-review.md) at clean source
+`f72f39c` now supply the same nine pressure runs and 27 samples with the revised
+1,536 MiB margin. All passed with zero retries/OOMs, the same 1,128.05 MiB maximum
+dense increment and stable repeated cleanup after a one-time 32 MiB increase.
+Peak allocated/reserved memory was 11,420.22/11,626 MiB; minimum sampled device
+free memory was 3,128.81 MiB. The archive also retains 498 passing CPU tests and
+12 passing GPU tests without skips. This validates the revised setting only for
+the recorded single-sequence reservation probe; `capacity_validated=false`
+remains correct. Integrated model/pool and paged/batched/service capacity gates
+remain pending.
 
 Run the full attributable procedure on T4 from a clean committed checkout:
 
@@ -412,6 +427,14 @@ release-once cleanup, per-request ownership, or CUDA ordering; implement and tes
 those assertions with the concrete allocator/worker in P4/P6.
 
 **CPU unit tests:** Exercise the allocator and scheduler with a fake model. Test empty/full pools, exact block boundaries, strict FIFO and head-of-line behavior, the active-sequence limit, credit release, cancellation at every state, double-free prevention, requests too large for the pool, and recovery after a failed request. Assert invariants after each state transition.
+
+Allocator failure-safety regressions reject impossible reservations without
+acquisition and corrupt/free/foreign/swapped tables before reads, writes or
+release. Inject synchronous copy failures into K and V writes across partial and
+new blocks; verify unchanged valid history, other requests and accounting, then
+strict release-once cleanup and complete reuse. The T4 allocator test also covers
+a synchronous exception after issuing K but before V, followed by retry/reuse;
+this is not evidence of recovery from an actual CUDA device failure.
 
 Use an independent CPU ownership/accounting model for randomized operations. Cover partial failures/rollback and per-request ownership as well as aggregate counts. Test bounded mailbox publication while the event loop is stalled, coalesced wakeups/lost-wakeup races, closed-loop publication, final-token/terminal races and duplicate cleanup signals. Complete lifecycle correctness with the fake model before adding HTTP.
 

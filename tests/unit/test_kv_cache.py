@@ -1,4 +1,5 @@
 from concurrent.futures import ThreadPoolExecutor
+from dataclasses import replace
 from typing import Any
 from unittest.mock import Mock
 
@@ -6,7 +7,7 @@ import pytest
 import torch
 
 from pagedcore.config import PagedCoreConfig
-from pagedcore.engine_types import RequestId
+from pagedcore.engine_types import CapacityCounts, KVReservation, RequestId
 from pagedcore.kv_cache import KVAllocator, allocate_kv_pool
 
 pytestmark = pytest.mark.unit
@@ -156,7 +157,7 @@ def test_allocator_maps_tokens_and_limits_reads_to_valid_slots(
     pool = torch.full((22, 2, 4, 16, 4, 64), torch.nan, dtype=torch.float16)
     allocator = KVAllocator(pool)
     request = RequestId("a")
-    allocator.create(request)
+    allocator.create(KVReservation(request, blocks))
     assert allocator.block_table(request) == ()
     assert allocator.cached_length(request) == 0
     key, value = _kv_values(tokens)
@@ -186,8 +187,8 @@ def test_allocator_appends_across_fragmented_blocks_without_touching_another_req
     pool = torch.full((22, 2, 4, 16, 4, 64), torch.nan, dtype=torch.float16)
     allocator = KVAllocator(pool)
     a, b = RequestId("a"), RequestId("b")
-    allocator.create(a)
-    allocator.create(b)
+    allocator.create(KVReservation(a, 3))
+    allocator.create(KVReservation(b, 1))
     key, value = _kv_values(33)
     other_key, other_value = _kv_values(16, start=2000)
 
@@ -217,8 +218,8 @@ def test_allocator_releases_and_reuses_blocks_without_exposing_stale_slots() -> 
     pointer = pool.untyped_storage().data_ptr()
     allocator = KVAllocator(pool)
     a, b, c = RequestId("a"), RequestId("b"), RequestId("c")
-    allocator.create(a)
-    allocator.create(b)
+    allocator.create(KVReservation(a, 2))
+    allocator.create(KVReservation(b, 1))
     allocator.append(a, *_kv_values(17))
     allocator.append(b, *_kv_values(16, start=2000))
     released = allocator.block_table(a)
@@ -228,7 +229,7 @@ def test_allocator_releases_and_reuses_blocks_without_exposing_stale_slots() -> 
     with pytest.raises(KeyError):
         allocator.release_all(a)
 
-    allocator.create(c)
+    allocator.create(KVReservation(c, 1))
     key, value = _kv_values(1, start=-100)
     allocator.append(c, key, value)
     assert allocator.block_table(c)[0] in released
@@ -243,23 +244,25 @@ def test_allocator_releases_and_reuses_blocks_without_exposing_stale_slots() -> 
 
     allocator.release_all(b)
     allocator.release_all(c)
-    allocator.create(a)
+    allocator.create(KVReservation(a, 3))
     allocator.append(a, *_kv_values(48))
     assert set(allocator.block_table(a)) == {0, 1, 2}
     assert pool.untyped_storage().data_ptr() == pointer
 
 
-def test_allocator_exhaustion_preserves_history_and_allows_filling_a_partial_block() -> None:
+def test_allocator_reservation_limit_preserves_history_and_allows_filling_a_partial_block() -> None:
     allocator = KVAllocator(torch.empty((22, 2, 2, 16, 4, 64), dtype=torch.float16))
     a, b = RequestId("a"), RequestId("b")
-    allocator.create(a)
-    allocator.create(b)
+    allocator.create(KVReservation(a, 1))
+    allocator.create(KVReservation(b, 1))
     key, value = _kv_values(17)
     allocator.append(a, key[:, :15], value[:, :15])
     allocator.append(b, *_kv_values(16))
     table = allocator.block_table(a)
-    with pytest.raises(RuntimeError, match="insufficient free blocks"):
+    before = allocator.capacity()
+    with pytest.raises(RuntimeError, match="exceeds request reservation"):
         allocator.append(a, key[:, 15:], value[:, 15:])
+    assert allocator.capacity() == before
     assert allocator.block_table(a) == table
     assert allocator.cached_length(a) == 15
     torch.testing.assert_close(allocator.read_block(a, 0)[0], key[:, :15], atol=0, rtol=0)
@@ -267,7 +270,11 @@ def test_allocator_exhaustion_preserves_history_and_allows_filling_a_partial_blo
     allocator.append(a, key[:, 15:16], value[:, 15:16])
     assert allocator.block_table(a) == table
     allocator.release_all(b)
-    allocator.append(a, key[:, 16:], value[:, 16:])
+    with pytest.raises(RuntimeError, match="exceeds request reservation"):
+        allocator.append(a, key[:, 16:], value[:, 16:])
+    allocator.release_all(a)
+    allocator.create(KVReservation(a, 2))
+    allocator.append(a, key, value)
     assert allocator.cached_length(a) == 17
     assert len(allocator.block_table(a)) == 2
 
@@ -275,11 +282,14 @@ def test_allocator_exhaustion_preserves_history_and_allows_filling_a_partial_blo
 def test_allocator_releases_an_empty_request_and_rejects_duplicate_registration() -> None:
     allocator = KVAllocator(torch.empty((22, 2, 1, 16, 4, 64), dtype=torch.float16))
     request = RequestId("a")
-    allocator.create(request)
+    allocator.create(KVReservation(request, 1))
+    before = allocator.capacity()
     with pytest.raises(ValueError, match="already has a KV cache"):
-        allocator.create(request)
+        allocator.create(KVReservation(request, 1))
+    assert allocator.capacity() == before
     allocator.release_all(request)
-    allocator.create(request)
+    assert allocator.capacity() == CapacityCounts(1, 1, 0, 0, 0, 0)
+    allocator.create(KVReservation(request, 1))
     allocator.append(request, *_kv_values(16))
     assert allocator.cached_length(request) == 16
 
@@ -288,7 +298,7 @@ def test_allocator_releases_an_empty_request_and_rejects_duplicate_registration(
 def test_allocator_rejects_invalid_logical_blocks(index: Any) -> None:
     allocator = KVAllocator(torch.empty((22, 2, 1, 16, 4, 64), dtype=torch.float16))
     request = RequestId("a")
-    allocator.create(request)
+    allocator.create(KVReservation(request, 1))
     with pytest.raises(ValueError, match="logical block"):
         allocator.read_block(request, 0)
     allocator.append(request, *_kv_values(1))
@@ -300,7 +310,7 @@ def test_allocator_rejects_invalid_logical_blocks(index: Any) -> None:
 def test_allocator_rejects_invalid_appends_before_assigning_blocks(invalid: str) -> None:
     allocator = KVAllocator(torch.empty((22, 2, 1, 16, 4, 64), dtype=torch.float16))
     request = RequestId("a")
-    allocator.create(request)
+    allocator.create(KVReservation(request, 1))
     key, value = _kv_values(1)
     if invalid == "shape":
         value = value[:1]
@@ -320,7 +330,7 @@ def test_allocator_rejects_invalid_appends_before_assigning_blocks(invalid: str)
 def test_allocator_rejects_context_overflow_before_writing() -> None:
     allocator = KVAllocator(torch.empty((22, 2, 128, 16, 4, 64), dtype=torch.float16))
     request = RequestId("a")
-    allocator.create(request)
+    allocator.create(KVReservation(request, 128))
     allocator.append(request, *_kv_values(2048))
     last_key, last_value = (tensor.clone() for tensor in allocator.read_block(request, 127))
     with pytest.raises(ValueError, match="2048"):
@@ -334,11 +344,12 @@ def test_allocator_rejects_context_overflow_before_writing() -> None:
 def test_allocator_rejects_access_from_another_thread() -> None:
     allocator = KVAllocator(torch.empty((22, 2, 1, 16, 4, 64), dtype=torch.float16))
     request = RequestId("a")
-    allocator.create(request)
+    allocator.create(KVReservation(request, 1))
     key, value = _kv_values(1)
     with ThreadPoolExecutor(max_workers=1) as executor:
         for operation, args in (
-            (allocator.create, (RequestId("b"),)),
+            (allocator.create, (KVReservation(RequestId("b"), 1),)),
+            (allocator.capacity, ()),
             (allocator.append, (request, key, value)),
             (allocator.read_block, (request, 0)),
             (allocator.block_table, (request,)),
@@ -350,3 +361,291 @@ def test_allocator_rejects_access_from_another_thread() -> None:
                 future.result()
     assert allocator.block_table(request) == ()
     assert allocator.cached_length(request) == 0
+
+
+def test_allocator_accounts_for_reserved_owned_and_live_capacity_across_requests() -> None:
+    allocator = KVAllocator(torch.empty((22, 2, 8, 16, 4, 64), dtype=torch.float16))
+    a, b = RequestId("a"), RequestId("b")
+    empty = allocator.capacity()
+    assert empty == CapacityCounts(8, 8, 0, 0, 0, 0)
+
+    allocator.create(KVReservation(a, 3))
+    assert allocator.capacity() == CapacityCounts(8, 8, 0, 3, 1, 0)
+    allocator.create(KVReservation(b, 2))
+    assert allocator.capacity() == CapacityCounts(8, 8, 0, 5, 2, 0)
+    key, value = _kv_values(33)
+
+    allocator.append(a, key[:, :15], value[:, :15])
+    assert allocator.capacity() == CapacityCounts(8, 7, 1, 5, 2, 15)
+    allocator.append(b, *_kv_values(16, start=2000))
+    assert allocator.capacity() == CapacityCounts(8, 6, 2, 5, 2, 31)
+    allocator.append(a, key[:, 15:16], value[:, 15:16])
+    assert allocator.capacity() == CapacityCounts(8, 6, 2, 5, 2, 32)
+    allocator.append(a, key[:, 16:17], value[:, 16:17])
+    assert allocator.capacity() == CapacityCounts(8, 5, 3, 5, 2, 33)
+    allocator.append(a, key[:, 17:], value[:, 17:])
+    assert allocator.capacity() == CapacityCounts(8, 4, 4, 5, 2, 49)
+    assert set(allocator.block_table(a)).isdisjoint(allocator.block_table(b))
+    assert allocator.cached_length(a) == 33
+    assert allocator.cached_length(b) == 16
+
+    allocator.release_all(a)
+    assert allocator.capacity() == CapacityCounts(8, 7, 1, 2, 1, 16)
+    allocator.release_all(b)
+    assert allocator.capacity() == empty
+    assert empty == CapacityCounts(8, 8, 0, 0, 0, 0)
+
+
+def test_allocator_reservations_use_unpromised_capacity_instead_of_free_blocks() -> None:
+    allocator = KVAllocator(torch.empty((22, 2, 3, 16, 4, 64), dtype=torch.float16))
+    a, b = RequestId("a"), RequestId("b")
+    allocator.create(KVReservation(a, 3))
+    before = allocator.capacity()
+    assert before == CapacityCounts(3, 3, 0, 3, 1, 0)
+    with pytest.raises(RuntimeError, match="insufficient unreserved blocks"):
+        allocator.create(KVReservation(b, 1))
+    assert allocator.capacity() == before
+    with pytest.raises(KeyError):
+        allocator.block_table(b)
+
+    allocator.append(a, *_kv_values(17))
+    before = allocator.capacity()
+    assert before == CapacityCounts(3, 1, 2, 3, 1, 17)
+    with pytest.raises(RuntimeError, match="insufficient unreserved blocks"):
+        allocator.create(KVReservation(b, 1))
+    assert allocator.capacity() == before
+
+    allocator.release_all(a)
+    allocator.create(KVReservation(b, 1))
+    assert allocator.capacity() == CapacityCounts(3, 3, 0, 1, 1, 0)
+
+
+def test_allocator_cannot_spend_another_requests_reserved_credits() -> None:
+    allocator = KVAllocator(torch.empty((22, 2, 4, 16, 4, 64), dtype=torch.float16))
+    a, b = RequestId("a"), RequestId("b")
+    allocator.create(KVReservation(a, 1))
+    allocator.create(KVReservation(b, 3))
+    key, value = _kv_values(17)
+    allocator.append(a, key[:, :16], value[:, :16])
+    before = allocator.capacity()
+    assert before == CapacityCounts(4, 3, 1, 4, 2, 16)
+
+    with pytest.raises(RuntimeError, match="exceeds request reservation"):
+        allocator.append(a, key[:, 16:], value[:, 16:])
+
+    assert allocator.capacity() == before
+    assert allocator.cached_length(a) == 16
+    assert allocator.block_table(b) == ()
+    torch.testing.assert_close(allocator.read_block(a, 0)[0], key[:, :16], atol=0, rtol=0)
+    allocator.append(b, *_kv_values(33))
+    assert allocator.capacity() == CapacityCounts(4, 0, 4, 4, 2, 49)
+
+
+def test_allocator_pending_requests_hold_no_resources() -> None:
+    allocator = KVAllocator(torch.empty((22, 2, 3, 16, 4, 64), dtype=torch.float16))
+    pending = KVReservation(RequestId("pending"), 3)
+    before = allocator.capacity()
+    key, value = _kv_values(1)
+
+    with pytest.raises(KeyError):
+        allocator.block_table(pending.request_id)
+    with pytest.raises(KeyError):
+        allocator.cached_length(pending.request_id)
+    with pytest.raises(KeyError):
+        allocator.append(pending.request_id, key, value)
+    with pytest.raises(KeyError):
+        allocator.release_all(pending.request_id)
+    assert allocator.capacity() == before == CapacityCounts(3, 3, 0, 0, 0, 0)
+
+    allocator.create(pending)
+    assert allocator.capacity() == CapacityCounts(3, 3, 0, 3, 1, 0)
+    allocator.release_all(pending.request_id)
+    assert allocator.capacity() == before
+
+
+@pytest.mark.parametrize(
+    ("blocks", "credits", "message"),
+    [(2, 3, "total KV pool capacity"), (129, 129, "KV context capacity")],
+)
+def test_allocator_rejects_impossible_reservations_without_acquiring_resources(
+    blocks: int, credits: int, message: str
+) -> None:
+    allocator = KVAllocator(torch.empty((22, 2, blocks, 16, 4, 64), dtype=torch.float16))
+    request = RequestId("impossible")
+    before = allocator.capacity()
+
+    with pytest.raises(ValueError, match=message):
+        allocator.create(KVReservation(request, credits))
+
+    assert allocator.capacity() == before
+    with pytest.raises(KeyError):
+        allocator.release_all(request)
+
+
+@pytest.mark.parametrize("operation", ["read", "append", "release"])
+@pytest.mark.parametrize(
+    "corruption",
+    ["duplicate", "foreign", "free", "negative", "outside", "boolean", "float", "short", "length"],
+)
+def test_allocator_rejects_corrupt_tables_before_access_or_mutation(
+    corruption: str, operation: str
+) -> None:
+    pool = torch.full((22, 2, 4, 16, 4, 64), -999, dtype=torch.float16)
+    allocator = KVAllocator(pool)
+    a, b = RequestId("a"), RequestId("b")
+    allocator.create(KVReservation(a, 3))
+    allocator.create(KVReservation(b, 1))
+    allocator.append(a, *_kv_values(17))
+    allocator.append(b, *_kv_values(1, start=2000))
+    before = allocator.capacity()
+    original = allocator._sequences[a]
+    first, last = original.blocks
+    tables = {
+        "duplicate": (first, first),
+        "foreign": (allocator.block_table(b)[0], last),
+        "free": (allocator._free_blocks[-1], last),
+        "negative": (-1, last),
+        "outside": (4, last),
+        "boolean": (True, last),
+        "float": (float(first), last),
+        "short": (first,),
+        "length": original.blocks,
+    }
+    allocator._sequences[a] = replace(
+        original, blocks=tables[corruption], length=16 if corruption == "length" else 17
+    )
+    sequences = allocator._sequences.copy()
+    free = allocator._free_blocks.copy()
+    contents = pool.clone()
+
+    with pytest.raises(RuntimeError, match="KV"):
+        if operation == "read":
+            allocator.read_block(a, 0)
+        elif operation == "append":
+            allocator.append(a, *_kv_values(1))
+        else:
+            allocator.release_all(a)
+
+    assert allocator._sequences == sequences
+    assert allocator._free_blocks == free
+    torch.testing.assert_close(pool, contents, atol=0, rtol=0)
+    allocator._sequences[a] = original
+    assert allocator.capacity() == before
+    allocator.release_all(a)
+    allocator.release_all(b)
+    assert allocator.capacity() == CapacityCounts(4, 4, 0, 0, 0, 0)
+
+
+@pytest.mark.parametrize("operation", ["read", "append", "release"])
+def test_allocator_detects_foreign_ownership_even_when_tables_are_swapped(operation: str) -> None:
+    pool = torch.full((22, 2, 4, 16, 4, 64), -999, dtype=torch.float16)
+    allocator = KVAllocator(pool)
+    a, b = RequestId("a"), RequestId("b")
+    allocator.create(KVReservation(a, 2))
+    allocator.create(KVReservation(b, 2))
+    allocator.append(a, *_kv_values(1))
+    allocator.append(b, *_kv_values(1, start=2000))
+    first, second = allocator._sequences[a], allocator._sequences[b]
+    allocator._sequences[a] = replace(first, blocks=second.blocks)
+    allocator._sequences[b] = replace(second, blocks=first.blocks)
+    sequences = allocator._sequences.copy()
+    free = allocator._free_blocks.copy()
+    contents = pool.clone()
+
+    with pytest.raises(RuntimeError, match="owned"):
+        if operation == "read":
+            allocator.read_block(a, 0)
+        elif operation == "append":
+            allocator.append(a, *_kv_values(1))
+        else:
+            allocator.release_all(a)
+
+    assert allocator._sequences == sequences
+    assert allocator._free_blocks == free
+    torch.testing.assert_close(pool, contents, atol=0, rtol=0)
+
+
+@pytest.mark.parametrize("corruption", ["duplicate", "missing", "owned", "invalid"])
+def test_allocator_rejects_corrupt_free_lists_before_release(corruption: str) -> None:
+    allocator = KVAllocator(torch.empty((22, 2, 3, 16, 4, 64), dtype=torch.float16))
+    request = RequestId("a")
+    allocator.create(KVReservation(request, 1))
+    allocator.append(request, *_kv_values(1))
+    if corruption == "duplicate":
+        allocator._free_blocks.append(allocator._free_blocks[-1])
+    elif corruption == "missing":
+        allocator._free_blocks.pop()
+    elif corruption == "owned":
+        allocator._free_blocks[-1] = allocator.block_table(request)[0]
+    else:
+        allocator._free_blocks[-1] = -1
+    sequences = allocator._sequences.copy()
+    free = allocator._free_blocks.copy()
+
+    with pytest.raises(RuntimeError, match="KV"):
+        allocator.release_all(request)
+
+    assert allocator._sequences == sequences
+    assert allocator._free_blocks == free
+
+
+@pytest.mark.parametrize("initial_tokens", [0, 15, 16, 17])
+@pytest.mark.parametrize("fail_at", [1, 2, 3, 4])
+def test_allocator_copy_failure_preserves_valid_history_and_allows_cleanup_and_reuse(
+    monkeypatch: pytest.MonkeyPatch, initial_tokens: int, fail_at: int
+) -> None:
+    allocator = KVAllocator(torch.empty((22, 2, 4, 16, 4, 64), dtype=torch.float16))
+    a, b, c = RequestId("a"), RequestId("b"), RequestId("c")
+    allocator.create(KVReservation(a, 3))
+    allocator.create(KVReservation(b, 1))
+    key, value = _kv_values(initial_tokens)
+    if initial_tokens:
+        allocator.append(a, key, value)
+    other_key, other_value = _kv_values(1, start=2000)
+    allocator.append(b, other_key, other_value)
+    before = allocator.capacity()
+    table = allocator.block_table(a)
+    copy = torch.Tensor.copy_
+    calls = 0
+
+    def failing_copy(destination: torch.Tensor, source: torch.Tensor) -> torch.Tensor:
+        nonlocal calls
+        calls += 1
+        if calls == fail_at:
+            raise RuntimeError("injected copy failure")
+        return copy(destination, source)
+
+    with monkeypatch.context() as patch:
+        patch.setattr(torch.Tensor, "copy_", failing_copy)
+        with pytest.raises(RuntimeError, match="injected copy failure"):
+            allocator.append(a, *_kv_values(18, start=100))
+
+    assert calls == fail_at
+    assert allocator.capacity() == before
+    assert allocator.block_table(a) == table
+    assert allocator.cached_length(a) == initial_tokens
+    for logical_block in range(len(table)):
+        start = logical_block * 16
+        actual_key, actual_value = allocator.read_block(a, logical_block)
+        torch.testing.assert_close(actual_key, key[:, start : start + 16], atol=0, rtol=0)
+        torch.testing.assert_close(actual_value, value[:, start : start + 16], atol=0, rtol=0)
+    actual_key, actual_value = allocator.read_block(b, 0)
+    torch.testing.assert_close(actual_key, other_key, atol=0, rtol=0)
+    torch.testing.assert_close(actual_value, other_value, atol=0, rtol=0)
+
+    allocator.release_all(a)
+    after_release = allocator.capacity()
+    with pytest.raises(KeyError):
+        allocator.release_all(a)
+    assert allocator.capacity() == after_release == CapacityCounts(4, 3, 1, 1, 1, 1)
+    allocator.create(KVReservation(c, 3))
+    fresh_key, fresh_value = _kv_values(48, start=-100)
+    allocator.append(c, fresh_key, fresh_value)
+    for logical_block in range(3):
+        start = logical_block * 16
+        actual_key, actual_value = allocator.read_block(c, logical_block)
+        torch.testing.assert_close(actual_key, fresh_key[:, start : start + 16], atol=0, rtol=0)
+        torch.testing.assert_close(actual_value, fresh_value[:, start : start + 16], atol=0, rtol=0)
+    allocator.release_all(b)
+    allocator.release_all(c)
+    assert allocator.capacity() == CapacityCounts(4, 4, 0, 0, 0, 0)

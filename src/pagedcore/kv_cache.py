@@ -9,7 +9,7 @@ import torch
 from torch import Tensor
 
 from pagedcore.config import PagedCoreConfig
-from pagedcore.engine_types import BlockId, BlockTable, RequestId
+from pagedcore.engine_types import BlockId, BlockTable, CapacityCounts, KVReservation, RequestId
 
 
 def allocate_kv_pool(config: PagedCoreConfig, *, device: str | torch.device = "cuda:0") -> Tensor:
@@ -47,6 +47,7 @@ def allocate_kv_pool(config: PagedCoreConfig, *, device: str | torch.device = "c
 
 @dataclass(frozen=True, slots=True)
 class _SequenceCache:
+    reservation: KVReservation
     blocks: BlockTable = ()
     length: int = 0
 
@@ -76,27 +77,53 @@ class KVAllocator:
         self._stream = torch.cuda.current_stream(pool.device) if pool.is_cuda else None
         self._free_blocks = [BlockId(index) for index in reversed(range(pool.shape[2]))]
         self._sequences: dict[RequestId, _SequenceCache] = {}
+        # Check tables against ownership recorded when physical blocks are assigned.
+        self._block_owners: dict[BlockId, RequestId] = {}
 
-    def create(self, request_id: RequestId) -> None:
-        """Register an admitted request before its first cache write."""
+    def create(self, reservation: KVReservation) -> None:
+        """Grant credits at admission without assigning physical blocks.
+
+        Pending requests stay outside the allocator until admission. Credits
+        include owned blocks and remain held until release_all, even after EOS.
+        """
         self._check_worker()
+        request_id = reservation.request_id
         if request_id in self._sequences:
             raise ValueError("request already has a KV cache")
-        self._sequences[request_id] = _SequenceCache()
-        self._assert_ownership()
+        counts = self.capacity()
+        if reservation.maximum_block_credits > counts.total_blocks:
+            raise ValueError("reservation exceeds total KV pool capacity")
+        if reservation.maximum_block_credits > 128:
+            raise ValueError("reservation exceeds KV context capacity")
+        if reservation.maximum_block_credits > counts.total_blocks - counts.reserved_blocks:
+            raise RuntimeError("KV pool has insufficient unreserved blocks")
+        self._sequences[request_id] = _SequenceCache(reservation)
+        self._assert_accounting()
+
+    def capacity(self) -> CapacityCounts:
+        """Snapshot ownership and credits, including requests awaiting cleanup."""
+        self._check_worker()
+        return self._assert_accounting()
 
     def block_table(self, request_id: RequestId) -> BlockTable:
         self._check_worker()
+        self._assert_accounting()
         return self._sequences[request_id].blocks
 
     def cached_length(self, request_id: RequestId) -> int:
         self._check_worker()
+        self._assert_accounting()
         return self._sequences[request_id].length
 
     @torch.inference_mode()
     def append(self, request_id: RequestId, key: Tensor, value: Tensor) -> None:
-        """Append rotated K and unrotated V, each FP16 [22, tokens, 4, 64]."""
+        """Append rotated K and unrotated V, each FP16 [22, tokens, 4, 64].
+
+        A synchronous copy failure leaves ownership and valid positions unchanged.
+        Unpublished slots may be dirty; they must be overwritten before use.
+        """
         self._check_worker()
+        self._assert_accounting()
         sequence = self._sequences[request_id]
         if (
             key.ndim != 4
@@ -113,7 +140,10 @@ class KVAllocator:
         length = sequence.length + key.shape[1]
         if length > 2048:
             raise ValueError("KV cache must not exceed 2048 token positions")
-        additional = (length + 15) // 16 - len(sequence.blocks)
+        required = (length + 15) // 16
+        if required > sequence.reservation.maximum_block_credits:
+            raise RuntimeError("KV append exceeds request reservation")
+        additional = required - len(sequence.blocks)
         if additional > len(self._free_blocks):
             raise RuntimeError("KV pool has insufficient free blocks")
         new_blocks = tuple(reversed(self._free_blocks[-additional:])) if additional else ()
@@ -135,12 +165,14 @@ class KVAllocator:
         # Publish valid positions only after both K and V writes have been issued.
         if additional:
             del self._free_blocks[-additional:]
-        self._sequences[request_id] = _SequenceCache(blocks, length)
-        self._assert_ownership()
+        self._block_owners.update((block, request_id) for block in new_blocks)
+        self._sequences[request_id] = _SequenceCache(sequence.reservation, blocks, length)
+        self._assert_accounting()
 
     def read_block(self, request_id: RequestId, logical_block: int) -> tuple[Tensor, Tensor]:
         """Borrow K/V views [22, valid slots, 4, 64] for one logical block."""
         self._check_worker()
+        self._assert_accounting()
         sequence = self._sequences[request_id]
         if type(logical_block) is not int or not 0 <= logical_block < len(sequence.blocks):
             raise ValueError("logical block must identify a cached block")
@@ -152,11 +184,18 @@ class KVAllocator:
         )
 
     def release_all(self, request_id: RequestId) -> None:
-        """Return physical blocks on the worker stream; unknown requests raise KeyError."""
+        """Release once on the worker stream; unknown/released requests raise KeyError.
+
+        Request cleanup must remember successful release to make duplicate cleanup
+        signals no-ops. Silently accepting a direct double release would hide bugs.
+        """
         self._check_worker()
+        self._assert_accounting()
         sequence = self._sequences.pop(request_id)
+        for block in sequence.blocks:
+            del self._block_owners[block]
         self._free_blocks.extend(reversed(sequence.blocks))
-        self._assert_ownership()
+        self._assert_accounting()
 
     def _check_worker(self) -> None:
         if current_thread() is not self._worker:
@@ -167,9 +206,47 @@ class KVAllocator:
         ):
             raise RuntimeError("KV allocator must use its owning CUDA stream")
 
-    def _assert_ownership(self) -> None:
+    def _assert_accounting(self) -> CapacityCounts:
+        for request_id, sequence in self._sequences.items():
+            if (
+                sequence.reservation.request_id != request_id
+                or type(sequence.length) is not int
+                or not 0 <= sequence.length <= 2048
+                or type(sequence.blocks) is not tuple
+                or len(sequence.blocks) != (sequence.length + 15) // 16
+                or not len(sequence.blocks) <= sequence.reservation.maximum_block_credits <= 128
+            ):
+                raise RuntimeError("corrupt KV block table or reservation")
         assigned = [block for sequence in self._sequences.values() for block in sequence.blocks]
-        assert len(assigned) == len(set(assigned)), "physical KV blocks must have unique owners"
-        assert len(self._free_blocks) + len(assigned) == self._pool.shape[2]
-        for sequence in self._sequences.values():
-            assert len(sequence.blocks) == (sequence.length + 15) // 16
+        if any(
+            type(block) is not int or not 0 <= block < self._pool.shape[2]
+            for block in self._free_blocks + assigned
+        ):
+            raise RuntimeError("invalid physical KV block")
+        owned = set(assigned)
+        free = set(self._free_blocks)
+        if len(assigned) != len(owned):
+            raise RuntimeError("physical KV blocks must have unique owners")
+        if len(self._free_blocks) != len(free):
+            raise RuntimeError("free KV blocks must be unique")
+        if not free.isdisjoint(owned):
+            raise RuntimeError("owned KV blocks must not be free")
+        if free | owned != set(range(self._pool.shape[2])):
+            raise RuntimeError("KV blocks must cover the pool")
+        owners = {
+            block: request_id
+            for request_id, sequence in self._sequences.items()
+            for block in sequence.blocks
+        }
+        if owners != self._block_owners:
+            raise RuntimeError("KV blocks are not owned by the recorded requests")
+        return CapacityCounts(
+            total_blocks=self._pool.shape[2],
+            free_blocks=len(self._free_blocks),
+            owned_blocks=len(assigned),
+            reserved_blocks=sum(
+                sequence.reservation.maximum_block_credits for sequence in self._sequences.values()
+            ),
+            active_slots=len(self._sequences),
+            live_cached_token_slots=sum(sequence.length for sequence in self._sequences.values()),
+        )

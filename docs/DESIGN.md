@@ -169,15 +169,39 @@ The physical pool is allocated at startup. “Allocate on demand” means assign
 
 [`KVAllocator`](../src/pagedcore/kv_cache.py) wraps that pool on its creating
 worker thread and CUDA stream. `create` registers an admitted request without
-assigning blocks. `append` takes rotated K and unrotated V, each
+assigning blocks: it takes a `KVReservation` and grants its maximum credits only
+when they fit alongside existing reservations. Pending requests stay outside the
+allocator. `capacity` derives a `CapacityCounts` snapshot from the free list and
+per-request records, checking physical ownership and the accounting equations.
+Credits include owned blocks and remain held until `release_all`; an admitted
+terminal request still counts toward capacity while awaiting cleanup.
+`append` takes rotated K and unrotated V, each
 `[22, tokens, 4, 64]`, assigns free blocks as needed and publishes the new valid
-length after issuing both writes. `block_table` returns an immutable tuple;
+length after issuing both writes. It rejects growth beyond the request's credits
+before writing. `block_table` returns an immutable tuple;
 `cached_length` tracks valid positions. `read_block` returns borrowed K/V views
 `[22, valid_slots, 4, 64]` for one logical block, including a partial final block.
 Treat these views as read-only and discard them before changing that request's
-cache. `release_all` returns its physical blocks without freeing the pool; an
-unknown or already released request raises `KeyError`. The allocator does not
-yet implement reservation accounting or integrate with decoder/worker cleanup.
+cache. `release_all` returns its physical blocks and removes its credits, cached
+length and active slot without freeing the pool; an unknown or already released
+request raises `KeyError`. Decoder/worker cleanup integration remains unimplemented.
+
+Reservations larger than the entire pool or the 128 blocks addressable by the
+2,048-token context raise `ValueError`; temporarily insufficient unreserved
+capacity raises `RuntimeError`. Neither rejection acquires resources. Physical
+ownership is recorded independently of block tables so even swapped tables are
+detected. Reads and mutations validate tables, free-list coverage and ownership
+before accessing storage or releasing blocks. Integrity failures raise
+`RuntimeError`, including when Python assertions are disabled.
+
+Append publishes new ownership, table entries and valid length only after all K/V
+copies have been issued. A synchronous copy exception leaves the previous valid
+history and accounting unchanged; unpublished slots may contain partial writes
+and must be overwritten before use. Cleanup releases only the request's existing
+ownership. This does not promise recovery from an asynchronous CUDA/context
+failure; the fail-closed rule above still applies. Direct release stays strict;
+the future worker must remember successful cleanup rather than swallowing an
+unknown-request error to implement duplicate-cleanup no-ops.
 
 ## Admission without preemption
 
@@ -199,10 +223,12 @@ When the server starts, load the model first and check how much GPU memory is st
 Measure dense prefill workspace before adding the pool, paged/batched workspace when decode is implemented, and the final end-to-end maximum-context/32-active workload. Increase the margin or reduce capacity if unsafe, documenting changes before freezing benchmarks. If `max_active_sequences` changes, repeat relevant memory tests.
 The retained dense baseline peaks 1,128.05 MiB above its run baseline, including
 dense KV, inputs and logits. This exceeds the former 1,024 MiB margin without isolating
-workspace demand. The provisional margin is now 1,536 MiB; the October 22
-reservation probe used the previous 1,024 MiB setting, so the revised configuration
-still requires T4 measurement. Before the real pool is available, the recorder's unused
-pool-sized reservation can probe combined dense memory pressure. It does not
+workspace demand. The provisional margin is now 1,536 MiB. The October 22
+reservation probe used the previous 1,024 MiB setting; the
+[October 25 archive review](validation/2026-10-26-p42-t4-review.md) now records
+nine successful pressure runs with the revised margin at `f72f39c`. The unused
+pool-sized reservation probes combined dense memory pressure separately from
+the actual small-pool storage/allocator tests. It does not
 replace integrated pool/prefill, paged/batched or service measurements. Keep the
 8,192 MiB pool, 1,536 MiB margin and 32-active capacity provisional until the
 [combined memory gates](VALIDATION_PLAN.md#combined-memory-validation-before-capacity-freeze)
