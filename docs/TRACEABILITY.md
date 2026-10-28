@@ -1,32 +1,37 @@
 # MVP acceptance traceability
 
-This table maps every acceptance criterion in [the specification](SPEC.md#acceptance-criteria)
-to the roadmap work that owns it. A `pending` path is a planned location, not evidence that
-the criterion has passed. Replace `pending` with a link only after the listed checks pass and
-the reviewed evidence file exists.
+This table maps [MVP acceptance criteria](SPEC.md#acceptance-criteria) to their
+implementation owners, current support and remaining evidence. All final
+acceptance rows remain open: dense parity and allocator completion establish
+prerequisites, while paged attention and the service are still planned.
+The current gate is [Phase 5](STATUS.md#next-implementation-gate).
+Task IDs are defined in the public [phase map](VALIDATION_PLAN.md#build-order).
+A `pending` path names intended evidence, not a file that already exists.
 
-All rows remain pending at the [current status snapshot](STATUS.md). Task IDs are defined in the public [phase map](VALIDATION_PLAN.md#build-order); readers do not need the ignored local checklist. AC-01 through AC-05 are correctness/validation prerequisites; official measurement entry additionally requires direct service smoke, memory/soak evidence and a validated harness. AC-07/AC-08 close the technical demonstration; full AC-06 distribution/Docker evidence closes artifact delivery. Follow the [completion milestones](VALIDATION_PLAN.md#completion-milestones).
+| ID | Acceptance criterion | Owners | Current evidence and remaining checks | Final evidence |
+|---|---|---|---|---|
+| AC-01 | Exact greedy IDs and FP16 internal/logit parity with pinned HF | P3.4–P3.6, P5.6 | [Dense T4 comparisons](validation/2026-10-27-phase4-review.md) pass in [decoder tests](../tests/gpu/test_decoder_parity.py); paged decoder parity remains pending | `results/validation/decoder-parity.json` (pending) |
+| AC-02 | KV allocation/reuse/isolation/cleanup; bounded queues/active requests; cancellation and slow-consumer safety | P4.5–P4.6, P6.4, P6.7–P6.8, P7.5, P7.7, P8.7 | [Allocator unit tests](../tests/unit/test_kv_cache.py), [property model](../tests/unit/test_kv_cache_properties.py) and [T4 storage tests](../tests/gpu/test_kv_pool_cuda.py) pass; scheduler, transport and lifecycle tests remain pending | `results/validation/resource-lifecycle.json` (pending) |
+| AC-03 | A second request joins while the first is decoding | P6.3, P6.7 | `tests/integration/test_continuous_batching.py` (pending) | `results/validation/continuous-batching.json` (pending) |
+| AC-04 | Poisoned fragmented KV matches HF; traces prove block-table reads without full-history gather | P5.4–P5.5 | `tests/gpu/test_paged_attention.py` (pending) | `results/validation/paged-attention.json` (pending) |
+| AC-05 | CPU/GPU suites execute with counts and no implied GPU certification from CI | P2.5, P9.1–P9.2 | [CPU workflow](../.github/workflows/ci.yml), [current CPU report](../results/validation/2026-10-27/cpu-review.json) and [reviewed T4 run](validation/2026-10-27-phase4-review.md) exist; final integrated release matrix and current hosted CI remain pending | `results/validation/test-matrix.json` (pending) |
+| AC-06 | Clean Linux/CUDA direct-install and Docker paths start the service | P9.3–P9.5 | `tests/integration/test_clean_install.py`, `scripts/smoke_docker.sh` and service startup (pending) | `results/validation/deployment-smoke.json` (pending) |
+| AC-07 | One command produces reproducible workloads, raw records, percentile/count summaries and explicit insufficient-sample p99 | P10.3–P10.9 | Internal timing arithmetic exists; external benchmark analysis and command tests remain pending | `results/benchmark/manifest.json` (pending) |
+| AC-08 | Public report includes measurements, configuration, limits and an investigated performance gap | P11.5–P11.7 | Release-doc checks and comparative measurements (pending) | `docs/REPORT.md` (pending) |
 
-| ID    | Acceptance criterion                                                                                                                                                                  | Implementation owner                         | Planned test                                                                                                                                   | Final evidence file                                       |
-| ----- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------- |
-| AC-01 | Greedy token IDs match the pinned Hugging Face reference, and selected internals and logits meet the FP16 tolerances.                                                                 | P3.4-P3.6, P5.6                              | `tests/gpu/test_decoder_parity.py` (`pending`)                                                                                                 | `results/validation/decoder-parity.json` (`pending`)      |
-| AC-02 | KV blocks allocate, reuse, isolate, and release correctly; queue and active limits hold; cancellation and slow consumers cannot leak resources or stall stream termination.           | P4.5-P4.6, P6.4, P6.7-P6.8, P7.5, P7.7, P8.7 | `tests/unit/test_kv_cache.py`, `tests/unit/test_scheduler.py`, `tests/service/test_backpressure.py`, `tests/gpu/test_lifecycle.py` (`pending`) | `results/validation/resource-lifecycle.json` (`pending`)  |
-| AC-03 | A second request joins the active batch while the first request is decoding.                                                                                                          | P6.3, P6.7                                   | `tests/integration/test_continuous_batching.py` (`pending`)                                                                                    | `results/validation/continuous-batching.json` (`pending`) |
-| AC-04 | Shuffled physical blocks with poisoned unrelated blocks still match the reference, and decode attention traces prove block-table reads without a full-history gather.                 | P5.4-P5.5                                    | `tests/gpu/test_paged_attention.py` (`pending`)                                                                                                | `results/validation/paged-attention.json` (`pending`)     |
-| AC-05 | CPU and GPU suites run, while early CI runs formatting, Ruff, strict mypy, and CPU pytest; reports include executed/skipped counts without implying GPU certification.                  | P2.5, P9.1-P9.2 (scheduled before P2)         | `tests/` plus the CPU CI and T4 validation procedure/workflow (`pending`)                                                                       | `results/validation/test-matrix.json` (`pending`)         |
-| AC-06 | Clean Linux/CUDA direct-install and Docker paths both start the service.                                                                                                              | P9.3-P9.5                                    | `tests/integration/test_clean_install.py` and `scripts/smoke_docker.sh` (`pending`)                                                            | `results/validation/deployment-smoke.json` (`pending`)    |
-| AC-07 | One command reproduces the workload and emits raw per-request data plus p50/p95/p99 summaries and observation counts, using `null` and `insufficient_sample` below the p99 threshold. | P10.3-P10.9                                  | `tests/unit/test_benchmark_analysis.py` and `tests/integration/test_benchmark_command.py` (`pending`)                                          | `results/benchmark/manifest.json` (`pending`)             |
-| AC-08 | The public report includes measured results, configuration, limitations, and at least one investigated performance gap.                                                               | P11.5-P11.7                                  | `scripts/check_release_docs.py` (`pending`)                                                                                                    | `docs/REPORT.md` (`pending`)                              |
+AC-01–AC-05 are correctness/validation prerequisites. Official measurement entry
+also requires direct service smoke, memory/soak evidence and a validated harness.
+AC-07/AC-08 close the technical demonstration; full AC-06 distribution/Docker
+evidence closes artifact delivery. Follow the
+[completion milestones](VALIDATION_PLAN.md#completion-milestones).
 
 ## Supporting evidence requirements
 
-These checks support the acceptance rows and must not be inferred from planned paths:
-
 | Contract | Owners | Evidence content |
 |---|---|---|
-| Environment attribution | P1.5-P1.6, P9.2 | Actual commands, source/lock identity, fresh install, CUDA repeatability and executed/skipped counts |
-| Bounded worker-to-loop delivery and terminal order | P6.1, P6.4-P6.5, P6.7-P6.8, P7.4-P7.7 | Stalled/closed loop, lost-wakeup, last-token/done, cancellation and blocked-send tests |
-| Ingress bounds and strict raw-prompt contract | P2.3-P2.4, P7.2-P7.3, P7.7 | Body-read/tokenizer capacity, strict schema, special-token equality and public error envelopes |
-| Safe CUDA reuse and shutdown | P5.7, P6.4, P6.10, P7.1, P8.5-P8.7 | Access/reuse ordering, graceful zero ownership and separate failed-graceful/process-escalation outcomes |
-| Early measurements and memory checks | P2.1, P3.7, P5.7, P6.9, P8.2-P8.6 | Defined clocks, timing math, bounded retention and staged T4 workspace records |
-| Comparable benchmark and mechanism coverage | P10.1-P10.9, P11.1-P11.7 | Dispatch lag, stream granularity, terminal/deadline accounting, sampled memory and labeled smaller-pool/mixed-length experiments |
+| Environment attribution | P1.5–P1.6, P9.2 | Actual setup/commands, source/lock hashes, selected GPU identity, CUDA repeatability and test counts; retained for the allocator revision |
+| Bounded worker-to-loop delivery and terminal order | P6.1, P6.4–P6.5, P6.7–P6.8, P7.4–P7.7 | Stalled/closed loop, lost wakeups, last-token/done, cancellation and blocked-send tests (pending) |
+| Ingress bounds and raw-prompt contract | P2.3–P2.4, P7.2–P7.3, P7.7 | Fixtures/special-token checks exist; body/tokenizer bounds, strict HTTP schema and error envelopes remain pending |
+| Safe CUDA reuse and shutdown | P5.7, P6.4, P6.10, P7.1, P8.5–P8.7 | Allocator owning-stream guard passes; integrated access/reuse ordering, graceful zero ownership and forced escalation remain pending |
+| Measurements and memory | P2.1, P3.7, P5.7, P6.9, P8.2–P8.6 | Synthetic clocks/timing math and dense T4 workspace exist; bounded live instrumentation and paged/batched/service memory remain pending |
+| Comparable benchmarks and mechanism coverage | P10.1–P10.9, P11.1–P11.7 | Dispatch lag, granularity, terminal/deadline accounting, sampled memory and labeled mechanism experiments (pending) |

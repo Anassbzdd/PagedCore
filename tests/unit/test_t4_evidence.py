@@ -13,17 +13,8 @@ pytestmark = pytest.mark.unit
 ROOT = Path(__file__).parents[2]
 
 
-@pytest.mark.parametrize("include_measurements", [False, True])
-@pytest.mark.parametrize("workspace_state", ["missing", "partial", "missing_samples", "complete"])
-@pytest.mark.parametrize(
-    "pool_state",
-    ["complete", "missing", "partial", "unreserved", "mismatch", "false_certification"],
-)
-def test_collector_requires_and_retains_owned_decoder_measurements(
-    tmp_path: Path, include_measurements: bool, workspace_state: str, pool_state: str
-) -> None:
-    directory = tmp_path / "evidence"
-    directory.mkdir()
+@pytest.fixture
+def gpu_report() -> ET.Element:
     root = ET.Element("testsuites")
     suite = ET.SubElement(root, "testsuite")
     required = [
@@ -31,6 +22,8 @@ def test_collector_requires_and_retains_owned_decoder_measurements(
         "test_seed_everything_repeats_cuda_random_streams",
         "test_public_reference_capture_and_repeatability_on_t4",
         "test_pinned_decoder_layer_parity_on_t4",
+        "test_kv_pool_storage_on_t4",
+        "test_kv_allocator_storage_and_stream_ownership_on_t4",
     ]
     fixtures = json.loads((ROOT / "tests/fixtures/reference_prompts.json").read_text())
     required.extend(
@@ -38,6 +31,83 @@ def test_collector_requires_and_retains_owned_decoder_measurements(
     )
     for name in required:
         ET.SubElement(suite, "testcase", name=name)
+    return root
+
+
+def _run_collector(directory: Path) -> subprocess.CompletedProcess[str]:
+    # Execute the collector's exporter itself without requiring Bash or a GPU.
+    script = (ROOT / "scripts/validate_t4.sh").read_text().rsplit("<<'PY'\n", 1)[1]
+    return subprocess.run(
+        [sys.executable, "-", str(directory)],
+        input=script.removesuffix("PY\n"),
+        text=True,
+        capture_output=True,
+        cwd=ROOT,
+        check=False,
+    )
+
+
+@pytest.mark.parametrize(
+    "missing_tests",
+    [
+        ("test_kv_pool_storage_on_t4",),
+        ("test_kv_allocator_storage_and_stream_ownership_on_t4",),
+        ("test_kv_pool_storage_on_t4", "test_kv_allocator_storage_and_stream_ownership_on_t4"),
+    ],
+    ids=["missing_pool", "missing_allocator", "missing_both"],
+)
+def test_collector_rejects_missing_kv_tests(
+    tmp_path: Path, gpu_report: ET.Element, missing_tests: tuple[str, ...]
+) -> None:
+    suite = gpu_report[0]
+    for case in list(suite):
+        if case.get("name") in missing_tests:
+            suite.remove(case)
+    ET.ElementTree(gpu_report).write(tmp_path / "gpu-tests.xml")
+
+    result = _run_collector(tmp_path)
+
+    assert result.returncode != 0
+    assert "GPU evidence rejected: required tests must execute and pass." in result.stderr
+    assert not tmp_path.with_suffix(".zip").exists()
+
+
+@pytest.mark.parametrize(
+    "test_name",
+    ["test_kv_pool_storage_on_t4", "test_kv_allocator_storage_and_stream_ownership_on_t4"],
+)
+@pytest.mark.parametrize("outcome", ["skipped", "failure", "error"])
+def test_collector_rejects_unsuccessful_kv_tests(
+    tmp_path: Path, gpu_report: ET.Element, test_name: str, outcome: str
+) -> None:
+    case = next(case for case in gpu_report[0] if case.get("name") == test_name)
+    ET.SubElement(case, outcome)
+    ET.ElementTree(gpu_report).write(tmp_path / "gpu-tests.xml")
+
+    result = _run_collector(tmp_path)
+
+    assert result.returncode != 0
+    assert "GPU evidence rejected: required tests must execute and pass." in result.stderr
+    assert not tmp_path.with_suffix(".zip").exists()
+
+
+@pytest.mark.parametrize("include_measurements", [False, True])
+@pytest.mark.parametrize("workspace_state", ["missing", "partial", "missing_samples", "complete"])
+@pytest.mark.parametrize(
+    "pool_state",
+    ["complete", "missing", "partial", "unreserved", "mismatch", "false_certification"],
+)
+def test_collector_requires_and_retains_owned_decoder_measurements(
+    tmp_path: Path,
+    gpu_report: ET.Element,
+    include_measurements: bool,
+    workspace_state: str,
+    pool_state: str,
+) -> None:
+    directory = tmp_path / "evidence"
+    directory.mkdir()
+    root = gpu_report
+    suite = root[0]
     measurements = {
         "scope": "synthetic exporter test",
         "cases": {
@@ -144,17 +214,7 @@ def test_collector_requires_and_retains_owned_decoder_measurements(
     if workspace_state != "missing":
         (directory / "dense-workspace.json").write_text(json.dumps(workspace))
         (directory / "dense-workspace-allocator.txt").write_text("synthetic diagnostics")
-    # Execute the collector's exporter itself without requiring Bash or a GPU.
-    script = (ROOT / "scripts/validate_t4.sh").read_text().rsplit("<<'PY'\n", 1)[1]
-    script = script.removesuffix("PY\n")
-    result = subprocess.run(
-        [sys.executable, "-", str(directory)],
-        input=script,
-        text=True,
-        capture_output=True,
-        cwd=ROOT,
-        check=False,
-    )
+    result = _run_collector(directory)
     archive = directory.with_suffix(".zip")
     if not include_measurements:
         assert result.returncode != 0

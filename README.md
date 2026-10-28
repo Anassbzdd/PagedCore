@@ -6,7 +6,17 @@ The v0.1.0 scope is intentionally narrow: a pinned TinyLlama checkpoint, a Llama
 
 ## Status
 
-PagedCore is in the reproducible-environment gate. Package metadata, dependency locks, typed configuration loading, and safe environment diagnostics are present, but the inference engine and service are not implemented yet.
+As of 2026-10-27, Phase 4 is complete: the owned dense TinyLlama decoder and
+reservation-aware GPU KV allocator have reviewed T4 correctness evidence. The
+[October 27 review](docs/validation/2026-10-27-phase4-review.md) records 554 CPU
+and 12 GPU passes with zero skips at clean commit `986392e`; newer allocator
+property tests and collector guards are validated separately on CPU.
+
+The current gate is **Phase 5: block-table decode attention**. The decoder still
+uses contiguous KV; paged attention, continuous batching, the worker and HTTP/SSE
+service remain planned. Pool/batched/service memory safety and performance
+comparisons are also pending. See [current status](docs/STATUS.md) for evidence
+boundaries and [the phase map](docs/VALIDATION_PLAN.md#build-order) for next steps.
 
 ## Development setup
 
@@ -53,6 +63,7 @@ the [evidence attribution contract](docs/VALIDATION_PLAN.md#evidence-attribution
 
 ## Project documents
 
+- [Implementation and evidence status](docs/STATUS.md)
 - [MVP specification](docs/SPEC.md)
 - [Technical design](docs/DESIGN.md)
 - [Validation plan](docs/VALIDATION_PLAN.md)
@@ -63,13 +74,11 @@ the [evidence attribution contract](docs/VALIDATION_PLAN.md#evidence-attribution
 
 ```text
 src/pagedcore/       importable runtime package
-tests/unit/           CPU unit tests
-tests/integration/    cross-component tests
-tests/gpu/            T4-backed correctness and lifecycle tests
-tests/service/        HTTP/SSE service tests
-benchmarks/           benchmark workloads and runners
+tests/unit/           CPU unit and synthetic integration checks
+tests/gpu/            T4 reference, dense decoder and KV storage checks
+benchmarks/           placeholder for future workloads and runners
 scripts/              developer and validation utilities
-results/              reviewed benchmark evidence
+results/              retained validation evidence; benchmarks are pending
 ```
 
 Commit only reviewed, reproducible evidence under `results/`. Generated local benchmark output belongs under `results/local/` and is ignored by Git; see [results/README.md](results/README.md) for the policy.

@@ -1,8 +1,8 @@
 # Resolved implementation constants
 
-These values close the open Phase 0 contracts. They are implementation defaults and
-acceptance thresholds, not evidence that the GPU memory margin or parity envelope has
-passed its later T4 validation gate.
+These are implementation defaults and acceptance thresholds. Dense parity and
+allocator evidence are recorded in [STATUS.md](STATUS.md); integrated
+paged/batched/service memory capacity remains unvalidated.
 
 Values for the future worker/service are required contracts, not existing configuration fields. See [current status](STATUS.md) for delivered behavior.
 
@@ -35,7 +35,7 @@ selects PyTorch `2.7.1+cpu` for non-GPU development.
 | `max_preprocessing_requests` |      `4` | Concurrent body-read/validation/tokenization slots; reject overflow |
 | `stream_write_timeout_seconds` |     `10` | Per-send deadline; stalled delivery closes as `slow_consumer` |
 
-The future pool startup check uses actual free device memory after model loading. Validate dense workspace during parity, pool/batched workspace during paged decode, and final worst-case service memory before official measurements. The defaults do not certify any GPU memory margin. A graceful waiting budget does not promise safe interruption of a running thread or CUDA operation.
+The pool allocation function checks actual free device memory; startup integration must call it after model loading. Validate dense workspace during parity, pool/batched workspace during paged decode, and final worst-case service memory before official measurements. The defaults do not certify any GPU memory margin. A graceful waiting budget does not promise safe interruption of a running thread or CUDA operation.
 
 The [retained dense baseline review](../results/validation/2026-10-21-t4/review.json)
 records 3,228.22 MiB peak allocated and a 1,128.05 MiB increment, including dense

@@ -1,0 +1,111 @@
+{
+  "observed_date": "2026-10-27",
+  "scope": "Current working-tree CPU validation and documentation cleanup; no new GPU execution",
+  "git_revision": "986392e230078594714258b38786243290174fe6",
+  "working_tree_clean": false,
+  "source_sha256": {
+    "src/pagedcore/cli.py": "e36cb0cf9e342e76787b3d74e98b778c22b1b76b580bf76e556a5f03aa6c2c16",
+    "src/pagedcore/config.py": "9ad8fceb558dafef9274d6c83bfe9bcf904a97e3df3fa2cec4d08551e490dccb",
+    "src/pagedcore/decoder.py": "0481e99304089068ae3615aff578326140d80d7760f5d374eb789ff2ae578873",
+    "src/pagedcore/dense.py": "2c927378c4a06b6ec5680b9a1540d46908748088991aa35525d0c9a1e27bb342",
+    "src/pagedcore/determinism.py": "2fdcba5697c59b4f68942fb7d3a14baff46cc4d0d70470c7f23e5c56a437afa2",
+    "src/pagedcore/engine_types.py": "db31cb04b5dd4e127d37f1b3a4b88bc20f2272520893a150428197713c6cae40",
+    "src/pagedcore/kv_cache.py": "8c2f60e946f7501c07f5c6052b93e8bd882818c997f38431b72dadc3a4a6e127",
+    "src/pagedcore/measurements.py": "760946d8dac98f4a9bfcc182a2426a5b92af62aa23fb859d239895d42ca5c3f0",
+    "src/pagedcore/oracle.py": "6fbc7fe7fdd01eb7cb23055ad3189fad00b733bc1dcd727e091306dcf34f9eb8",
+    "src/pagedcore/verification.py": "4e6b77ea1e88b81ae96047b59b4e5fa859c4237251d9e674a6ee27c2fbd75044",
+    "src/pagedcore/weights.py": "1a0b9f34003ab9ca99ccd00e2f193253071d45b480adce7ed809e65ffa72ec5b",
+    "src/pagedcore/__init__.py": "42b1e9884f56caa6de42f8177eedcc2f9b81ae2df2f9db28e45114117e8f3d29",
+    "tests/conftest.py": "8e2695fd83e7aad2a579d3a2b959aa6cdfe8a3391352accb5ec4d70e07bd5f89",
+    "tests/fixtures/reference_prompts.json": "143f89f62b0b85956ddd7ab94cd7b7ec559799725b947b5404409dcdf6365190",
+    "tests/gpu/test_decoder_parity.py": "3dc55dce6a8149eac5cd14ca261a833c67c5f5f91949785340b94cf973f97473",
+    "tests/gpu/test_kv_pool_cuda.py": "ba3f57c802b5a722c4ea2ca43207599f727a53dceeadd3cc85727c34220c01ff",
+    "tests/gpu/test_oracle_reference.py": "6617aa0cc73197779f22c52441d85a34e1c3e38e9090fb08a9bd871510f53a78",
+    "tests/gpu/test_target_verification.py": "c40e8cf67d0b972f6737b71787a8d2c8ce4231538ca9b1503da6d65722c5e554",
+    "tests/integration/.gitkeep": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "tests/service/.gitkeep": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "tests/unit/test_cli.py": "f1d72b629020a78f89f50b1b8ccdb01a69ac28fb2f2a4d80405f770bcb22b5f2",
+    "tests/unit/test_config.py": "9625b57c40407152e93bf39d4d518a2b735212efadd2a48804ed0abdefff9996",
+    "tests/unit/test_decoder.py": "b42c4d12b6f8149ebe87c294bd73da052e53d2aeedd834865ce941ce60c96888",
+    "tests/unit/test_dense.py": "346107a33eae54cdfd5b9a8bfb38017e95379338e6574049521b060c814d3d92",
+    "tests/unit/test_dense_workspace.py": "b555081e6f11029c3dddd70c54804ec21af618f6465696d1058eca725a091dc8",
+    "tests/unit/test_determinism.py": "4da0279f676caced156a2db72ebc0c691ff787f22ac15c9635e85d723835eefa",
+    "tests/unit/test_engine_types.py": "ea9c52b46ac60f72c0dc95ade581b799e2b6746d627c9334c4ba7e8ab11193f3",
+    "tests/unit/test_kv_cache.py": "ccdc8b1a2eaa95610e3790dc6683bdd38fc93337ea2bcb78bea069201ed2f204",
+    "tests/unit/test_kv_cache_properties.py": "4803bdd58b04100f8d5e84cf8518d1dbd939c8cfc42b26e9454ab2be1d55fd5e",
+    "tests/unit/test_measurements.py": "469ae30346ef880b1bbfadc58af72320f7597d3a658a0fda017c9df8fbddd00a",
+    "tests/unit/test_oracle.py": "b47f8f38a3988704da5bc5b2b11d9539728a0d86fba414f46cdfab4ef8f8166b",
+    "tests/unit/test_reference_fixtures.py": "13b2af5294380e4426f77f2955c217e4483418305360526cbbe22ea7984fe90d",
+    "tests/unit/test_t4_evidence.py": "4d5b142b9dfc22b6b318929e427287b3968838dcdba5742b87190d084f48b3fb",
+    "tests/unit/test_verification.py": "75df0ea776fd91478db64e74b0861be1cb9e49a1cbb8464fbff1ceeb49cfb2b1",
+    "tests/unit/test_weights.py": "5555b55d797ddd5020887016ff19f9b7dfb54432f09a95b17ffe42ab58ea64ae",
+    "scripts/.gitkeep": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "scripts/measure_dense_workspace.py": "4f3da204947fca357b23e6322d6f73d26e6c4bfa926ebf6f703057d90361dfbb",
+    "scripts/validate_t4.sh": "f955c4931dcd565ce28ba48e1e41b2777946faa670464eed8e5d1eb03ac63513",
+    "pyproject.toml": "55b3d48fd0a5297b3adea9b812bad4c561751c84d95e2d0d2d8a0b588ce78a71",
+    "uv.lock": "46700b60b0a8d492fc673aec8a0e12c27ae43124dd8e194f8c754dbd6ca7ea48"
+  },
+  "uv_lock_sha256": "46700b60b0a8d492fc673aec8a0e12c27ae43124dd8e194f8c754dbd6ca7ea48",
+  "environment": {
+    "python": "3.11.15",
+    "platform": "Windows",
+    "torch": "2.7.1+cpu",
+    "cuda_available": false,
+    "fresh_install": false
+  },
+  "commands": [
+    {
+      "command": ".venv/Scripts/python.exe -m ruff check .",
+      "exit_code": 0
+    },
+    {
+      "command": ".venv/Scripts/python.exe -m ruff format --check .",
+      "exit_code": 0,
+      "formatted_python_files": 43
+    },
+    {
+      "command": ".venv/Scripts/python.exe -m mypy --strict src/pagedcore",
+      "exit_code": 0,
+      "source_files": 12
+    },
+    {
+      "command": "uv lock --check",
+      "exit_code": 0
+    },
+    {
+      "command": ".venv/Scripts/python.exe -m pytest -m \"not gpu and not benchmark\" -ra --junitxml=results/validation/2026-10-27/cpu-tests.xml",
+      "environment": {
+        "HF_HUB_OFFLINE": "1",
+        "HYPOTHESIS_STORAGE_DIRECTORY": "results/local/hypothesis"
+      },
+      "exit_code": 0
+    }
+  ],
+  "pytest": {
+    "collected": 579,
+    "selected": 567,
+    "executed": 567,
+    "passed": 567,
+    "failed": 0,
+    "errors": 0,
+    "skipped": 0,
+    "deselected": 12,
+    "allocator_property_cases": 4,
+    "collector_cases": 57,
+    "junit": "cpu-tests.xml",
+    "junit_sha256": "3ebd68a12e23f95fd826feeafd0a2276fa3105979a34a81452c914d6372aba67"
+  },
+  "review_checks": {
+    "working_code_unchanged": true,
+    "original_t4_archive_crc_passed": true,
+    "manifest_git_blob_hashes_matched": 33,
+    "workspace_envelope_source_identity_matches_manifest": true,
+    "original_envelope_matches_junit": true,
+    "current_collector_exported_copy_of_original_reports": true
+  },
+  "limitations": [
+    "No new local T4 execution. The separate T4 ZIP validates clean commit 986392e with 554 CPU and 12 GPU passes.",
+    "Independent allocator property tests and the required-KV-test collector guard are newer CPU-validated changes absent from the T4 commit.",
+    "Current hosted CI and integrated paged attention, worker/service lifecycle and paged/batched/service memory gates are not certified by these CPU checks."
+  ]
+}

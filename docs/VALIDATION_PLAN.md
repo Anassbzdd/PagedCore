@@ -29,6 +29,17 @@ Start CI/T4 procedures immediately after environment implementation. Define meas
 
 Keep each gate in a reviewable commit or small series of commits. Do not optimize an incorrect forward pass.
 
+## Allocator gate status
+
+As of 2026-10-27, P4.1–P4.6 are complete at the allocator boundary. The
+[completion review](validation/2026-10-27-phase4-review.md) verifies the clean
+`986392e` T4 archive (554 CPU / 12 GPU passes, zero skips) against current runtime
+source. Newer independent property tests and collector guard regressions have
+[separate CPU evidence](../results/validation/2026-10-27/cpu-review.json).
+The current implementation gate is P5.1–P5.7: noncontiguous block-table decode
+attention, parity, workspace and safe page reuse. Worker cancellation and
+integrated paged/batched/service memory gates remain open.
+
 ## Evidence attribution
 
 For each completed gate retain a reviewed artifact under `results/validation/` identifying the gate, UTC capture time, implementation revision, source identity, lock SHA-256, actual sanitized arguments, setup record, resolved configuration, seeds, installed dependency versions, device identity and test report. Capture GPU name/UUID, selected CUDA device, compute capability, driver/runtime and relevant memory totals; distinguish CUDA-visible devices from physical inventory.
@@ -37,12 +48,13 @@ A Git revision alone does not identify dirty source. Retain sanitized difference
 
 Test reports must state collected, selected, executed, passed, failed and skipped counts/reasons. A successful process exit with no executed required GPU tests is insufficient. Environment reference verification and CUDA RNG repeatability are separate Phase 1 checks; neither substitutes for future custom-engine parity/lifecycle suites. Label CPU results explicitly and keep failed runs rather than replacing them with only a successful summary.
 
-The [October 26 collector review](validation/2026-10-26-p42-t4-review.md#findings-and-remaining-work)
-found that the required-test guard omits `test_kv_pool_storage_on_t4` and
-`test_kv_allocator_storage_and_stream_ownership_on_t4`. Both executed and passed
-in the October 25 archive. Requiring both names and testing rejection of their
-absence remain open code follow-ups; until fixed, inspect their actual execution
-in each report before accepting pool/allocator evidence.
+The collector requires `test_kv_pool_storage_on_t4` and
+`test_kv_allocator_storage_and_stream_ownership_on_t4` to execute and pass.
+The [October 26 review](validation/2026-10-26-p42-t4-review.md#findings-and-remaining-work)
+identified their omission from the earlier guard; both nevertheless passed in
+that archive. The [collector regressions](../tests/unit/test_t4_evidence.py)
+now reject either missing test, both missing tests, and skipped/failed/errored
+results for either test. Complete passing reports must still export successfully.
 
 ## Reference and numerical policy
 
@@ -57,8 +69,8 @@ every required config field, missing/extra tensors, shape/dtype errors, untied
 mapping and non-finite conversion. Small real safetensors fixtures test I/O;
 their reduced dimensions do not prove pinned-checkpoint or GPU correctness.
 The [P3.1 CPU report](../results/validation/2026-10-14-p3.1-cpu.json) separately
-records loading all real pinned weights on CPU. Subsequent dense parity tests
-must use these owned weights on T4; CPU weight loading does not close Phase 3.
+records loading all real pinned weights on CPU. Dense parity tests use these owned weights on T4; CPU weight loading alone
+does not establish checkpoint parity.
 
 The [dense components](../src/pagedcore/dense.py) have
 [synthetic CPU tests](../tests/unit/test_dense.py) for projection/head layout,
@@ -79,9 +91,8 @@ Lengths 1/15/16/17/49 exercise orchestration; a synthetic 2,047-position cache
 exercises the last decode position and overflow rejection, not maximum-prefill
 workspace. The [P3.3 CPU report](../results/validation/2026-10-16-p3.3-cpu.json)
 retains local commands and source identity. These reduced-depth random-weight
-tests do not prove real-checkpoint layer/greedy parity. Layer-by-layer T4 checks,
-exact greedy parity, a measured tolerance envelope and workspace evidence remain
-required.
+tests do not prove real-checkpoint layer/greedy parity. The separate T4 checks
+and evidence below close those dense decoder requirements.
 
 The [layer-comparison fixture](../tests/conftest.py) snapshots every decoder
 layer's input/post-attention norms, projected attention, MLP and residual output,
@@ -167,8 +178,8 @@ tolerance ratio across the five prompts, all 22 layers and four forwards per
 prompt. The review checks every measurement label, recomputes maxima and verifies
 source/lock/collector/fixture hashes, JSON/JUnit agreement and environment identity.
 The bundle retains 401 passing CPU tests and ten passing GPU cases without skips.
-This is the observed envelope for the recorded T4/math configuration; dense
-maximum-path workspace remains the separate P3.7 gate.
+This is the observed envelope for the recorded T4/math configuration. The
+separate P3.7 workspace gate is satisfied by the October 21 evidence below.
 
 ### Dense workspace
 
@@ -309,8 +320,10 @@ reports under `results/validation/` for gate acceptance; the default local artif
 are ignored. The retained [October 12 T4 archive](../results/validation/2026-10-07-t4/p2.4-evidence.zip)
 contains an executed oracle test and two pinned FP16 captures with exact reference
 repeatability. The [evidence review](../results/validation/2026-10-12-t4-evidence-review.json)
-records source identity and remaining limits: the installer history and CUDA-visible
-device count for that run are unknown. It does not close the full evidence contract.
+records that historical run's source identity and limits: installer history and
+CUDA-visible device count are unknown. The later October 13 and October 27
+archives retain complete setup and selected-device attribution; see
+[current evidence](STATUS.md#saved-t4-observations).
 
 From a clean checkout on Linux with an actual T4, Git and `uv` available, run:
 
@@ -320,7 +333,7 @@ bash scripts/validate_t4.sh
 
 This [collector](../scripts/validate_t4.sh) logs frozen environment setup, source/lock
 identity, physical GPU inventory and the single selected CUDA-visible T4. It runs
-the CPU checks, separate no-pool and pool-pressure dense recording, all ten required GPU cases,
+the CPU checks, separate no-pool and pool-pressure dense recording, all 12 required GPU cases,
 reference capture and comparison, then
 creates a ZIP under `results/local/`. A failed run leaves its raw directory intact;
 no successful bundle is accepted with missing or skipped required GPU tests. Review
@@ -378,8 +391,9 @@ before worker termination or while the worker outcome is still unknown; invalid
 transport timestamps and termination before arrival fail. This is initial analyzer
 arithmetic, not worker instrumentation or the later external benchmark client.
 The [T4 reference test](../tests/gpu/test_oracle_reference.py)
-has executed in the retained archive; the remaining setup attribution and current
-validation procedure still require closure before accepting the complete gate.
+has executed in the retained archives. The October 27 review verifies fresh
+setup, source/lock identity and selected-device attribution for the current
+allocator runtime. Later paged/service tests remain separate requirements.
 
 ### Public reference fixtures
 

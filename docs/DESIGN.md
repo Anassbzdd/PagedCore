@@ -3,8 +3,9 @@ Purpose: Record the architecture, memory rules, and technical decisions that imp
 # PagedCore Technical Design
 
 This is the required target architecture. Owned weights, dense math components,
-single-sequence contiguous prefill/decode, the KV pool and its basic allocator
-exist. Paged attention, the worker and HTTP components remain planned.
+single-sequence contiguous prefill/decode, the KV pool and its reservation-aware
+allocator exist. Phase 4 allocator validation is complete; the current gate is
+Phase 5 block-table decode attention. The worker and HTTP components remain planned.
 [STATUS.md](STATUS.md) distinguishes delivered code from evidence and planned work.
 
 ## Core design decision
@@ -157,8 +158,9 @@ Reserved credits include already-owned blocks. Unassigned reserved capacity is `
 `CapacityCounts` validates nonnegative integer counts and the first two equations
 when a consistent snapshot is constructed. It does not inspect free lists, block
 tables, request reservations, configured active limits, or valid cached positions.
-Add those concrete assertions in the allocator (P4) and worker (P6), including
-uniqueness of physical block ownership and zero ownership for pending requests.
+The allocator now checks concrete free-list, table and ownership invariants.
+Worker assertions for active limits and pending exclusion remain planned,
+including zero ownership for pending requests.
 Here, active requests include admitted terminal requests awaiting cleanup.
 
 The metrics name `occupied_blocks` means the same count as ledger `owned_blocks`; it is not an additional resource category.
