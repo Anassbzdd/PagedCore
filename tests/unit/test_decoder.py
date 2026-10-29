@@ -11,9 +11,17 @@ from transformers import LlamaConfig, LlamaForCausalLM
 from transformers.models.llama.modeling_llama import LlamaRotaryEmbedding
 
 import pagedcore.decoder as decoder_module
-from pagedcore.decoder import ContiguousCache, GreedyResult, decode, generate, prefill
+from pagedcore.decoder import (
+    ContiguousCache,
+    GreedyResult,
+    decode,
+    generate,
+    prefill,
+    prefill_paged,
+)
 from pagedcore.dense import apply_rope, project_qkv, rms_norm
-from pagedcore.engine_types import FinishReason
+from pagedcore.engine_types import CapacityCounts, FinishReason, KVReservation, RequestId
+from pagedcore.kv_cache import KVAllocator
 from pagedcore.weights import LayerWeights, TinyLlamaWeights
 
 pytestmark = pytest.mark.unit
@@ -92,6 +100,152 @@ def test_prefill_matches_synthetic_hf_and_caches_prompt(
     _, rotated = apply_rope(query, key, torch.arange(tokens)[None])
     torch.testing.assert_close(cache.layers[0][0], rotated, atol=0, rtol=0)
     torch.testing.assert_close(cache.layers[0][1], value, atol=0, rtol=0)
+
+
+@pytest.fixture(scope="module")
+def paged_weights(decoder: SimpleNamespace) -> TinyLlamaWeights:
+    # Repeat synthetic layers to exercise the real pool's 22-layer layout.
+    return replace(decoder.weights, layers=decoder.weights.layers * 11)
+
+
+@pytest.mark.parametrize("tokens", [1, 15, 16, 17, 49])
+def test_paged_prefill_writes_absolute_positions_to_reused_fragmented_pages(
+    paged_weights: TinyLlamaWeights, tokens: int
+) -> None:
+    pool = torch.full((22, 2, 6, 16, 4, 64), torch.nan, dtype=torch.float16)
+    allocator = KVAllocator(pool)
+    for name in ("released_first", "retained", "released_last"):
+        request = RequestId(name)
+        allocator.create(KVReservation(request, 1))
+        key = torch.full((22, 16, 4, 64), -100.0, dtype=torch.float16)
+        allocator.append(request, key, -key)
+    allocator.release_all(RequestId("released_first"))
+    allocator.release_all(RequestId("released_last"))
+    request = RequestId("prompt")
+    blocks = (tokens + 15) // 16
+    allocator.create(KVReservation(request, blocks))
+    before = pool.clone()
+    pointer = pool.untyped_storage().data_ptr()
+    ids = torch.arange(tokens)[None] % 31
+    expected_logits, expected_cache = prefill(ids, paged_weights)
+
+    logits = prefill_paged(ids, paged_weights, allocator, request)
+
+    torch.testing.assert_close(logits, expected_logits, atol=0, rtol=0)
+    assert logits.dtype == torch.float16 and not logits.requires_grad
+    assert pool.untyped_storage().data_ptr() == pointer
+    assert allocator.block_table(request) == (2, 0, 3, 4)[:blocks]
+    assert allocator.cached_length(request) == tokens
+    assert allocator.capacity() == CapacityCounts(
+        6, 5 - blocks, blocks + 1, blocks + 1, 2, tokens + 16
+    )
+    for logical, physical in enumerate(allocator.block_table(request)):
+        start = logical * 16
+        valid = min(16, tokens - start)
+        for layer, (key, value) in enumerate(expected_cache.layers):
+            torch.testing.assert_close(
+                pool[layer, 0, physical, :valid],
+                key[0, :, start : start + valid].transpose(0, 1),
+                atol=0,
+                rtol=0,
+            )
+            torch.testing.assert_close(
+                pool[layer, 1, physical, :valid],
+                value[0, :, start : start + valid].transpose(0, 1),
+                atol=0,
+                rtol=0,
+            )
+        torch.testing.assert_close(
+            pool[:, :, physical, valid:], before[:, :, physical, valid:], equal_nan=True
+        )
+    for physical in set(range(6)) - set(allocator.block_table(request)):
+        torch.testing.assert_close(pool[:, :, physical], before[:, :, physical], equal_nan=True)
+    allocator.release_all(request)
+    allocator.release_all(RequestId("retained"))
+    assert allocator.capacity() == CapacityCounts(6, 6, 0, 0, 0, 0)
+
+
+@pytest.mark.parametrize("state", ["unknown", "populated", "released"])
+def test_paged_prefill_requires_an_admitted_empty_cache_before_running_model(
+    paged_weights: TinyLlamaWeights, monkeypatch: pytest.MonkeyPatch, state: str
+) -> None:
+    pool = torch.zeros((22, 2, 1, 16, 4, 64), dtype=torch.float16)
+    allocator = KVAllocator(pool)
+    request = RequestId("prompt")
+    if state != "unknown":
+        allocator.create(KVReservation(request, 1))
+        key = torch.ones((22, 1, 4, 64), dtype=torch.float16)
+        allocator.append(request, key, -key)
+        if state == "released":
+            allocator.release_all(request)
+    before = allocator.capacity()
+    snapshot = pool.clone()
+
+    def unexpected_prefill(*args: Any) -> None:
+        pytest.fail("invalid request cache must fail before running the model")
+
+    monkeypatch.setattr(decoder_module, "prefill", unexpected_prefill)
+    error = ValueError if state == "populated" else KeyError
+    with pytest.raises(error):
+        prefill_paged(torch.tensor([[1]]), paged_weights, allocator, request)
+    assert allocator.capacity() == before
+    assert torch.equal(pool, snapshot)
+
+
+@pytest.mark.parametrize("fault", ["input", "layers", "reservation", "forward", "copy"])
+def test_paged_prefill_failure_preserves_admission_and_allows_retry(
+    paged_weights: TinyLlamaWeights, monkeypatch: pytest.MonkeyPatch, fault: str
+) -> None:
+    pool = torch.full((22, 2, 2, 16, 4, 64), torch.nan, dtype=torch.float16)
+    allocator = KVAllocator(pool)
+    request = RequestId("prompt")
+    allocator.create(KVReservation(request, 1 if fault == "reservation" else 2))
+    before = allocator.capacity()
+    ids = torch.arange(17)[None] % 31
+    weights = paged_weights
+    copy = torch.Tensor.copy_
+    calls = 0
+
+    def failing_copy(destination: Tensor, source: Tensor) -> Tensor:
+        nonlocal calls
+        calls += 1
+        if calls == 2:
+            raise RuntimeError("injected copy failure")
+        return copy(destination, source)
+
+    def failing_attention(*args: Any) -> Tensor:
+        raise RuntimeError("injected attention failure")
+
+    with monkeypatch.context() as patch:
+        if fault == "input":
+            ids = torch.empty((1, 0), dtype=torch.int64)
+        elif fault == "layers":
+            weights = replace(weights, layers=weights.layers[:2])
+        elif fault == "forward":
+            patch.setattr(decoder_module, "dense_attention", failing_attention)
+        elif fault == "copy":
+            patch.setattr(torch.Tensor, "copy_", failing_copy)
+        with pytest.raises(ValueError if fault in ("input", "layers") else RuntimeError):
+            prefill_paged(ids, weights, allocator, request)
+    assert allocator.capacity() == before
+    assert allocator.cached_length(request) == 0
+    assert allocator.block_table(request) == ()
+    if fault != "copy":
+        assert torch.isnan(pool).all()
+    # Even a failed V copy may leave unpublished K slots; retry must overwrite them.
+    ids = torch.tensor([[7, 9, 11]])
+    logits = prefill_paged(ids, paged_weights, allocator, request)
+    expected, cache = prefill(ids, paged_weights)
+    torch.testing.assert_close(logits, expected, atol=0, rtol=0)
+    key, value = allocator.read_block(request, 0)
+    for layer, (expected_key, expected_value) in enumerate(cache.layers):
+        torch.testing.assert_close(key[layer], expected_key[0].transpose(0, 1), atol=0, rtol=0)
+        torch.testing.assert_close(value[layer], expected_value[0].transpose(0, 1), atol=0, rtol=0)
+    assert allocator.capacity() == replace(
+        before, free_blocks=1, owned_blocks=1, live_cached_token_slots=3
+    )
+    allocator.release_all(request)
+    assert allocator.capacity() == CapacityCounts(2, 2, 0, 0, 0, 0)
 
 
 @pytest.mark.parametrize(

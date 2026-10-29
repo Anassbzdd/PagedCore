@@ -1,4 +1,4 @@
-"""Single-sequence dense forwards for correctness validation before paged storage."""
+"""Single-sequence dense forwards and prompt writes into paged KV storage."""
 
 from __future__ import annotations
 
@@ -17,7 +17,8 @@ from pagedcore.dense import (
     rms_norm,
     swiglu,
 )
-from pagedcore.engine_types import FinishReason
+from pagedcore.engine_types import FinishReason, RequestId
+from pagedcore.kv_cache import KVAllocator
 from pagedcore.weights import TinyLlamaWeights
 
 
@@ -27,8 +28,9 @@ class ContiguousCache:
 
     Treat tensors as read-only and reuse a cache only with the weights that made
     it. Decode returns a new cache, so a failed forward cannot partially append
-    to the caller's history. This full-history storage is for dense validation;
-    paged decode must replace its append and attention operations together.
+    to the caller's history. This full-history storage supports dense validation
+    and temporary prompt prefill; paged decode must replace its append and
+    attention operations together.
     """
 
     layers: tuple[tuple[Tensor, Tensor], ...]
@@ -104,6 +106,31 @@ def prefill(input_ids: Tensor, weights: TinyLlamaWeights) -> tuple[Tensor, Conti
     is cached until the caller feeds it to decode.
     """
     return _forward(input_ids, weights, cache=None)
+
+
+@torch.inference_mode()
+def prefill_paged(
+    input_ids: Tensor,
+    weights: TinyLlamaWeights,
+    allocator: KVAllocator,
+    request_id: RequestId,
+) -> Tensor:
+    """Prefill one admitted, empty request; return all prompt logits.
+
+    Temporary dense K/V use absolute prompt positions starting at zero. Only K
+    is RoPE-rotated. Publish the complete prompt through the allocator after the
+    forward succeeds; the caller retains reservation and cleanup ownership on
+    failure. No contiguous cache escapes this call.
+    """
+    if allocator.cached_length(request_id) != 0:
+        raise ValueError("paged prefill requires an empty request cache")
+    if len(weights.layers) != 22:
+        raise ValueError("paged prefill requires 22 decoder layers")
+    logits, cache = prefill(input_ids, weights)
+    key = torch.stack([key[0].transpose(0, 1) for key, _ in cache.layers])
+    value = torch.stack([value[0].transpose(0, 1) for _, value in cache.layers])
+    allocator.append(request_id, key, value)
+    return logits
 
 
 @torch.inference_mode()

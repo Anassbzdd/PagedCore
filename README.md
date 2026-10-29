@@ -12,8 +12,9 @@ reservation-aware GPU KV allocator have reviewed T4 correctness evidence. The
 and 12 GPU passes with zero skips at clean commit `986392e`; newer allocator
 property tests and collector guards are validated separately on CPU.
 
-The current gate is **Phase 5: block-table decode attention**. The decoder still
-uses contiguous KV; paged attention, continuous batching, the worker and HTTP/SSE
+The current gate is **Phase 5: block-table decode attention**. Prompt writes into
+paged storage have synthetic CPU coverage as of October 28; decode still uses
+contiguous KV. Paged attention, continuous batching, the worker and HTTP/SSE
 service remain planned. Pool/batched/service memory safety and performance
 comparisons are also pending. See [current status](docs/STATUS.md) for evidence
 boundaries and [the phase map](docs/VALIDATION_PLAN.md#build-order) for next steps.

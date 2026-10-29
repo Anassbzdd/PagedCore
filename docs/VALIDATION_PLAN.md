@@ -40,6 +40,13 @@ The current implementation gate is P5.1–P5.7: noncontiguous block-table decode
 attention, parity, workspace and safe page reuse. Worker cancellation and
 integrated paged/batched/service memory gates remain open.
 
+As of 2026-10-28, `decoder.prefill_paged` transfers one prompt's rotated K and
+unrotated V from the owned dense forward into the admitted request's pages.
+[Synthetic CPU tests](../tests/unit/test_decoder.py) cover absolute prompt
+positions across page boundaries, shuffled/reused storage, isolation and
+unpublished state after failures. T4 execution of this integration is pending;
+this does not establish block-table decode, paged parity or workspace safety.
+
 ## Evidence attribution
 
 For each completed gate retain a reviewed artifact under `results/validation/` identifying the gate, UTC capture time, implementation revision, source identity, lock SHA-256, actual sanitized arguments, setup record, resolved configuration, seeds, installed dependency versions, device identity and test report. Capture GPU name/UUID, selected CUDA device, compute capability, driver/runtime and relevant memory totals; distinguish CUDA-visible devices from physical inventory.
@@ -50,6 +57,10 @@ Test reports must state collected, selected, executed, passed, failed and skippe
 
 The collector requires `test_kv_pool_storage_on_t4` and
 `test_kv_allocator_storage_and_stream_ownership_on_t4` to execute and pass.
+It also requires `test_pinned_paged_prefill_on_t4`, which compares the pinned
+checkpoint's prompt logits and every layer's paged K/V against eager HF at
+1/15/16/17/49 tokens, with shuffled/reused pages, isolation and release checks.
+That test is prepared but has no retained T4 execution result yet.
 The [October 26 review](validation/2026-10-26-p42-t4-review.md#findings-and-remaining-work)
 identified their omission from the earlier guard; both nevertheless passed in
 that archive. The [collector regressions](../tests/unit/test_t4_evidence.py)
@@ -333,7 +344,7 @@ bash scripts/validate_t4.sh
 
 This [collector](../scripts/validate_t4.sh) logs frozen environment setup, source/lock
 identity, physical GPU inventory and the single selected CUDA-visible T4. It runs
-the CPU checks, separate no-pool and pool-pressure dense recording, all 12 required GPU cases,
+the CPU checks, separate no-pool and pool-pressure dense recording, all 13 required GPU cases,
 reference capture and comparison, then
 creates a ZIP under `results/local/`. A failed run leaves its raw directory intact;
 no successful bundle is accepted with missing or skipped required GPU tests. Review

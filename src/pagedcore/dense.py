@@ -71,7 +71,7 @@ def dense_attention(query: Tensor, key: Tensor, value: Tensor, causal_mask: Tens
 
     Every query must have at least one allowed key. The caller supplies causality
     from absolute positions; a single decode query must not use a top-left mask.
-    This full-history expansion is only for the dense correctness path.
+    Full-history expansion is allowed for prompt prefill and the dense baseline.
     """
     if causal_mask.dtype != torch.bool:
         raise ValueError("causal_mask must be boolean with True for allowed keys")
