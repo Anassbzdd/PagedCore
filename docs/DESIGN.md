@@ -3,9 +3,11 @@ Purpose: Record the architecture, memory rules, and technical decisions that imp
 # PagedCore Technical Design
 
 This is the required target architecture. Owned weights, dense math components,
-single-sequence contiguous prefill/decode, the KV pool and its reservation-aware
-allocator exist. Phase 4 allocator validation is complete; the current gate is
-Phase 5 block-table decode attention. The worker and HTTP components remain planned.
+single-sequence contiguous prefill/decode, prompt writes into paged storage, the
+KV pool, its reservation-aware allocator and a single-query paged attention
+primitive exist. Phase 4 allocator validation is complete; the current gate is
+Phase 5 block-table decode attention. Batched decode, the worker and HTTP
+components remain planned.
 [STATUS.md](STATUS.md) distinguishes delivered code from evidence and planned work.
 
 ## Core design decision
@@ -41,9 +43,9 @@ FP32 softmax rounded to FP16 before multiplying V, matching the oracle's operati
 order. Callers supply valid absolute positions and a boolean causal mask with at
 least one allowed key per query, and run under inference mode.
 
-Dense attention expands KV heads over contiguous tensors only for correctness
-validation. It is replaceable by block-table attention; the paged decode path must
-not use this full-history expansion. These stateless components do not own a
+Dense attention expands KV heads over contiguous tensors for prompt prefill and
+the correctness baseline. It is replaceable by block-table attention; the paged
+decode path must not use this full-history expansion. These stateless components do not own a
 cache or implement prefill/decode orchestration or generation. Synthetic CPU
 component tests are not pinned-checkpoint or T4 parity evidence.
 
@@ -69,6 +71,48 @@ dense attention must be replaced together for paged decode; neither concatenatio
 nor full-history KV-head expansion is permitted in that path. The prefill/decode
 boundary takes IDs and returns logits/cache without any Transformers cache API.
 Synthetic CPU orchestration tests do not close the T4 parity or workspace gate.
+
+### Prefill into paged storage
+
+`decoder.prefill_paged` accepts the same prompt IDs and owned weights, plus an
+allocator and the ID of an already admitted request with an empty cache. It uses
+the existing prompt forward at absolute positions `0..prompt_tokens-1`, then
+transposes and stacks each layer's rotated K and unrotated V into
+`[22, prompt_tokens, 4, 64]` tensors for one allocator `append`. The allocator
+maps logical positions to physical pages and publishes the prompt length only
+after issuing all writes. The function returns all prompt logits; temporary
+contiguous K/V remain local to the call. The first selected output token is not
+cached by prefill.
+
+Unknown, released or populated request caches are rejected. Forward failures
+publish no KV; synchronous copy failures preserve the allocator's existing
+accounting guarantees, with unpublished slots overwritten before reuse. Admission
+and cleanup remain the caller's responsibility on success and failure. Synthetic
+[CPU tests](../tests/unit/test_decoder.py) compare all layers against dense
+prefill at lengths 1/15/16/17/49 using shuffled, reused pages while another request
+retains KV. This is prompt-write coverage, not T4 parity, block-table decode or
+integrated workspace evidence.
+
+### Blockwise decode attention
+
+[`attention.paged_attention`](../src/pagedcore/attention.py) accepts a rotated FP16
+`[1, 32, 1, 64]` query, an allocator, a request ID and a layer index. The caller
+must have appended the current token, so all published slots are causally visible.
+It reads valid pages through `read_block` in logical order, including only valid
+slots in the final page. Eight consecutive query heads share each KV head without
+expanding the full history. Reads use the allocator's owning thread and stream;
+attention does not mutate cache storage or accounting.
+
+Score products, the running maximum, softmax denominator and weighted-value sum
+use FP32 with autocast disabled. When a page raises the running maximum, the
+previous denominator and weighted sum are rescaled before adding that page's
+contribution. This keeps all pages on the same exponential scale without
+retaining their scores or copying full-history K/V. Only the normalized output
+is converted to FP16, retaining `[1, 32, 1, 64]` layout. Synthetic
+[CPU tests](../tests/unit/test_attention.py) cover boundary lengths through 2,048,
+head mapping, large scores, autocast and read-only ownership. Batched decoder
+integration, pinned-checkpoint/T4 parity, decode traces and workspace evidence
+remain pending.
 
 ### Dense greedy generation
 
@@ -186,7 +230,7 @@ before writing. `block_table` returns an immutable tuple;
 Treat these views as read-only and discard them before changing that request's
 cache. `release_all` returns its physical blocks and removes its credits, cached
 length and active slot without freeing the pool; an unknown or already released
-request raises `KeyError`. Decoder/worker cleanup integration remains unimplemented.
+request raises `KeyError`. Worker cleanup integration remains unimplemented.
 
 Reservations larger than the entire pool or the 128 blocks addressable by the
 2,048-token context raise `ValueError`; temporarily insufficient unreserved
