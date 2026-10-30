@@ -97,6 +97,7 @@ required = {
     "test_seed_everything_repeats_cuda_random_streams",
     "test_public_reference_capture_and_repeatability_on_t4",
     "test_pinned_decoder_layer_parity_on_t4",
+    "test_pinned_paged_prefill_on_t4",
     "test_kv_pool_storage_on_t4",
     "test_kv_allocator_storage_and_stream_ownership_on_t4",
 }
