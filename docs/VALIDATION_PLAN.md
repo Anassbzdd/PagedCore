@@ -44,8 +44,10 @@ As of 2026-10-28, `decoder.prefill_paged` transfers one prompt's rotated K and
 unrotated V from the owned dense forward into the admitted request's pages.
 [Synthetic CPU tests](../tests/unit/test_decoder.py) cover absolute prompt
 positions across page boundaries, shuffled/reused storage, isolation and
-unpublished state after failures. T4 execution of this integration is pending;
-this does not establish block-table decode, paged parity or workspace safety.
+unpublished state after failures. The [October 30 review](validation/2026-10-30-p52-t4-review.md)
+verifies this integration on T4 at clean `922588b`; it does not establish
+block-table decode, paged-attention parity or workspace safety. P5.2 remains
+CPU-validated: its new CUDA primitive tests await a retained T4 run.
 
 ## Evidence attribution
 
@@ -60,12 +62,19 @@ The collector requires `test_kv_pool_storage_on_t4` and
 It also requires `test_pinned_paged_prefill_on_t4`, which compares the pinned
 checkpoint's prompt logits and every layer's paged K/V against eager HF at
 1/15/16/17/49 tokens, with shuffled/reused pages, isolation and release checks.
-That test is prepared but has no retained T4 execution result yet.
+That test passed in the [October 30 archive review](validation/2026-10-30-p52-t4-review.md).
+The collector also requires `test_paged_attention_boundaries_on_t4` and
+`test_paged_attention_large_scores_on_t4` from
+[the CUDA attention suite](../tests/gpu/test_attention_cuda.py). These directly
+call the primitive with CUDA tensors and compare against independent FP64 CPU
+attention at the existing `atol=rtol=2e-3`, including shuffled pages, long context,
+head mapping, large scores, autocast and read-only accounting. Their T4 execution
+is pending; the October 30 archive predates these tests.
 The [October 26 review](validation/2026-10-26-p42-t4-review.md#findings-and-remaining-work)
-identified their omission from the earlier guard; both nevertheless passed in
-that archive. The [collector regressions](../tests/unit/test_t4_evidence.py)
-now reject either missing test, both missing tests, and skipped/failed/errored
-results for either test. Complete passing reports must still export successfully.
+identified the two KV tests' omission from the earlier guard; both nevertheless
+passed in that archive. The [collector regressions](../tests/unit/test_t4_evidence.py)
+now reject missing KV, paged-prefill or attention tests and skipped/failed/errored
+results. Complete passing reports must still export successfully.
 
 ## Reference and numerical policy
 
@@ -344,7 +353,7 @@ bash scripts/validate_t4.sh
 
 This [collector](../scripts/validate_t4.sh) logs frozen environment setup, source/lock
 identity, physical GPU inventory and the single selected CUDA-visible T4. It runs
-the CPU checks, separate no-pool and pool-pressure dense recording, all 13 required GPU cases,
+the CPU checks, separate no-pool and pool-pressure dense recording, all 15 required GPU cases,
 reference capture and comparison, then
 creates a ZIP under `results/local/`. A failed run leaves its raw directory intact;
 no successful bundle is accepted with missing or skipped required GPU tests. Review

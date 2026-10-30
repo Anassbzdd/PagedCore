@@ -23,6 +23,8 @@ def gpu_report() -> ET.Element:
         "test_public_reference_capture_and_repeatability_on_t4",
         "test_pinned_decoder_layer_parity_on_t4",
         "test_pinned_paged_prefill_on_t4",
+        "test_paged_attention_boundaries_on_t4",
+        "test_paged_attention_large_scores_on_t4",
         "test_kv_pool_storage_on_t4",
         "test_kv_allocator_storage_and_stream_ownership_on_t4",
     ]
@@ -55,8 +57,17 @@ def _run_collector(directory: Path) -> subprocess.CompletedProcess[str]:
         ("test_kv_allocator_storage_and_stream_ownership_on_t4",),
         ("test_kv_pool_storage_on_t4", "test_kv_allocator_storage_and_stream_ownership_on_t4"),
         ("test_pinned_paged_prefill_on_t4",),
+        ("test_paged_attention_boundaries_on_t4",),
+        ("test_paged_attention_large_scores_on_t4",),
     ],
-    ids=["missing_pool", "missing_allocator", "missing_both", "missing_paged_prefill"],
+    ids=[
+        "missing_pool",
+        "missing_allocator",
+        "missing_both",
+        "missing_paged_prefill",
+        "missing_attention_boundaries",
+        "missing_attention_large_scores",
+    ],
 )
 def test_collector_rejects_missing_kv_tests(
     tmp_path: Path, gpu_report: ET.Element, missing_tests: tuple[str, ...]
@@ -80,6 +91,8 @@ def test_collector_rejects_missing_kv_tests(
         "test_kv_pool_storage_on_t4",
         "test_kv_allocator_storage_and_stream_ownership_on_t4",
         "test_pinned_paged_prefill_on_t4",
+        "test_paged_attention_boundaries_on_t4",
+        "test_paged_attention_large_scores_on_t4",
     ],
 )
 @pytest.mark.parametrize("outcome", ["skipped", "failure", "error"])
