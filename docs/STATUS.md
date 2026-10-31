@@ -41,6 +41,15 @@ failure. These lifecycle requirements remain in Phases 5–8.
 
 ## Current CPU evidence
 
+On 2026-10-31, the local fix on top of `9fa2f2f` restores the missing
+`KVAllocator.iter_layer_blocks` body and corrects its formatting. Before the fix,
+the existing staged-layer visibility and per-page worker ownership tests both
+failed because the method returned `None`. After the fix, **641 CPU tests pass,
+15 GPU cases are deselected, and zero tests skip**; the local/ignored JUnit report
+is `results/local/p53-iterator-fix-cpu.xml`. Ruff formatting/lint, strict mypy and
+`git diff --check` pass. This is CPU-only evidence; the corrected iterator and
+integrated batched decoder still require T4 validation.
+
 The 2026-10-30 local working-tree run passed **641 CPU tests, with 15 GPU cases
 deselected and zero skips**. This includes 17 new
 [batched-decode cases](../tests/unit/test_decoder.py) and seven new

@@ -246,9 +246,28 @@ class KVAllocator:
         append.written_layers += 1
 
     def iter_layer_blocks(
-            self, request_id: RequestId, *, layer_index: int
-        ) -> Iterator[tuple[Tensor, Tensor]]:
-            """Borrow valid [slots, 4, 64] pages, including a completed staged layer."""
+        self, request_id: RequestId, *, layer_index: int
+    ) -> Iterator[tuple[Tensor, Tensor]]:
+        """Borrow valid [slots, 4, 64] pages, including a completed staged layer."""
+        self._check_worker()
+        self._assert_accounting()
+        if type(layer_index) is not int or not 0 <= layer_index < 22:
+            raise ValueError("layer_index must identify one of the 22 decoder layers")
+        sequence = self._sequences[request_id]
+        if self._decode_appends is not None and request_id in self._decode_appends:
+            append = self._decode_appends[request_id]
+            if layer_index >= append.written_layers:
+                raise RuntimeError("cannot read an unwritten decode layer")
+            sequence = append.sequence
+        if sequence.length == 0:
+            raise ValueError("attention requires a nonempty cache")
+        for logical_block, physical_block in enumerate(sequence.blocks):
+            self._check_worker()
+            valid = min(16, sequence.length - logical_block * 16)
+            yield (
+                self._pool[layer_index, 0, physical_block, :valid],
+                self._pool[layer_index, 1, physical_block, :valid],
+            )
 
     def read_block(self, request_id: RequestId, logical_block: int) -> tuple[Tensor, Tensor]:
         """Borrow K/V views [22, valid slots, 4, 64] for one logical block."""
