@@ -8,7 +8,8 @@ There are no serving benchmarks or vLLM comparison results yet.
 
 | Scope | Retained evidence | Boundary |
 |---|---|---|
-| Paged prefill and attention boundary | [October 30 review](../docs/validation/2026-10-30-p52-t4-review.md) and [T4 archive](validation/2026-10-30/t4-20261030T172045Z.zip) | Clean `922588b`: 609 CPU / 13 GPU passes, zero skips; paged prefill passed on T4, attention primitive ran only on CPU; new CUDA attention tests await execution |
+| Standalone paged attention completion | [October 31 review](../docs/validation/2026-10-31-p52-t4-review.md), [structured audit](validation/2026-10-31/p52-t4-review.json) and both linked T4 archives | Clean `3401406`: each run passes 617 CPU / 15 GPU cases, zero failures/errors/skips; both explicit CUDA attention tests pass. Later staged-layer/batched decode changes are outside this evidence |
+| Paged prefill | [October 30 review](../docs/validation/2026-10-30-p52-t4-review.md) and [T4 archive](validation/2026-10-30/t4-20261030T172045Z.zip) | Clean `922588b`: 609 CPU / 13 GPU passes, zero skips; pinned paged prefill passed on T4; this older run predates the explicit CUDA attention tests |
 | Phase 4 allocator completion | [October 27 review](../docs/validation/2026-10-27-phase4-review.md) and [T4 archive](validation/2026-10-27/t4-20261027T200933Z.zip) | Clean `986392e`: 554 CPU / 12 GPU passes, zero skips; current allocator runtime, small-pool T4 accounting/failure/reuse checks, dense parity and workspace probes |
 | Current working-tree CPU checks | [CPU report](validation/2026-10-27/cpu-review.json) and [JUnit](validation/2026-10-27/cpu-tests.xml) | Includes newer independent allocator property tests and collector guard regressions; no local GPU execution |
 | Dense tolerance envelope | [October 20 review](validation/2026-10-20-t4/review.json) and [archive](validation/2026-10-20-t4/pagedcore-p36-t4.zip) | Original Phase 3 tolerance gate; later archives repeat these checks |

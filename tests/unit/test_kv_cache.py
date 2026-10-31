@@ -341,6 +341,90 @@ def test_allocator_rejects_context_overflow_before_writing() -> None:
     torch.testing.assert_close(actual_value, last_value, atol=0, rtol=0)
 
 
+def test_decode_append_exposes_only_written_layers_and_commits_together() -> None:
+    pool = torch.full((22, 2, 4, 16, 4, 64), torch.nan, dtype=torch.float16)
+    allocator = KVAllocator(pool)
+    requests = (RequestId("first"), RequestId("second"))
+    for request in requests:
+        allocator.create(KVReservation(request, 2))
+        allocator.append(request, *_kv_values(16))
+    counts = allocator.capacity()
+    tables = [allocator.block_table(request) for request in requests]
+    key, value = _kv_values(1, start=100)
+    with allocator.append_decode(requests):
+        with pytest.raises(RuntimeError, match="unwritten"):
+            list(allocator.iter_layer_blocks(requests[0], layer_index=0))
+        for operation in (
+            lambda: allocator.create(KVReservation(RequestId("other"), 1)),
+            lambda: allocator.append(requests[0], key, value),
+            lambda: allocator.release_all(requests[0]),
+            lambda: allocator.append_decode(requests).__enter__(),
+        ):
+            with pytest.raises(RuntimeError, match="staged decode"):
+                operation()
+        for layer in range(22):
+            for request in requests:
+                allocator.write_decode_layer(request, layer, key[layer, 0], value[layer, 0])
+                pages = list(allocator.iter_layer_blocks(request, layer_index=layer))
+                assert len(pages) == 2
+                torch.testing.assert_close(pages[1][0], key[layer], atol=0, rtol=0)
+                torch.testing.assert_close(pages[1][1], value[layer], atol=0, rtol=0)
+                # Public length/table/accounting remain at the committed boundary.
+                assert allocator.cached_length(request) == 16
+                assert allocator.capacity() == counts
+        for request, table in zip(requests, tables, strict=True):
+            assert allocator.block_table(request) == table
+            assert allocator.read_block(request, 0)[0].shape[1] == 16
+    assert allocator.capacity() == CapacityCounts(4, 0, 4, 4, 2, 34)
+    for request in requests:
+        assert allocator.cached_length(request) == 17
+        allocator.release_all(request)
+    assert allocator.capacity() == CapacityCounts(4, 4, 0, 0, 0, 0)
+
+
+@pytest.mark.parametrize("fault", ["incomplete", "order", "shape", "dtype", "device"])
+def test_decode_append_rejects_incomplete_or_invalid_layer_writes(fault: str) -> None:
+    allocator = KVAllocator(torch.zeros(22, 2, 2, 16, 4, 64, dtype=torch.float16))
+    request = RequestId("request")
+    allocator.create(KVReservation(request, 2))
+    allocator.append(request, *_kv_values(16))
+    counts = allocator.capacity()
+    key = torch.zeros(4, 64, dtype=torch.float16)
+    value = key.clone()
+    if fault == "shape":
+        key = key[0]
+    elif fault == "dtype":
+        value = value.float()
+    elif fault == "device":
+        key = key.to("meta")
+    with (
+        pytest.raises(RuntimeError if fault == "incomplete" else ValueError),
+        allocator.append_decode((request,)),
+    ):
+        allocator.write_decode_layer(request, 1 if fault == "order" else 0, key, value)
+    assert allocator.capacity() == counts
+    assert allocator.cached_length(request) == 16
+    # Clearing staged state permits normal ownership cleanup after any rejection.
+    allocator.release_all(request)
+    assert allocator.capacity() == CapacityCounts(2, 2, 0, 0, 0, 0)
+
+
+def test_layer_block_iterator_checks_worker_on_every_page() -> None:
+    allocator = KVAllocator(torch.empty(22, 2, 2, 16, 4, 64, dtype=torch.float16))
+    request = RequestId("request")
+    allocator.create(KVReservation(request, 2))
+    allocator.append(request, *_kv_values(17))
+    pages = allocator.iter_layer_blocks(request, layer_index=0)
+    next(pages)
+    with (
+        ThreadPoolExecutor(max_workers=1) as executor,
+        pytest.raises(RuntimeError, match="owning model worker"),
+    ):
+        executor.submit(next, pages).result()
+    allocator.release_all(request)
+    assert allocator.capacity() == CapacityCounts(2, 2, 0, 0, 0, 0)
+
+
 def test_allocator_rejects_access_from_another_thread() -> None:
     allocator = KVAllocator(torch.empty((22, 2, 1, 16, 4, 64), dtype=torch.float16))
     request = RequestId("a")
@@ -355,6 +439,9 @@ def test_allocator_rejects_access_from_another_thread() -> None:
             (allocator.block_table, (request,)),
             (allocator.cached_length, (request,)),
             (allocator.release_all, (request,)),
+            (allocator.write_decode_layer, (request, 0, key[0, 0], value[0, 0])),
+            (lambda: allocator.append_decode((request,)).__enter__(), ()),
+            (lambda: next(allocator.iter_layer_blocks(request, layer_index=0)), ()),
         ):
             future = executor.submit(operation, *args)
             with pytest.raises(RuntimeError, match="owning model worker"):

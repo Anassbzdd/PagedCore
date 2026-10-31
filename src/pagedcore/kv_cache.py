@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from collections.abc import Iterator
+from contextlib import contextmanager
 from dataclasses import dataclass
 from threading import current_thread
 
@@ -52,6 +54,12 @@ class _SequenceCache:
     length: int = 0
 
 
+@dataclass(slots=True)
+class _TokenAppend:
+    sequence: _SequenceCache
+    written_layers: int = 0
+
+
 class KVAllocator:
     """Assign blocks within an existing pool; construct and use on the model worker.
 
@@ -79,6 +87,7 @@ class KVAllocator:
         self._sequences: dict[RequestId, _SequenceCache] = {}
         # Check tables against ownership recorded when physical blocks are assigned.
         self._block_owners: dict[BlockId, RequestId] = {}
+        self._decode_appends: dict[RequestId, _TokenAppend] | None = None
 
     def create(self, reservation: KVReservation) -> None:
         """Grant credits at admission without assigning physical blocks.
@@ -86,7 +95,7 @@ class KVAllocator:
         Pending requests stay outside the allocator until admission. Credits
         include owned blocks and remain held until release_all, even after EOS.
         """
-        self._check_worker()
+        self._check_mutation()
         request_id = reservation.request_id
         if request_id in self._sequences:
             raise ValueError("request already has a KV cache")
@@ -122,7 +131,7 @@ class KVAllocator:
         A synchronous copy failure leaves ownership and valid positions unchanged.
         Unpublished slots may be dirty; they must be overwritten before use.
         """
-        self._check_worker()
+        self._check_mutation()
         self._assert_accounting()
         sequence = self._sequences[request_id]
         if (
@@ -169,6 +178,78 @@ class KVAllocator:
         self._sequences[request_id] = _SequenceCache(sequence.reservation, blocks, length)
         self._assert_accounting()
 
+    @contextmanager
+    def append_decode(self, request_ids: tuple[RequestId, ...]) -> Iterator[None]:
+        self._check_mutation()
+        self._assert_accounting()
+        if not request_ids or len(set(request_ids)) != len(request_ids):
+            raise ValueError("decode requires nonempty, distinct request IDs")
+        appends = {}
+        additional = 0
+        for request_id in request_ids:
+            sequence = self._sequences[request_id]
+            if not 1 <= sequence.length < 2048:
+                raise ValueError("decode requires 1 to 2047 cached token positions")
+            length = sequence.length + 1
+            blocks = sequence.blocks
+            if (length + 15) // 16 > sequence.reservation.maximum_block_credits:
+                raise RuntimeError("KV append exceeds request reservation")
+            if sequence.length % 16 == 0:
+                additional += 1
+                if additional > len(self._free_blocks):
+                    raise RuntimeError("KV pool has insufficient free blocks")
+                blocks += (self._free_blocks[-additional],)
+            appends[request_id] = _TokenAppend(_SequenceCache(sequence.reservation, blocks, length))
+
+        # Block other mutations while free-list slots are borrowed for staged writes.
+        self._decode_appends = appends
+        try:
+            yield
+            if any(append.written_layers != 22 for append in appends.values()):
+                raise RuntimeError("decode must write every cache layer before committing")
+            if additional:
+                del self._free_blocks[-additional:]
+            for request_id, append in appends.items():
+                original = self._sequences[request_id]
+                for block in append.sequence.blocks[len(original.blocks) :]:
+                    self._block_owners[block] = request_id
+                self._sequences[request_id] = append.sequence
+            self._assert_accounting()
+        finally:
+            self._decode_appends = None
+
+    @torch.inference_mode()
+    def write_decode_layer(
+        self, request_id: RequestId, layer_index: int, key: Tensor, value: Tensor
+    ) -> None:
+        """Write one token's rotated K/unrotated V as FP16 [4, 64], in layer order."""
+        self._check_worker()
+        self._assert_accounting()
+        if self._decode_appends is None:
+            raise RuntimeError("decode writes require a staged append")
+        append = self._decode_appends[request_id]
+        if type(layer_index) is not int or not 0 <= layer_index < 22:
+            raise ValueError("layer_index must identify one of the 22 decoder layers")
+        if layer_index != append.written_layers:
+            raise ValueError("decode cache layers must be written once in order")
+        if any(
+            tensor.shape != (4, 64)
+            or tensor.dtype != torch.float16
+            or tensor.device != self._pool.device
+            for tensor in (key, value)
+        ):
+            raise ValueError("K and V must share FP16 [4, 64] on the pool device")
+        logical_block, slot = divmod(append.sequence.length - 1, 16)
+        block = append.sequence.blocks[logical_block]
+        self._pool[layer_index, 0, block, slot].copy_(key)
+        self._pool[layer_index, 1, block, slot].copy_(value)
+        append.written_layers += 1
+
+    def iter_layer_blocks(
+            self, request_id: RequestId, *, layer_index: int
+        ) -> Iterator[tuple[Tensor, Tensor]]:
+            """Borrow valid [slots, 4, 64] pages, including a completed staged layer."""
+
     def read_block(self, request_id: RequestId, logical_block: int) -> tuple[Tensor, Tensor]:
         """Borrow K/V views [22, valid slots, 4, 64] for one logical block."""
         self._check_worker()
@@ -189,13 +270,18 @@ class KVAllocator:
         Request cleanup must remember successful release to make duplicate cleanup
         signals no-ops. Silently accepting a direct double release would hide bugs.
         """
-        self._check_worker()
+        self._check_mutation()
         self._assert_accounting()
         sequence = self._sequences.pop(request_id)
         for block in sequence.blocks:
             del self._block_owners[block]
         self._free_blocks.extend(reversed(sequence.blocks))
         self._assert_accounting()
+
+    def _check_mutation(self) -> None:
+        self._check_worker()
+        if self._decode_appends is not None:
+            raise RuntimeError("KV mutation is not allowed during a staged decode append")
 
     def _check_worker(self) -> None:
         if current_thread() is not self._worker:

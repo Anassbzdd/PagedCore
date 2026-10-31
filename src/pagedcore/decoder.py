@@ -1,4 +1,4 @@
-"""Single-sequence dense forwards and prompt writes into paged KV storage."""
+"""Owned dense forwards, paged prefill and batched one-token paged decode."""
 
 from __future__ import annotations
 
@@ -8,6 +8,7 @@ import torch
 import torch.nn.functional as F
 from torch import Tensor
 
+from pagedcore.attention import paged_attention
 from pagedcore.dense import (
     apply_rope,
     dense_attention,
@@ -141,6 +142,45 @@ def decode(
     if input_ids.shape != (1, 1):
         raise ValueError("decode requires exactly one token with shape [1, 1]")
     return _forward(input_ids, weights, cache)
+
+
+@torch.inference_mode()
+def decode_paged(
+    input_ids: Tensor,
+    weights: TinyLlamaWeights,
+    allocator: KVAllocator,
+    request_ids: tuple[RequestId, ...],
+) -> Tensor:
+    if (
+        input_ids.dtype != torch.int64
+        or input_ids.ndim != 2
+        or input_ids.shape != (len(request_ids), 1)
+    ):
+        raise ValueError("input_ids must be int64 [batch, 1] matching request IDs")
+    if input_ids.device != weights.embedding.device:
+        raise ValueError("input_ids and weights must be on the same device")
+    if len(weights.layers) != 22:
+        raise ValueError("paged decode requires 22 decoder layers")
+    positions = torch.tensor(
+        [allocator.cached_length(request) for request in request_ids],
+        dtype=torch.int64,
+        device=input_ids.device,
+    )[:, None]
+    with allocator.append_decode(request_ids):
+        hidden = F.embedding(input_ids, weights.embedding)
+        for index, layer in enumerate(weights.layers):
+            query, key, value = project_qkv(rms_norm(hidden, layer.input_norm), layer)
+            query, key = apply_rope(query, key, positions)
+            attention = torch.empty_like(query)
+            for row, request in enumerate(request_ids):
+                allocator.write_decode_layer(request, index, key[row, :, 0], value[row, :, 0])
+                attention[row : row + 1] = paged_attention(
+                    query[row : row + 1], allocator, request, layer_index=index
+                )
+            hidden = hidden + output_projection(attention, layer)
+            hidden = hidden + swiglu(rms_norm(hidden, layer.post_attention_norm), layer)
+        logits = final_logits(hidden, weights)
+    return logits
 
 
 def _forward(

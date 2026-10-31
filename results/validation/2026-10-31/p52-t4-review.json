@@ -1,0 +1,305 @@
+{
+  "observation_date": "2026-10-31",
+  "review_method": "Offline ZIP integrity, source/lock/script SHA-256, command-log, JUnit and JSON record review; no new model execution.",
+  "implementation_revision": "34014063bcbe1d07f59b49284522d63fe5ebec6a",
+  "conclusion": "P5.2 standalone blockwise online softmax has CPU and real-T4 correctness evidence at the recorded revision.",
+  "required_gpu_tests": [
+    "test_kv_allocator_storage_and_stream_ownership_on_t4",
+    "test_kv_pool_storage_on_t4",
+    "test_paged_attention_boundaries_on_t4",
+    "test_paged_attention_large_scores_on_t4",
+    "test_pinned_checkpoint_loads_and_runs_one_reference_forward_pass",
+    "test_pinned_decoder_greedy_parity_on_t4[boundary_15]",
+    "test_pinned_decoder_greedy_parity_on_t4[boundary_16]",
+    "test_pinned_decoder_greedy_parity_on_t4[boundary_17]",
+    "test_pinned_decoder_greedy_parity_on_t4[eos_enabled]",
+    "test_pinned_decoder_greedy_parity_on_t4[maximum_output]",
+    "test_pinned_decoder_greedy_parity_on_t4[multiple_full_blocks]",
+    "test_pinned_decoder_layer_parity_on_t4",
+    "test_pinned_paged_prefill_on_t4",
+    "test_public_reference_capture_and_repeatability_on_t4",
+    "test_seed_everything_repeats_cuda_random_streams"
+  ],
+  "archives": [
+    {
+      "archive": "t4-20261031T160723Z.zip",
+      "sha256": "dd84c86ef896c2f6b10676701d4c68a46090c423f01c5d396f64c4eaba5aeadd",
+      "size_bytes": 3524235,
+      "zip_crc": "passed",
+      "member_count": 16,
+      "manifest_captured_at_utc": "2026-10-31T16:09:53.820071Z",
+      "source_hash_count": 37,
+      "source_hash_mismatches": [],
+      "uv_lock_sha256": "46700b60b0a8d492fc673aec8a0e12c27ae43124dd8e194f8c754dbd6ca7ea48",
+      "script_sha256": {
+        "scripts/validate_t4.sh": "d7d9bd11d4983b5fcc97898a0814ddbd5c3f6f30b7ead7c3a1b9af39e6f0ed89",
+        "scripts/measure_dense_workspace.py": "4f3da204947fca357b23e6322d6f73d26e6c4bfa926ebf6f703057d90361dfbb"
+      },
+      "working_tree_clean_at_start_and_end": true,
+      "setup": "Setup: create a fresh environment.",
+      "commands": [
+        "uv --version",
+        "uv sync --frozen --extra cuda --extra dev",
+        "uv pip freeze --python .venv/bin/python",
+        "uv run --no-sync python - /kaggle/working/PagedCore/results/local/t4-20261031T160723Z",
+        "uv run --no-sync pagedcore verify --manifest-path /kaggle/working/PagedCore/results/local/t4-20261031T160723Z/manifest.json",
+        "uv run --no-sync python -m ruff format --check .",
+        "uv run --no-sync python -m ruff check .",
+        "uv run --no-sync python -m mypy --strict src/pagedcore",
+        "uv run --no-sync python -m pytest -m 'not gpu and not benchmark' -ra --junitxml=/kaggle/working/PagedCore/results/local/t4-20261031T160723Z/cpu-tests.xml",
+        "uv run --no-sync python scripts/measure_dense_workspace.py /kaggle/working/PagedCore/results/local/t4-20261031T160723Z",
+        "uv run --no-sync python scripts/measure_dense_workspace.py /kaggle/working/PagedCore/results/local/t4-20261031T160723Z --with-pool",
+        "uv run --no-sync python -m pytest -m gpu -v -ra --junitxml=/kaggle/working/PagedCore/results/local/t4-20261031T160723Z/gpu-tests.xml",
+        "uv run --no-sync pagedcore oracle --case boundary_15 --output /kaggle/working/PagedCore/results/local/t4-20261031T160723Z/reference.pt",
+        "uv run --no-sync pagedcore oracle --case boundary_15 --compare /kaggle/working/PagedCore/results/local/t4-20261031T160723Z/reference.pt --output /kaggle/working/PagedCore/results/local/t4-20261031T160723Z/reference-repeat.pt"
+      ],
+      "quality_checks": {
+        "ruff_format": "passed",
+        "ruff_check": "passed",
+        "strict_mypy": "passed"
+      },
+      "environment": {
+        "python": "3.11.15",
+        "dependencies": {
+          "torch": "2.7.1+cu126",
+          "transformers": "4.52.4"
+        },
+        "cuda": {
+          "available": true,
+          "runtime": "12.6"
+        },
+        "driver": "580.178.04"
+      },
+      "target": {
+        "platform": "Linux-6.18.55+-x86_64-with-glibc2.39",
+        "device": "cuda:0",
+        "cuda_visible_devices": "0",
+        "cuda_visible_device_count": 1,
+        "name": "Tesla T4",
+        "uuid": "82051f45-6020-35cb-5372-1fc5020b3c7f",
+        "compute_capability": "7.5",
+        "memory_bytes": 15636037632,
+        "torch": "2.7.1+cu126",
+        "cuda_runtime": "12.6",
+        "cublas_workspace_config": ":4096:8"
+      },
+      "tests": {
+        "cpu": {
+          "collected": 632,
+          "selected": 617,
+          "executed": 617,
+          "passed": 617,
+          "failed": 0,
+          "errors": 0,
+          "skipped": 0,
+          "deselected": 15,
+          "junit_time_seconds": 30.201
+        },
+        "gpu": {
+          "collected": 632,
+          "selected": 15,
+          "executed": 15,
+          "passed": 15,
+          "failed": 0,
+          "errors": 0,
+          "skipped": 0,
+          "deselected": 617,
+          "junit_time_seconds": 41.311
+        }
+      },
+      "dense_workspace": {
+        "dense-workspace.json": {
+          "status": "passed",
+          "runs": 9,
+          "samples": 27,
+          "peak_allocated_bytes": 3385036800,
+          "peak_reserved_bytes": 3600809984,
+          "max_increment_bytes": 1182842880,
+          "min_sampled_device_free_bytes": 11870732288,
+          "allocation_retries": 0,
+          "ooms": 0
+        },
+        "pool-dense-workspace.json": {
+          "status": "passed",
+          "runs": 9,
+          "samples": 27,
+          "peak_allocated_bytes": 11974971392,
+          "peak_reserved_bytes": 12190744576,
+          "max_increment_bytes": 1182842880,
+          "min_sampled_device_free_bytes": 3280797696,
+          "allocation_retries": 0,
+          "ooms": 0,
+          "pool_pressure": {
+            "kind": "unused_fp16_reservation",
+            "requested_bytes": 8589934592,
+            "tensor_bytes": 8589934592,
+            "workspace_margin_bytes": 1610612736,
+            "configured_max_active_sequences": 32,
+            "measured_active_sequences": 1,
+            "capacity_validated": false,
+            "max_dense_increment_bytes": 1182842880,
+            "dense_increment_exceeds_margin": false
+          }
+        }
+      },
+      "dense_tolerance_envelope": {
+        "record_count": 2260,
+        "max_absolute_error": 0.0,
+        "scope": "PagedCore vs Hugging Face; prefill and three reference-token decode steps"
+      },
+      "hf_repeatability": {
+        "tensor_count": 39,
+        "max_absolute_error": 0.0,
+        "scope": "HF reference only; no owned-decoder parity or performance claim"
+      }
+    },
+    {
+      "archive": "t4-20261031T162142Z.zip",
+      "sha256": "4a6be08adf5e33172ad3c90fb5e8668e366784fcc95ba9f1e01d80649f5ac43c",
+      "size_bytes": 3523305,
+      "zip_crc": "passed",
+      "member_count": 16,
+      "manifest_captured_at_utc": "2026-10-31T16:21:51.835354Z",
+      "source_hash_count": 37,
+      "source_hash_mismatches": [],
+      "uv_lock_sha256": "46700b60b0a8d492fc673aec8a0e12c27ae43124dd8e194f8c754dbd6ca7ea48",
+      "script_sha256": {
+        "scripts/validate_t4.sh": "d7d9bd11d4983b5fcc97898a0814ddbd5c3f6f30b7ead7c3a1b9af39e6f0ed89",
+        "scripts/measure_dense_workspace.py": "4f3da204947fca357b23e6322d6f73d26e6c4bfa926ebf6f703057d90361dfbb"
+      },
+      "working_tree_clean_at_start_and_end": true,
+      "setup": "Setup: synchronize an existing environment.",
+      "commands": [
+        "uv --version",
+        "uv sync --frozen --extra cuda --extra dev",
+        "uv pip freeze --python .venv/bin/python",
+        "uv run --no-sync python - /kaggle/working/PagedCore/results/local/t4-20261031T162142Z",
+        "uv run --no-sync pagedcore verify --manifest-path /kaggle/working/PagedCore/results/local/t4-20261031T162142Z/manifest.json",
+        "uv run --no-sync python -m ruff format --check .",
+        "uv run --no-sync python -m ruff check .",
+        "uv run --no-sync python -m mypy --strict src/pagedcore",
+        "uv run --no-sync python -m pytest -m 'not gpu and not benchmark' -ra --junitxml=/kaggle/working/PagedCore/results/local/t4-20261031T162142Z/cpu-tests.xml",
+        "uv run --no-sync python scripts/measure_dense_workspace.py /kaggle/working/PagedCore/results/local/t4-20261031T162142Z",
+        "uv run --no-sync python scripts/measure_dense_workspace.py /kaggle/working/PagedCore/results/local/t4-20261031T162142Z --with-pool",
+        "uv run --no-sync python -m pytest -m gpu -v -ra --junitxml=/kaggle/working/PagedCore/results/local/t4-20261031T162142Z/gpu-tests.xml",
+        "uv run --no-sync pagedcore oracle --case boundary_15 --output /kaggle/working/PagedCore/results/local/t4-20261031T162142Z/reference.pt",
+        "uv run --no-sync pagedcore oracle --case boundary_15 --compare /kaggle/working/PagedCore/results/local/t4-20261031T162142Z/reference.pt --output /kaggle/working/PagedCore/results/local/t4-20261031T162142Z/reference-repeat.pt"
+      ],
+      "quality_checks": {
+        "ruff_format": "passed",
+        "ruff_check": "passed",
+        "strict_mypy": "passed"
+      },
+      "environment": {
+        "python": "3.11.15",
+        "dependencies": {
+          "torch": "2.7.1+cu126",
+          "transformers": "4.52.4"
+        },
+        "cuda": {
+          "available": true,
+          "runtime": "12.6"
+        },
+        "driver": "580.178.04"
+      },
+      "target": {
+        "platform": "Linux-6.18.55+-x86_64-with-glibc2.39",
+        "device": "cuda:0",
+        "cuda_visible_devices": "0",
+        "cuda_visible_device_count": 1,
+        "name": "Tesla T4",
+        "uuid": "82051f45-6020-35cb-5372-1fc5020b3c7f",
+        "compute_capability": "7.5",
+        "memory_bytes": 15636037632,
+        "torch": "2.7.1+cu126",
+        "cuda_runtime": "12.6",
+        "cublas_workspace_config": ":4096:8"
+      },
+      "tests": {
+        "cpu": {
+          "collected": 632,
+          "selected": 617,
+          "executed": 617,
+          "passed": 617,
+          "failed": 0,
+          "errors": 0,
+          "skipped": 0,
+          "deselected": 15,
+          "junit_time_seconds": 29.091
+        },
+        "gpu": {
+          "collected": 632,
+          "selected": 15,
+          "executed": 15,
+          "passed": 15,
+          "failed": 0,
+          "errors": 0,
+          "skipped": 0,
+          "deselected": 617,
+          "junit_time_seconds": 41.721
+        }
+      },
+      "dense_workspace": {
+        "dense-workspace.json": {
+          "status": "passed",
+          "runs": 9,
+          "samples": 27,
+          "peak_allocated_bytes": 3385036800,
+          "peak_reserved_bytes": 3600809984,
+          "max_increment_bytes": 1182842880,
+          "min_sampled_device_free_bytes": 11870732288,
+          "allocation_retries": 0,
+          "ooms": 0
+        },
+        "pool-dense-workspace.json": {
+          "status": "passed",
+          "runs": 9,
+          "samples": 27,
+          "peak_allocated_bytes": 11974971392,
+          "peak_reserved_bytes": 12190744576,
+          "max_increment_bytes": 1182842880,
+          "min_sampled_device_free_bytes": 3280797696,
+          "allocation_retries": 0,
+          "ooms": 0,
+          "pool_pressure": {
+            "kind": "unused_fp16_reservation",
+            "requested_bytes": 8589934592,
+            "tensor_bytes": 8589934592,
+            "workspace_margin_bytes": 1610612736,
+            "configured_max_active_sequences": 32,
+            "measured_active_sequences": 1,
+            "capacity_validated": false,
+            "max_dense_increment_bytes": 1182842880,
+            "dense_increment_exceeds_margin": false
+          }
+        }
+      },
+      "dense_tolerance_envelope": {
+        "record_count": 2260,
+        "max_absolute_error": 0.0,
+        "scope": "PagedCore vs Hugging Face; prefill and three reference-token decode steps"
+      },
+      "hf_repeatability": {
+        "tensor_count": 39,
+        "max_absolute_error": 0.0,
+        "scope": "HF reference only; no owned-decoder parity or performance claim"
+      }
+    }
+  ],
+  "limitations": [
+    "Both runs use the same selected T4 and implementation revision; these are repeated runs, not different-device validation.",
+    "The first run creates a fresh project environment in an existing Kaggle image; the second synchronizes that environment. This is not a clean-host or Docker service smoke test.",
+    "The CUDA attention tests compare synthetic inputs against independent FP64 CPU attention at atol=rtol=0.002; individual error maxima are not retained.",
+    "The dense tolerance envelope and HF repeatability records do not measure paged-attention numerical error.",
+    "The current attention, decoder and allocator contain later batched/staged-append changes absent from the archived revision; the archives do not validate those changes on T4.",
+    "Integrated paged-decoder parity, instrumented prohibition of a full-history KV gather, batched workspace, page-reuse ordering, lifecycle and service gates remain open.",
+    "Dense workspace probes use one sequence and an unused pool-sized reservation; configured 32-sequence service capacity and performance are not validated."
+  ],
+  "current_worktree_source_differences": [
+    "src/pagedcore/attention.py",
+    "src/pagedcore/decoder.py",
+    "src/pagedcore/kv_cache.py",
+    "tests/unit/test_decoder.py",
+    "tests/unit/test_kv_cache.py"
+  ]
+}

@@ -15,6 +15,7 @@ from pagedcore.decoder import (
     ContiguousCache,
     GreedyResult,
     decode,
+    decode_paged,
     generate,
     prefill,
     prefill_paged,
@@ -106,6 +107,208 @@ def test_prefill_matches_synthetic_hf_and_caches_prompt(
 def paged_weights(decoder: SimpleNamespace) -> TinyLlamaWeights:
     # Repeat synthetic layers to exercise the real pool's 22-layer layout.
     return replace(decoder.weights, layers=decoder.weights.layers * 11)
+
+
+@pytest.mark.parametrize("lengths", [(15,), (1, 15, 16, 17)])
+def test_paged_decode_batches_distinct_positions_and_appends_each_layer(
+    paged_weights: TinyLlamaWeights, lengths: tuple[int, ...], monkeypatch: pytest.MonkeyPatch
+) -> None:
+    pool = torch.full((22, 2, 16, 16, 4, 64), torch.nan, dtype=torch.float16)
+    allocator = KVAllocator(pool)
+    requests = tuple(RequestId(str(row)) for row in range(len(lengths)))
+    caches = {}
+    for request, length in zip(requests, lengths, strict=True):
+        allocator.create(KVReservation(request, (length + 2 + 15) // 16))
+        ids = (torch.arange(length)[None] + length) % 31
+        _, caches[request] = prefill(ids, paged_weights)
+        prefill_paged(ids, paged_weights, allocator, request)
+    pointer = pool.untyped_storage().data_ptr()
+    counts = allocator.capacity()
+    project = decoder_module.project_qkv
+    batch_sizes = []
+
+    def record_projection(hidden: Tensor, layer: LayerWeights) -> tuple[Tensor, Tensor, Tensor]:
+        batch_sizes.append(hidden.shape[0])
+        return project(hidden, layer)
+
+    for step in range(2):
+        # Request order can change between worker iterations.
+        order = requests if step == 0 else requests[::-1]
+        tokens = torch.tensor([[2 + step + int(request)] for request in order])
+        expected = [
+            decode(tokens[row : row + 1], caches[request], paged_weights)
+            for row, request in enumerate(order)
+        ]
+        before = pool.clone()
+        with monkeypatch.context() as patch:
+            patch.setattr(decoder_module, "project_qkv", record_projection)
+            logits = decode_paged(tokens, paged_weights, allocator, order)
+        assert logits.shape == (len(order), 1, 31)
+        assert logits.dtype == torch.float16 and not logits.requires_grad
+        assert torch.isfinite(logits).all()
+        for row, request in enumerate(order):
+            expected_logits, cache = expected[row]
+            old = caches[request]
+            torch.testing.assert_close(logits[row : row + 1], expected_logits, atol=5e-3, rtol=5e-3)
+            assert allocator.cached_length(request) == old.length + 1
+            for logical in range(len(allocator.block_table(request))):
+                key, value = allocator.read_block(request, logical)
+                start = logical * 16
+                end = start + key.shape[1]
+                for layer, (expected_key, expected_value) in enumerate(cache.layers):
+                    physical = allocator.block_table(request)[logical]
+                    for kind, actual, target in (
+                        (0, key[layer], expected_key),
+                        (1, value[layer], expected_value),
+                    ):
+                        torch.testing.assert_close(
+                            actual, target[0, :, start:end].transpose(0, 1), atol=5e-3, rtol=5e-3
+                        )
+                        valid_old = max(0, min(end, old.length) - start)
+                        torch.testing.assert_close(
+                            actual[:valid_old],
+                            before[layer, kind, physical, :valid_old],
+                            atol=0,
+                            rtol=0,
+                        )
+            caches[request] = cache
+        current = allocator.capacity()
+        assert current.live_cached_token_slots == sum(lengths) + len(order) * (step + 1)
+        assert current.reserved_blocks == counts.reserved_blocks
+        assert current.active_slots == len(order)
+        assert pool.untyped_storage().data_ptr() == pointer
+    assert batch_sizes == [len(requests)] * 44
+    for request in requests:
+        allocator.release_all(request)
+    assert allocator.capacity() == CapacityCounts(16, 16, 0, 0, 0, 0)
+
+
+@pytest.mark.parametrize("fault", ["attention", "logits", "copy"])
+def test_paged_decode_failure_preserves_entire_batch_and_allows_retry(
+    paged_weights: TinyLlamaWeights, monkeypatch: pytest.MonkeyPatch, fault: str
+) -> None:
+    pool = torch.full((22, 2, 6, 16, 4, 64), torch.nan, dtype=torch.float16)
+    allocator = KVAllocator(pool)
+    requests = (RequestId("first"), RequestId("second"))
+    caches = []
+    for request, length in zip(requests, (15, 16), strict=True):
+        allocator.create(KVReservation(request, 2))
+        ids = torch.arange(length)[None] % 31
+        prefill_paged(ids, paged_weights, allocator, request)
+        caches.append(prefill(ids, paged_weights)[1])
+    before = pool.clone()
+    counts = allocator.capacity()
+    tables = [allocator.block_table(request) for request in requests]
+    calls = 0
+    original = torch.Tensor.copy_ if fault == "copy" else decoder_module.paged_attention
+
+    def fail(*args: Any, **kwargs: Any) -> Any:
+        nonlocal calls
+        calls += 1
+        if calls == (4 if fault == "copy" else 3) or fault == "logits":
+            raise RuntimeError("injected decode failure")
+        return original(*args, **kwargs)
+
+    tokens = torch.tensor([[3], [7]])
+    with monkeypatch.context() as patch:
+        if fault == "copy":
+            patch.setattr(torch.Tensor, "copy_", fail)
+        else:
+            patch.setattr(
+                decoder_module, "final_logits" if fault == "logits" else "paged_attention", fail
+            )
+        with pytest.raises(RuntimeError, match="injected decode failure"):
+            decode_paged(tokens, paged_weights, allocator, requests)
+    assert allocator.capacity() == counts
+    for request, table, length in zip(requests, tables, (15, 16), strict=True):
+        assert allocator.block_table(request) == table
+        assert allocator.cached_length(request) == length
+        torch.testing.assert_close(
+            pool[:, :, table[0], :length], before[:, :, table[0], :length], atol=0, rtol=0
+        )
+    logits = decode_paged(tokens, paged_weights, allocator, requests)
+    for row, cache in enumerate(caches):
+        expected, _ = decode(tokens[row : row + 1], cache, paged_weights)
+        torch.testing.assert_close(logits[row : row + 1], expected, atol=5e-3, rtol=5e-3)
+    for request in requests:
+        allocator.release_all(request)
+    assert allocator.capacity() == CapacityCounts(6, 6, 0, 0, 0, 0)
+
+
+def test_paged_decode_at_last_context_position(paged_weights: TinyLlamaWeights) -> None:
+    allocator = KVAllocator(torch.zeros(22, 2, 128, 16, 4, 64, dtype=torch.float16))
+    request = RequestId("last")
+    allocator.create(KVReservation(request, 128))
+    history = torch.zeros(22, 2047, 4, 64, dtype=torch.float16)
+    allocator.append(request, history, history)
+    logits = decode_paged(torch.tensor([[3]]), paged_weights, allocator, (request,))
+    assert logits.shape == (1, 1, 31) and torch.isfinite(logits).all()
+    assert allocator.cached_length(request) == 2048
+    counts = allocator.capacity()
+    with pytest.raises(ValueError, match="2047"):
+        decode_paged(torch.tensor([[5]]), paged_weights, allocator, (request,))
+    assert allocator.capacity() == counts
+
+
+@pytest.mark.parametrize(
+    "fault",
+    [
+        "shape",
+        "dtype",
+        "device",
+        "layers",
+        "duplicate",
+        "empty",
+        "unknown",
+        "released",
+        "unfilled",
+        "reservation",
+        "context",
+    ],
+)
+def test_paged_decode_rejects_invalid_batch_without_cache_changes(
+    paged_weights: TinyLlamaWeights, fault: str
+) -> None:
+    pool = torch.zeros(22, 2, 129 if fault == "context" else 4, 16, 4, 64, dtype=torch.float16)
+    allocator = KVAllocator(pool)
+    first, second = RequestId("first"), RequestId("second")
+    length = 2048 if fault == "context" else 16
+    credits = 128 if fault == "context" else 1 if fault == "reservation" else 2
+    allocator.create(KVReservation(first, credits))
+    allocator.append(
+        first, torch.zeros(22, length, 4, 64).half(), torch.zeros(22, length, 4, 64).half()
+    )
+    allocator.create(KVReservation(second, 1))
+    if fault != "unfilled":
+        allocator.append(second, torch.zeros(22, 1, 4, 64).half(), torch.zeros(22, 1, 4, 64).half())
+    if fault == "released":
+        allocator.release_all(second)
+    tokens = torch.tensor([[1], [3]])
+    requests = (first, second)
+    weights = paged_weights
+    if fault == "shape":
+        tokens = tokens.T
+    elif fault == "dtype":
+        tokens = tokens.float()
+    elif fault == "device":
+        tokens = tokens.to("meta")
+    elif fault == "layers":
+        weights = replace(weights, layers=weights.layers[:2])
+    elif fault == "duplicate":
+        requests = (first, first)
+    elif fault == "empty":
+        requests, tokens = (), tokens[:0]
+    elif fault == "unknown":
+        requests = (first, RequestId("unknown"))
+    before = pool.clone()
+    counts = allocator.capacity()
+    error = {"unknown": KeyError, "released": KeyError, "reservation": RuntimeError}.get(
+        fault, ValueError
+    )
+    with pytest.raises(error):
+        decode_paged(tokens, weights, allocator, requests)
+    assert allocator.capacity() == counts
+    torch.testing.assert_close(pool, before, atol=0, rtol=0)
 
 
 @pytest.mark.parametrize("tokens", [1, 15, 16, 17, 49])

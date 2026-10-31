@@ -33,8 +33,8 @@ Keep each gate in a reviewable commit or small series of commits. Do not optimiz
 
 As of 2026-10-27, P4.1–P4.6 are complete at the allocator boundary. The
 [completion review](validation/2026-10-27-phase4-review.md) verifies the clean
-`986392e` T4 archive (554 CPU / 12 GPU passes, zero skips) against current runtime
-source. Newer independent property tests and collector guard regressions have
+`986392e` T4 archive (554 CPU / 12 GPU passes, zero skips) against the source at
+that review. Newer independent property tests and collector guard regressions have
 [separate CPU evidence](../results/validation/2026-10-27/cpu-review.json).
 The current implementation gate is P5.1–P5.7: noncontiguous block-table decode
 attention, parity, workspace and safe page reuse. Worker cancellation and
@@ -46,8 +46,17 @@ unrotated V from the owned dense forward into the admitted request's pages.
 positions across page boundaries, shuffled/reused storage, isolation and
 unpublished state after failures. The [October 30 review](validation/2026-10-30-p52-t4-review.md)
 verifies this integration on T4 at clean `922588b`; it does not establish
-block-table decode, paged-attention parity or workspace safety. P5.2 remains
-CPU-validated: its new CUDA primitive tests await a retained T4 run.
+block-table decode, paged-attention parity or workspace safety. The
+[October 31 review](validation/2026-10-31-p52-t4-review.md) closes P5.2 standalone
+online softmax at clean `3401406`: both runs pass 617 CPU and 15 GPU cases,
+including the two required CUDA attention tests, with zero failures/errors/skips.
+
+As of 2026-10-30, `decoder.decode_paged` implements batched one-token forwards
+with per-request positions, valid page lengths and staged layer writes. Its
+[synthetic CPU tests](../tests/unit/test_decoder.py) and
+[allocator staging tests](../tests/unit/test_kv_cache.py) do not establish T4
+decoder parity or workspace safety. Earlier T4 archives predate this decode and
+staged-append path; P5.4-P5.7 evidence remains required.
 
 ## Evidence attribution
 
@@ -68,8 +77,10 @@ The collector also requires `test_paged_attention_boundaries_on_t4` and
 [the CUDA attention suite](../tests/gpu/test_attention_cuda.py). These directly
 call the primitive with CUDA tensors and compare against independent FP64 CPU
 attention at the existing `atol=rtol=2e-3`, including shuffled pages, long context,
-head mapping, large scores, autocast and read-only accounting. Their T4 execution
-is pending; the October 30 archive predates these tests.
+head mapping, large scores, autocast and read-only accounting. Both execute and
+pass in each [October 31 archive](validation/2026-10-31-p52-t4-review.md) at
+`3401406`; the October 30 archive predates these tests. The newer staged-layer
+iterator and integrated batched decode still need their own T4 evidence.
 The [October 26 review](validation/2026-10-26-p42-t4-review.md#findings-and-remaining-work)
 identified the two KV tests' omission from the earlier guard; both nevertheless
 passed in that archive. The [collector regressions](../tests/unit/test_t4_evidence.py)
@@ -320,7 +331,8 @@ Capacity remains provisional until all of these have reviewed T4 evidence:
 If those runs expose OOMs, retries or unsafe headroom, raise the margin or lower
 the pool/active limit and repeat the affected tests before freezing capacity.
 Changing the pool, margin or active limit invalidates the relevant capacity result.
-These later gates remain pending while paging, batching and service are absent.
+These later gates remain pending until integrated paged/batched and service
+evidence is retained.
 
 ### Oracle harness
 

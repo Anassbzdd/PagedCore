@@ -4,10 +4,10 @@ Purpose: Record the architecture, memory rules, and technical decisions that imp
 
 This is the required target architecture. Owned weights, dense math components,
 single-sequence contiguous prefill/decode, prompt writes into paged storage, the
-KV pool, its reservation-aware allocator and a single-query paged attention
-primitive exist. Phase 4 allocator validation is complete; the current gate is
-Phase 5 block-table decode attention. Batched decode, the worker and HTTP
-components remain planned.
+KV pool, its reservation-aware allocator, single-query paged attention and
+batched one-token paged decode exist. Phase 4 allocator validation is complete;
+the current gate is Phase 5 block-table decode attention. Batched paged decode
+has synthetic CPU coverage; T4 decoder evidence, the worker and HTTP remain pending.
 [STATUS.md](STATUS.md) distinguishes delivered code from evidence and planned work.
 
 ## Core design decision
@@ -97,7 +97,7 @@ integrated workspace evidence.
 
 [`attention.paged_attention`](../src/pagedcore/attention.py) accepts a rotated FP16
 `[1, 32, 1, 64]` query, an allocator, a request ID and a layer index. The caller
-must have appended the current token, so all published slots are causally visible.
+must have written the current token's layer, so all exposed slots are causally visible.
 It reads valid pages through `read_block` in logical order, including only valid
 slots in the final page. Eight consecutive query heads share each KV head without
 expanding the full history. Reads use the allocator's owning thread and stream;
@@ -110,9 +110,43 @@ contribution. This keeps all pages on the same exponential scale without
 retaining their scores or copying full-history K/V. Only the normalized output
 is converted to FP16, retaining `[1, 32, 1, 64]` layout. Synthetic
 [CPU tests](../tests/unit/test_attention.py) cover boundary lengths through 2,048,
-head mapping, large scores, autocast and read-only ownership. Batched decoder
-integration, pinned-checkpoint/T4 parity, decode traces and workspace evidence
-remain pending.
+head mapping, large scores, autocast and read-only ownership. During batched
+decode, the primitive reads a completed staged layer through `iter_layer_blocks`;
+other layers' unpublished slots cannot be read. The standalone primitive has
+[T4 evidence at `3401406`](validation/2026-10-31-p52-t4-review.md). The newer
+staged-layer iterator, integrated pinned-checkpoint/T4 decoder parity, decode
+traces and workspace evidence remain pending.
+
+### Batched one-token paged decode
+
+`decoder.decode_paged` consumes int64 `[batch, 1]` last-emitted token IDs and an
+ordered tuple of distinct admitted request IDs. Each cache must already contain
+the request's prompt and use the supplied weights. It returns FP16
+`[batch, 1, vocabulary]` logits in the same request order. Token selection,
+stopping, active-batch construction and cleanup remain the caller's responsibility.
+
+Each row's committed cache length supplies its absolute RoPE position. Q/K/V,
+output projections and MLP work run across the batch; attention traverses each
+request's pages separately using the existing eight-query-heads-per-KV-head
+mapping. Each layer writes the current rotated K and unrotated V before reading
+history, including that token. Valid per-request lengths exclude unused slots;
+one-token decode needs no padded batch-wide causal mask or full-history gather.
+
+`KVAllocator.append_decode` stages one extra token for every batch member.
+`write_decode_layer` writes FP16 `[4, 64]` K/V in layer order, and
+`iter_layer_blocks` exposes only completed layers' valid page views. New pages
+are selected from the existing free list, with other allocator mutations blocked
+until the staged operation exits. Public lengths, tables and accounting retain
+the previous committed state until every layer and final logits succeed. A
+synchronous exception discards staged metadata; dirty unpublished slots are
+overwritten on retry. Async CUDA/context failures still require fail-closed
+handling. The operation never releases admission credits or caller-owned requests.
+
+[Synthetic CPU tests](../tests/unit/test_decoder.py) compare single/mixed-length
+batches against independent dense decode calls, check every layer's K/V and
+unchanged history, reorder requests, cross page boundaries, reject invalid
+inputs/capacity and exercise attention/copy/logit failure with retry. These tests
+do not establish pinned-checkpoint T4 parity or safe batched workspace capacity.
 
 ### Dense greedy generation
 
@@ -123,8 +157,8 @@ and a `FinishReason`. The pinned EOS ID is 2. A stopping EOS is selected but not
 emitted, including at the output limit; ignored EOS is emitted and counts toward
 that limit. The first selection uses the last prefill logits. Further forwards
 consume only the previously emitted token; the final selection requires no decode.
-The cache stays local to the call. This is a dense correctness runner; batching,
-streaming and paged cache ownership remain worker work.
+The cache stays local to the call. This is a dense correctness runner; active-batch
+construction, streaming and paged request lifetime remain worker work.
 
 ## Components
 

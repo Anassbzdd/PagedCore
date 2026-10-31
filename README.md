@@ -13,9 +13,13 @@ and 12 GPU passes with zero skips at clean commit `986392e`; newer allocator
 property tests and collector guards are validated separately on CPU.
 
 The current gate is **Phase 5: block-table decode attention**. Prompt writes into
-paged storage have synthetic CPU coverage as of October 28; decode still uses
-contiguous KV. Paged attention, continuous batching, the worker and HTTP/SSE
-service remain planned. Pool/batched/service memory safety and performance
+paged storage have retained T4 evidence. The
+[October 31 review](docs/validation/2026-10-31-p52-t4-review.md) closes standalone
+paged attention at clean `3401406`: two runs each pass 617 CPU and 15 GPU tests
+with zero skips. The newer batched one-token paged decode and staged attention
+reads have synthetic CPU coverage; T4 integrated paged-decoder parity remains
+pending. Continuous batching, the worker and HTTP/SSE service
+remain planned. Pool/batched/service memory safety and performance
 comparisons are also pending. See [current status](docs/STATUS.md) for evidence
 boundaries and [the phase map](docs/VALIDATION_PLAN.md#build-order) for next steps.
 
