@@ -10,7 +10,7 @@ from torch import Tensor
 from transformers import AutoModelForCausalLM
 
 from pagedcore.config import MODEL_ID, MODEL_REVISION
-from pagedcore.decoder import GreedyResult, prefill_paged
+from pagedcore.decoder import GreedyResult, decode_paged, prefill_paged
 from pagedcore.engine_types import CapacityCounts, KVReservation, RequestId
 from pagedcore.kv_cache import KVAllocator
 from pagedcore.oracle import reference_math
@@ -148,6 +148,84 @@ def test_pinned_paged_prefill_on_t4(pinned_decoders: tuple[Any, TinyLlamaWeights
             assert allocator.capacity() == CapacityCounts(6, 6, 0, 0, 0, 0)
             assert pool.untyped_storage().data_ptr() == pointer
         torch.cuda.synchronize(pool.device)
+
+
+@pytest.mark.parametrize("lengths", [(15,), (1, 15, 16, 17, 49)], ids=["single", "mixed"])
+def test_pinned_paged_decode_on_t4(
+    pinned_decoders: tuple[Any, TinyLlamaWeights], lengths: tuple[int, ...]
+) -> None:
+    model, weights = pinned_decoders
+    pool = torch.full((22, 2, 16, 16, 4, 64), torch.nan, dtype=torch.float16, device="cuda:0")
+    allocator = KVAllocator(pool)
+    pointer = pool.untyped_storage().data_ptr()
+    requests = tuple(RequestId(str(row)) for row in range(len(lengths)))
+    public_ids = next(
+        case["input_ids"] for case in FIXTURES["prompts"] if case["name"] == "maximum_output"
+    )
+    references = {}
+    with reference_math(), torch.inference_mode():
+        for request, length in zip(requests, lengths, strict=True):
+            allocator.create(KVReservation(request, (length + 3 + 15) // 16))
+            inputs = torch.tensor([public_ids[:length]], device=pool.device)
+            references[request] = model(inputs, use_cache=True)
+            logits = prefill_paged(inputs, weights, allocator, request)
+            torch.testing.assert_close(logits, references[request].logits, atol=5e-3, rtol=5e-3)
+        reserved = allocator.capacity().reserved_blocks
+        for step in range(3):
+            # Row order is independent of request identity and absolute position.
+            order = requests if step % 2 == 0 else requests[::-1]
+            tokens = torch.cat([references[request].logits[:, -1:].argmax(-1) for request in order])
+            before = pool.clone()
+            old_lengths = {request: allocator.cached_length(request) for request in order}
+            expected = {
+                request: model(
+                    tokens[row : row + 1],
+                    past_key_values=references[request].past_key_values,
+                    use_cache=True,
+                )
+                for row, request in enumerate(order)
+            }
+            logits = decode_paged(tokens, weights, allocator, order)
+            assert logits.shape == (len(order), 1, model.config.vocab_size)
+            assert logits.dtype == torch.float16 and torch.isfinite(logits).all()
+            for row, request in enumerate(order):
+                reference = expected[request]
+                torch.testing.assert_close(
+                    logits[row : row + 1], reference.logits, atol=5e-3, rtol=5e-3
+                )
+                assert torch.equal(logits[row : row + 1].argmax(-1), reference.logits.argmax(-1))
+                assert allocator.cached_length(request) == old_lengths[request] + 1
+                for logical, physical in enumerate(allocator.block_table(request)):
+                    key, value = allocator.read_block(request, logical)
+                    start = logical * 16
+                    end = start + key.shape[1]
+                    for layer, pair in enumerate(reference.past_key_values):
+                        for kind, actual, target in (
+                            (0, key[layer], pair[0]),
+                            (1, value[layer], pair[1]),
+                        ):
+                            torch.testing.assert_close(
+                                actual,
+                                target[0, :, start:end].transpose(0, 1),
+                                atol=2e-3,
+                                rtol=2e-3,
+                            )
+                            old_slots = max(0, min(end, old_lengths[request]) - start)
+                            torch.testing.assert_close(
+                                actual[:old_slots],
+                                before[layer, kind, physical, :old_slots],
+                                atol=0,
+                                rtol=0,
+                            )
+                references[request] = reference
+            counts = allocator.capacity()
+            assert counts.live_cached_token_slots == sum(lengths) + len(order) * (step + 1)
+            assert counts.reserved_blocks == reserved and counts.active_slots == len(order)
+            assert pool.untyped_storage().data_ptr() == pointer
+        torch.cuda.synchronize(pool.device)
+        for request in requests:
+            allocator.release_all(request)
+        assert allocator.capacity() == CapacityCounts(16, 16, 0, 0, 0, 0)
 
 
 @pytest.mark.parametrize("case", FIXTURES["prompts"], ids=lambda case: case["name"])

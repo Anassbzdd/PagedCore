@@ -1,6 +1,6 @@
 # Implementation and evidence status
 
-Snapshot: 2026-10-31. **Phase 4 GPU paged KV cache is complete at the allocator
+Snapshot: 2026-11-01. **Phase 4 GPU paged KV cache is complete at the allocator
 boundary. The current gate is Phase 5: block-table decode attention.**
 Standalone single-query paged attention has reviewed T4 evidence at `3401406`.
 The newer batched one-token paged decode and staged attention reads have
@@ -40,6 +40,19 @@ copy-failure recovery does not establish recovery from asynchronous CUDA/context
 failure. These lifecycle requirements remain in Phases 5–8.
 
 ## Current CPU evidence
+
+On 2026-11-01, validation preparation adds two pinned-checkpoint T4 cases in
+[`test_decoder_parity.py`](../tests/gpu/test_decoder_parity.py): single-request
+and mixed-length batched paged decode, each with three cached steps, reordered
+rows, logits/all-layer K/V and ownership checks. The collector requires both
+cases, with CPU regressions rejecting missing or unsuccessful results. These
+tests have not run on T4; the prior 15-case archives cannot prove their results.
+Local validation passes 649 CPU tests, with 17 GPU cases deselected and zero
+skips (`results/local/p53-validation-prep-cpu.xml`, local/ignored). Ruff format
+and lint, strict mypy, collector Bash syntax, GPU collection and
+`git diff --check` pass; the collector regressions account for 77 CPU cases.
+P5.3 remains pending T4 execution and retained archive review. Batched workspace
+and CUDA page-reuse ordering remain separate P5.7 requirements.
 
 On 2026-10-31, the local fix on top of `9fa2f2f` restores the missing
 `KVAllocator.iter_layer_blocks` body and corrects its formatting. Before the fix,

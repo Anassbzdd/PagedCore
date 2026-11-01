@@ -81,10 +81,19 @@ head mapping, large scores, autocast and read-only accounting. Both execute and
 pass in each [October 31 archive](validation/2026-10-31-p52-t4-review.md) at
 `3401406`; the October 30 archive predates these tests. The newer staged-layer
 iterator and integrated batched decode still need their own T4 evidence.
+The collector now also requires both `test_pinned_paged_decode_on_t4[single]`
+and `test_pinned_paged_decode_on_t4[mixed]`. They compare one request and a
+five-request batch at prompt lengths 1/15/16/17/49 against separate eager HF
+cached forwards for three decode steps, reversing row order between steps.
+Checks include logits (`atol=rtol=5e-3`), every layer's K/V
+(`atol=rtol=2e-3`), exact next-token argmax, unchanged historical slots,
+cache lengths, reservations, stable pool storage and final release accounting.
+These focused decode comparisons do not close the later end-to-end generation,
+maximum-active workspace or page-reuse ordering gates.
 The [October 26 review](validation/2026-10-26-p42-t4-review.md#findings-and-remaining-work)
 identified the two KV tests' omission from the earlier guard; both nevertheless
 passed in that archive. The [collector regressions](../tests/unit/test_t4_evidence.py)
-now reject missing KV, paged-prefill or attention tests and skipped/failed/errored
+now reject missing KV, paged-prefill, paged-decode or attention tests and skipped/failed/errored
 results. Complete passing reports must still export successfully.
 
 ## Reference and numerical policy
@@ -365,7 +374,7 @@ bash scripts/validate_t4.sh
 
 This [collector](../scripts/validate_t4.sh) logs frozen environment setup, source/lock
 identity, physical GPU inventory and the single selected CUDA-visible T4. It runs
-the CPU checks, separate no-pool and pool-pressure dense recording, all 15 required GPU cases,
+the CPU checks, separate no-pool and pool-pressure dense recording, all 17 required GPU cases,
 reference capture and comparison, then
 creates a ZIP under `results/local/`. A failed run leaves its raw directory intact;
 no successful bundle is accepted with missing or skipped required GPU tests. Review

@@ -98,6 +98,8 @@ required = {
     "test_public_reference_capture_and_repeatability_on_t4",
     "test_pinned_decoder_layer_parity_on_t4",
     "test_pinned_paged_prefill_on_t4",
+    "test_pinned_paged_decode_on_t4[single]",
+    "test_pinned_paged_decode_on_t4[mixed]",
     "test_paged_attention_boundaries_on_t4",
     "test_paged_attention_large_scores_on_t4",
     "test_kv_pool_storage_on_t4",
