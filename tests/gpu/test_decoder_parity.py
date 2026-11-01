@@ -7,6 +7,7 @@ from typing import Any
 import pytest
 import torch
 from torch import Tensor
+from torch.utils._python_dispatch import TorchDispatchMode
 from transformers import AutoModelForCausalLM
 
 from pagedcore.config import MODEL_ID, MODEL_REVISION
@@ -152,7 +153,9 @@ def test_pinned_paged_prefill_on_t4(pinned_decoders: tuple[Any, TinyLlamaWeights
 
 @pytest.mark.parametrize("lengths", [(15,), (1, 15, 16, 17, 49)], ids=["single", "mixed"])
 def test_pinned_paged_decode_on_t4(
-    pinned_decoders: tuple[Any, TinyLlamaWeights], lengths: tuple[int, ...]
+    pinned_decoders: tuple[Any, TinyLlamaWeights],
+    lengths: tuple[int, ...],
+    forbid_dense_kv_history: Callable[[Tensor], TorchDispatchMode],
 ) -> None:
     model, weights = pinned_decoders
     pool = torch.full((22, 2, 16, 16, 4, 64), torch.nan, dtype=torch.float16, device="cuda:0")
@@ -185,7 +188,8 @@ def test_pinned_paged_decode_on_t4(
                 )
                 for row, request in enumerate(order)
             }
-            logits = decode_paged(tokens, weights, allocator, order)
+            with forbid_dense_kv_history(pool):
+                logits = decode_paged(tokens, weights, allocator, order)
             assert logits.shape == (len(order), 1, model.config.vocab_size)
             assert logits.dtype == torch.float16 and torch.isfinite(logits).all()
             for row, request in enumerate(order):

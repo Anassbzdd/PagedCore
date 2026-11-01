@@ -4,7 +4,9 @@ Snapshot: 2026-11-01. **Phase 4 GPU paged KV cache is complete at the allocator
 boundary. The current gate is Phase 5: block-table decode attention.**
 Standalone single-query paged attention has reviewed T4 evidence at `3401406`.
 The newer batched one-token paged decode and staged attention reads have
-synthetic CPU coverage. T4 integrated paged-decoder validation, continuous
+synthetic CPU coverage. The first integrated T4 decode comparisons fail their
+numerical tolerances; see the [November 1 failure review](validation/2026-11-01-p53-t4-failure.md).
+T4 integrated paged-decoder acceptance, continuous
 batching and the service remain outstanding.
 
 ## Current gate
@@ -20,6 +22,15 @@ Ruff and strict mypy pass. P5.2 is complete at that revision. The current
 attention/decoder/allocator contain later batched/staged-append changes, so
 these archives do not establish T4 correctness for the newer integration.
 
+The [November 1 failure/diagnostic bundle](../results/validation/2026-11-1/p53-debug-t4-20261101T135931Z.zip)
+at clean `b2fd3b0` retains 649 passing CPU cases and 15 passing/two failing GPU
+cases, with no skips. Both integrated paged-decode cases fail existing logit
+tolerances. Controlled T4 comparisons isolate attention rounding and
+batch-dependent numerical drift; none of the tested arithmetic alternatives
+closes parity. See the [review](validation/2026-11-01-p53-t4-failure.md).
+Tolerances and engine arithmetic remain unchanged. This predates the newer
+local P5.4 guard and is not accepted Phase 5 completion evidence.
+
 | Surface | Implemented and observed | Evidence boundary |
 |---|---|---|
 | Environment and reference oracle | Frozen CPU/CUDA dependencies, pinned model/tokenizer, safe diagnostics, deterministic controls, reference capture/comparison | October 31 first run creates a fresh project environment in Kaggle; second synchronizes it. Selected-device/source attribution retained; no clean-host or service-install claim |
@@ -31,6 +42,7 @@ these archives do not establish T4 correctness for the newer integration.
 | Independent allocator model | Random create/append/release sequences, separate expected token history and credit/ownership model | Four CPU cases for 1/2/4/8-block pools, 50 examples each, up to 40 operations per example; includes failure injection and zero final ownership |
 | Evidence collector | Requires both KV GPU tests, pinned paged prefill and two explicit CUDA attention tests; rejects missing/skipped/failed/errored cases | CPU regression coverage; both October 31 archives include all 15 required passing GPU cases and complete logs/reports |
 | Batched one-token paged decode | `decoder.decode_paged` batches projections/model layers, uses per-request absolute positions and valid page lengths, and commits staged K/V after the full forward succeeds | Synthetic CPU comparisons against separate dense decode calls; layer K/V, mixed lengths, reordered rows, page boundaries, input rejection and synchronous failure/retry coverage. No pinned-checkpoint/T4 decoder parity or workspace evidence |
+| No dense-history decode guard | Shared test instrumentation follows K/V storage aliases and copies, rejecting temporary storage larger than one page during actual decode | CPU boundary/mixed/maximum-context checks and eight injected K/V shortcut cases pass; the same guard wraps required T4 decode cases, which have not executed |
 | Worker and HTTP/SSE | Planned | No continuous batching, request cancellation or service validation yet |
 | Container, benchmark and technical report | Planned | No serving performance or vLLM comparison results |
 
@@ -41,12 +53,31 @@ failure. These lifecycle requirements remain in Phases 5–8.
 
 ## Current CPU evidence
 
+On 2026-11-01, P5.4 adds the [shared storage guard](../tests/conftest.py) to
+existing [CPU decode tests](../tests/unit/test_decoder.py) and required
+[T4 decode cases](../tests/gpu/test_decoder_parity.py). Eight injected shortcuts
+verify rejection of concatenation (including converted/flattened pages),
+stacking, indexed gathering and copying into a preallocated full-history buffer,
+for K and V separately. Pool views and one-page FP32 copies remain permitted;
+reference and prefill calculations run outside the guard. This is CPU evidence;
+the guard and integrated decoder still require attributable T4 execution.
+The working-tree run passes **658 CPU tests, with 17 GPU cases deselected and
+zero skips** on Torch 2.7.1+cpu. The local/ignored report is
+`results/local/p54-cpu.xml`, from
+`uv run --no-sync python -m pytest -m "not gpu and not benchmark" -ra --junitxml=results/local/p54-cpu.xml`
+with `HF_HUB_OFFLINE=1`, `OMP_NUM_THREADS=1` and `MKL_NUM_THREADS=1`.
+`uv run --no-sync python -m ruff check .`,
+`uv run --no-sync python -m ruff format --check .`,
+`uv run --no-sync python -m mypy --strict src/pagedcore`, GPU collection (17
+cases) and `git diff --check` pass. No T4 execution is claimed.
+
 On 2026-11-01, validation preparation adds two pinned-checkpoint T4 cases in
 [`test_decoder_parity.py`](../tests/gpu/test_decoder_parity.py): single-request
 and mixed-length batched paged decode, each with three cached steps, reordered
 rows, logits/all-layer K/V and ownership checks. The collector requires both
 cases, with CPU regressions rejecting missing or unsuccessful results. These
-tests have not run on T4; the prior 15-case archives cannot prove their results.
+tests subsequently failed in the November 1 T4 run reviewed above; the prior
+15-case archives cannot prove their results.
 Local validation passes 649 CPU tests, with 17 GPU cases deselected and zero
 skips (`results/local/p53-validation-prep-cpu.xml`, local/ignored). Ruff format
 and lint, strict mypy, collector Bash syntax, GPU collection and
@@ -122,7 +153,7 @@ pass on the actual paged/batched decoder and service.
 ## Next implementation gate
 
 Continue Phase 5 with poisoned fragmentation and
-no-full-history-gather checks, then T4 parity, batched workspace and safe page
+T4 no-full-history-gather checks/parity, then batched workspace and safe page
 reuse. Follow the
 [public phase map](VALIDATION_PLAN.md#build-order) and required
 [architecture](DESIGN.md#kv-layout-and-invariants).
@@ -130,8 +161,10 @@ reuse. Follow the
 P5.1 prompt-to-page writes and P5.2 standalone single-query online softmax have
 retained T4 evidence. The [October 31 review](validation/2026-10-31-p52-t4-review.md)
 closes P5.2 at `3401406`. P5.3 batched one-token decode is implemented with CPU coverage;
-its T4 evidence remains pending. P5.4 no-full-history-gather instrumentation is
-the next implementation task. Paged generation and worker cleanup remain unimplemented.
+its T4 evidence remains pending. P5.4 no-full-history-gather instrumentation has
+CPU coverage and is wired into the required T4 decode tests; T4 evidence remains
+pending. P5.5 poisoned-fragmentation coverage is the next implementation task.
+Paged generation and worker cleanup remain unimplemented.
 
 Final MVP acceptance criteria in [TRACEABILITY.md](TRACEABILITY.md) remain open.
 Phase 4 completion proves the allocator foundation; later gates must establish

@@ -58,6 +58,14 @@ with per-request positions, valid page lengths and staged layer writes. Its
 decoder parity or workspace safety. Earlier T4 archives predate this decode and
 staged-append path; P5.4-P5.7 evidence remains required.
 
+As of 2026-11-01, the [shared decode guard](../tests/conftest.py) instruments
+K/V-derived storage during actual paged decode. CPU tests cover single/mixed
+requests, page boundaries and the 2,048-token limit, and reject injected K/V
+concatenation, stacking, indexed gathering and preallocated-buffer copies.
+The required single/mixed T4 decode cases use the same guard. Their execution
+and retained evidence remain pending; CPU success does not close the Phase 5
+T4 gate.
+
 ## Evidence attribution
 
 For each completed gate retain a reviewed artifact under `results/validation/` identifying the gate, UTC capture time, implementation revision, source identity, lock SHA-256, actual sanitized arguments, setup record, resolved configuration, seeds, installed dependency versions, device identity and test report. Capture GPU name/UUID, selected CUDA device, compute capability, driver/runtime and relevant memory totals; distinguish CUDA-visible devices from physical inventory.
@@ -88,6 +96,8 @@ cached forwards for three decode steps, reversing row order between steps.
 Checks include logits (`atol=rtol=5e-3`), every layer's K/V
 (`atol=rtol=2e-3`), exact next-token argmax, unchanged historical slots,
 cache lengths, reservations, stable pool storage and final release accounting.
+Only the owned decode call runs under the no-dense-history guard; permitted
+prefill and full-history reference calculations remain outside it.
 These focused decode comparisons do not close the later end-to-end generation,
 maximum-active workspace or page-reuse ordering gates.
 The [October 26 review](validation/2026-10-26-p42-t4-review.md#findings-and-remaining-work)

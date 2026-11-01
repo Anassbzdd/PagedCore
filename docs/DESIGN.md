@@ -98,7 +98,7 @@ integrated workspace evidence.
 [`attention.paged_attention`](../src/pagedcore/attention.py) accepts a rotated FP16
 `[1, 32, 1, 64]` query, an allocator, a request ID and a layer index. The caller
 must have written the current token's layer, so all exposed slots are causally visible.
-It reads valid pages through `read_block` in logical order, including only valid
+It reads valid pages through `iter_layer_blocks` in logical order, including only valid
 slots in the final page. Eight consecutive query heads share each KV head without
 expanding the full history. Reads use the allocator's owning thread and stream;
 attention does not mutate cache storage or accounting.
@@ -114,8 +114,17 @@ head mapping, large scores, autocast and read-only ownership. During batched
 decode, the primitive reads a completed staged layer through `iter_layer_blocks`;
 other layers' unpublished slots cannot be read. The standalone primitive has
 [T4 evidence at `3401406`](validation/2026-10-31-p52-t4-review.md). The newer
-staged-layer iterator, integrated pinned-checkpoint/T4 decoder parity, decode
+staged-layer iterator, integrated pinned-checkpoint/T4 decoder parity, T4 decode
 traces and workspace evidence remain pending.
+
+The [decode test guard](../tests/conftest.py) follows KV storage aliases and
+copies during `decode_paged`, rejecting temporary K/V storage larger than one
+16-token page. Per-page FP32 conversions and RoPE concatenation remain allowed;
+attention matmul results end K/V tracking. CPU tests inject concatenation,
+stacking, indexed gathering and writes into a preallocated history buffer to
+prove rejection for both K and V. Prefill and reference forwards run outside the
+guard. The same guard wraps the required T4 paged-decode tests; execution and
+retained T4 evidence remain pending.
 
 ### Batched one-token paged decode
 

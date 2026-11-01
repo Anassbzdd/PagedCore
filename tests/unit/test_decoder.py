@@ -7,6 +7,7 @@ from typing import Any
 import pytest
 import torch
 from torch import Tensor
+from torch.utils._python_dispatch import TorchDispatchMode
 from transformers import LlamaConfig, LlamaForCausalLM
 from transformers.models.llama.modeling_llama import LlamaRotaryEmbedding
 
@@ -109,9 +110,12 @@ def paged_weights(decoder: SimpleNamespace) -> TinyLlamaWeights:
     return replace(decoder.weights, layers=decoder.weights.layers * 11)
 
 
-@pytest.mark.parametrize("lengths", [(15,), (1, 15, 16, 17)])
+@pytest.mark.parametrize("lengths", [(15,), (49,), (1, 15, 16, 17, 49)])
 def test_paged_decode_batches_distinct_positions_and_appends_each_layer(
-    paged_weights: TinyLlamaWeights, lengths: tuple[int, ...], monkeypatch: pytest.MonkeyPatch
+    paged_weights: TinyLlamaWeights,
+    lengths: tuple[int, ...],
+    monkeypatch: pytest.MonkeyPatch,
+    forbid_dense_kv_history: Callable[[Tensor], TorchDispatchMode],
 ) -> None:
     pool = torch.full((22, 2, 16, 16, 4, 64), torch.nan, dtype=torch.float16)
     allocator = KVAllocator(pool)
@@ -142,7 +146,8 @@ def test_paged_decode_batches_distinct_positions_and_appends_each_layer(
         before = pool.clone()
         with monkeypatch.context() as patch:
             patch.setattr(decoder_module, "project_qkv", record_projection)
-            logits = decode_paged(tokens, paged_weights, allocator, order)
+            with forbid_dense_kv_history(pool):
+                logits = decode_paged(tokens, paged_weights, allocator, order)
         assert logits.shape == (len(order), 1, 31)
         assert logits.dtype == torch.float16 and not logits.requires_grad
         assert torch.isfinite(logits).all()
@@ -181,6 +186,55 @@ def test_paged_decode_batches_distinct_positions_and_appends_each_layer(
     for request in requests:
         allocator.release_all(request)
     assert allocator.capacity() == CapacityCounts(16, 16, 0, 0, 0, 0)
+
+
+@pytest.mark.parametrize("shortcut", ["cat", "stack", "index_select", "copy"])
+@pytest.mark.parametrize("kind", [0, 1], ids=["key", "value"])
+def test_paged_decode_guard_rejects_dense_history_shortcuts(
+    paged_weights: TinyLlamaWeights,
+    monkeypatch: pytest.MonkeyPatch,
+    forbid_dense_kv_history: Callable[[Tensor], TorchDispatchMode],
+    shortcut: str,
+    kind: int,
+) -> None:
+    pool = torch.zeros(22, 2, 3, 16, 4, 64, dtype=torch.float16)
+    allocator = KVAllocator(pool)
+    request = RequestId("history")
+    allocator.create(KVReservation(request, 2))
+    history = torch.zeros(22, 31, 4, 64, dtype=torch.float16)
+    allocator.append(request, history, history)
+    counts = allocator.capacity()
+    # Even a destination allocated before tracing must not accept gathered history.
+    buffer = torch.empty(32, 4, 64, dtype=torch.float16)
+    attention = decoder_module.paged_attention
+
+    def materialize_history(
+        query: Tensor, allocator: KVAllocator, request_id: RequestId, *, layer_index: int
+    ) -> Tensor:
+        pages = [
+            pair[kind] for pair in allocator.iter_layer_blocks(request_id, layer_index=layer_index)
+        ]
+        if shortcut == "cat":
+            torch.cat([page.float().flatten() for page in pages])
+        elif shortcut == "stack":
+            torch.stack(pages)
+        elif shortcut == "index_select":
+            pool[layer_index, kind].index_select(0, torch.tensor(allocator.block_table(request_id)))
+        else:
+            for index, page in enumerate(pages):
+                buffer[index * 16 : (index + 1) * 16].copy_(page)
+        return attention(query, allocator, request_id, layer_index=layer_index)
+
+    monkeypatch.setattr(decoder_module, "paged_attention", materialize_history)
+    with (
+        pytest.raises(AssertionError, match="decode materialized more than one KV page"),
+        forbid_dense_kv_history(pool),
+    ):
+        decode_paged(torch.tensor([[3]]), paged_weights, allocator, (request,))
+    assert allocator.capacity() == counts
+    assert allocator.cached_length(request) == 31
+    allocator.release_all(request)
+    assert allocator.capacity() == CapacityCounts(3, 3, 0, 0, 0, 0)
 
 
 @pytest.mark.parametrize("fault", ["attention", "logits", "copy"])
@@ -235,13 +289,17 @@ def test_paged_decode_failure_preserves_entire_batch_and_allows_retry(
     assert allocator.capacity() == CapacityCounts(6, 6, 0, 0, 0, 0)
 
 
-def test_paged_decode_at_last_context_position(paged_weights: TinyLlamaWeights) -> None:
-    allocator = KVAllocator(torch.zeros(22, 2, 128, 16, 4, 64, dtype=torch.float16))
+def test_paged_decode_at_last_context_position(
+    paged_weights: TinyLlamaWeights, forbid_dense_kv_history: Callable[[Tensor], TorchDispatchMode]
+) -> None:
+    pool = torch.zeros(22, 2, 128, 16, 4, 64, dtype=torch.float16)
+    allocator = KVAllocator(pool)
     request = RequestId("last")
     allocator.create(KVReservation(request, 128))
     history = torch.zeros(22, 2047, 4, 64, dtype=torch.float16)
     allocator.append(request, history, history)
-    logits = decode_paged(torch.tensor([[3]]), paged_weights, allocator, (request,))
+    with forbid_dense_kv_history(pool):
+        logits = decode_paged(torch.tensor([[3]]), paged_weights, allocator, (request,))
     assert logits.shape == (1, 1, 31) and torch.isfinite(logits).all()
     assert allocator.cached_length(request) == 2048
     counts = allocator.capacity()

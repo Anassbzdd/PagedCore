@@ -5,6 +5,9 @@ from typing import Any
 import pytest
 import torch
 from torch import Tensor
+from torch.multiprocessing.reductions import StorageWeakRef
+from torch.utils._python_dispatch import TorchDispatchMode
+from torch.utils._pytree import tree_leaves
 from transformers import GenerationConfig
 
 import pagedcore.decoder as decoder_module
@@ -21,6 +24,48 @@ TEST_SEED = 0
 def deterministic_test_state() -> None:
     """Start every test with the same Python and PyTorch RNG state."""
     seed_everything(TEST_SEED)
+
+
+class _BlockwiseKVGuard(TorchDispatchMode):
+    def __init__(self, pool: Tensor) -> None:
+        super().__init__()
+        self._pool = StorageWeakRef(pool.untyped_storage())
+        # Weak storage identities follow aliases without retaining temporary page copies.
+        self._kv_storage = {self._pool}
+
+    def __torch_dispatch__(
+        self, func: Any, types: Any, args: tuple[Any, ...] = (), kwargs: Any = None
+    ) -> Any:
+        reads_kv = any(
+            StorageWeakRef(value.untyped_storage()) in self._kv_storage
+            for value in tree_leaves((args, kwargs))
+            if isinstance(value, Tensor)
+        )
+        result = func(*args, **(kwargs or {}))
+        if reads_kv:
+            for value in tree_leaves(result):
+                if not isinstance(value, Tensor):
+                    continue
+                storage = value.untyped_storage()
+                identity = StorageWeakRef(storage)
+                if identity != self._pool:
+                    # Inspect storage, so a small slice cannot hide a full-history destination.
+                    assert storage.nbytes() <= 16 * 4 * 64 * value.element_size(), (
+                        f"decode materialized more than one KV page via {func}: {tuple(value.shape)}"
+                    )
+                # Attention matmuls reduce K to scores and V to the weighted output.
+                if func not in (
+                    torch.ops.aten.matmul.default,
+                    torch.ops.aten.bmm.default,
+                    torch.ops.aten.mm.default,
+                ):
+                    self._kv_storage.add(identity)
+        return result
+
+
+@pytest.fixture
+def forbid_dense_kv_history() -> Callable[[Tensor], TorchDispatchMode]:
+    return _BlockwiseKVGuard
 
 
 @pytest.fixture
