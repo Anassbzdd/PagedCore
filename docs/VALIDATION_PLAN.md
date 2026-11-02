@@ -79,6 +79,17 @@ and integrated logit/K/V errors. CPU results do not identify the first
 T4-specific divergent operation or close the T4 gate; retain a manual CUDA replay
 and the full collector result before acceptance.
 
+The November 2 replay additionally records FP32/FP16 probabilities, direct
+control-page K/V comparisons, first differing coordinates and value calculations
+with HF probabilities held fixed. Run both `--value-reduction striped` and
+`--value-reduction paged` on T4 and retain both JSON reports, including failures.
+The latter selects an experimental FP32 page-product accumulator without
+changing the serving default. The separate
+`test_pinned_candidate_paged_decode_on_t4[single/mixed]` cases apply the existing
+logit/K/V tolerances, greedy, ownership and storage guards to that candidate.
+Passing these experiments is required before proposing a default change; the
+full collector and remaining Phase 5 gates are still required afterward.
+
 ## Evidence attribution
 
 For each completed gate retain a reviewed artifact under `results/validation/` identifying the gate, UTC capture time, implementation revision, source identity, lock SHA-256, actual sanitized arguments, setup record, resolved configuration, seeds, installed dependency versions, device identity and test report. Capture GPU name/UUID, selected CUDA device, compute capability, driver/runtime and relevant memory totals; distinguish CUDA-visible devices from physical inventory.

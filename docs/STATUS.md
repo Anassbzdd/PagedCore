@@ -1,6 +1,6 @@
 # Implementation and evidence status
 
-Snapshot: 2026-11-01. **Phase 4 GPU paged KV cache is complete at the allocator
+Snapshot: 2026-11-02. **Phase 4 GPU paged KV cache is complete at the allocator
 boundary. The current gate is Phase 5: block-table decode attention.**
 Standalone single-query paged attention has reviewed T4 evidence at `3401406`.
 The newer batched one-token paged decode and staged attention reads have
@@ -36,7 +36,30 @@ attention and single-request operation shapes within the batch transaction.
 The standalone online mode, pinned eager reference, fixtures and numerical
 thresholds remain unchanged. See the [repair review](validation/2026-11-01-p53-numerical-repair.md)
 for attributable CPU checks and operation-level diagnostics. The arithmetic
-redesign has no new T4 evidence; P5.3 and the Phase 5 release gate stay open.
+redesign has no passing integrated T4 acceptance evidence; P5.3 and the Phase 5
+release gate stay open.
+
+The [November 2 diagnostic investigation](validation/2026-11-02-p53-numerical-investigation.md)
+reviews the supplied [T4 replay](../results/validation/2026-11-2/p53-diagnostic.json)
+at clean `b3a0fe1`, with matching attention/decoder/script/lock hashes. The single
+request is exact at 16 cached tokens. At 17, all isolated eager-attention scores
+remain exact, but layer 1's attention output first differs by `5.96e-8`; integrated
+logits exceed their unchanged tolerance (maximum ratio `1.977457`). CPU-shaped
+value reduction versus CUDA/cuBLAS is the leading hypothesis; probability outputs
+and identical-probability V reduction still need direct T4 comparison. The local
+focused attention/decoder suite passes 133 cases on Torch 2.7.1+cpu. No runtime
+fix was applied, and the diagnostic is not release evidence.
+
+The November 2 follow-up implements probability capture, direct control-page
+comparisons, fixed-HF-probability replay and an opt-in page-product accumulator.
+The candidate's [real-checkpoint CPU replay](../results/validation/2026-11-2/p53-paged-value-cpu.json)
+fails integrated tolerance (maximum ratio `2.660326`), despite exact probabilities
+and control-page K/V. It is not accepted as a fix; the serving default remains
+unchanged. The [CPU JUnit report](../results/validation/2026-11-2/p53-value-replay-cpu.xml)
+records 684 passes and 19 deselected cases, with zero skips; Ruff, formatting,
+strict mypy and diff checks pass. Candidate T4 tests are added but not executed.
+The original reducer still needs the new probability/value replay on T4 before
+choosing another numerical change.
 
 | Surface | Implemented and observed | Evidence boundary |
 |---|---|---|

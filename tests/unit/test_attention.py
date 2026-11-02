@@ -2,12 +2,55 @@ import pytest
 import torch
 from torch import Tensor
 
-from pagedcore.attention import paged_attention
+from pagedcore.attention import _paged_value_sum, paged_attention
 from pagedcore.dense import dense_attention
 from pagedcore.engine_types import KVReservation, RequestId
 from pagedcore.kv_cache import KVAllocator
 
 pytestmark = pytest.mark.unit
+
+
+@pytest.mark.parametrize("tokens", [17, 31, 32, 33, 49, 2048])
+def test_candidate_value_sum_keeps_page_storage_and_accounting(
+    tokens, forbid_dense_kv_history
+) -> None:
+    generator = torch.Generator().manual_seed(20261102)
+    key = torch.zeros(22, tokens, 4, 64, dtype=torch.float16)
+    value = torch.randn(key.shape, generator=generator).half()
+    probabilities = torch.randn(4, 8, tokens, generator=generator).softmax(-1).half()
+    allocator, request, pool = _cache(key, value)
+    before = pool.clone()
+    counts = allocator.capacity()
+    table = allocator.block_table(request)
+    expected = probabilities.double() @ value[0].transpose(0, 1).double()
+
+    with (
+        forbid_dense_kv_history(pool),
+        torch.inference_mode(),
+        torch.autocast("cpu", enabled=False),
+    ):
+        actual = _paged_value_sum(probabilities, allocator, request, 0)
+
+    torch.testing.assert_close(actual, expected.reshape_as(actual).half(), atol=2e-3, rtol=2e-3)
+    torch.testing.assert_close(pool, before, atol=0, rtol=0, equal_nan=True)
+    assert allocator.block_table(request) == table
+    assert allocator.capacity() == counts
+    allocator.release_all(request)
+    assert allocator.capacity().owned_blocks == 0
+
+
+def test_candidate_value_sum_rounds_only_after_cancelling_across_pages() -> None:
+    key = torch.zeros(22, 17, 4, 64, dtype=torch.float16)
+    value = torch.zeros_like(key)
+    value[:, 0], value[:, 1], value[:, 16] = 2048, 1, -4096
+    probabilities = torch.zeros(4, 8, 17, dtype=torch.float16)
+    probabilities[..., 0], probabilities[..., 1], probabilities[..., 16] = 0.5, 0.25, 0.25
+    allocator, request, _ = _cache(key, value)
+
+    actual = _paged_value_sum(probabilities, allocator, request, 0)
+
+    # Half-rounded page products would lose the quarter before cancellation.
+    torch.testing.assert_close(actual, torch.full_like(actual, 0.25), atol=0, rtol=0)
 
 
 @pytest.mark.parametrize("tokens", [1, 2, 3, 4, 5, 6, 7, 15, 16, 17, 49, 2048])

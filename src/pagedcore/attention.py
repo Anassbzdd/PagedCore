@@ -74,18 +74,34 @@ def _eager_attention(
     # Normalize once, before rounding probabilities. Page-local rounding or an
     # online weighted sum changes eager's FP16 probability boundaries.
     probabilities = scores[..., :length].softmax(dim=-1).half()
+    return _eager_value_sum(probabilities, allocator, request_id, layer_index)
+
+
+def _eager_value_sum(
+    probabilities: Tensor, allocator: KVAllocator, request_id: RequestId, layer_index: int
+) -> Tensor:
+    length = probabilities.shape[-1]
     if length <= 16:
         _, value = next(allocator.iter_layer_blocks(request_id, layer_index=layer_index))
         page = value.transpose(0, 1).contiguous()
-        output = torch.empty((4, 8, 64), dtype=torch.float16, device=query.device)
+        output = torch.empty((4, 8, 64), dtype=torch.float16, device=probabilities.device)
         for head in range(4):
             output[head] = torch.bmm(
                 probabilities[head, :, None], page[head][None].expand(8, -1, -1)
             )[:, 0]
         return output.reshape(1, 32, 1, 64)
+    return _multi_page_value_sum(probabilities, allocator, request_id, layer_index)
+
+
+def _multi_page_value_sum(
+    probabilities: Tensor, allocator: KVAllocator, request_id: RequestId, layer_index: int
+) -> Tensor:
+    length = probabilities.shape[-1]
     # Carry reduction lanes across page boundaries instead of summing rounded
     # page products. Keep separate storages so each temporary fits one KV page.
-    partials = tuple(torch.zeros_like(query) for _ in range(4))
+    partials = tuple(
+        torch.zeros((4, 8, 64), dtype=torch.float32, device=probabilities.device) for _ in range(4)
+    )
     tail = length - length % 4
     start = 0
     for _, value in allocator.iter_layer_blocks(request_id, layer_index=layer_index):
@@ -100,4 +116,22 @@ def _eager_attention(
             )
         start = stop
     output = ((partials[0] + partials[1]) + partials[2]) + partials[3]
+    return output.reshape(1, 32, 1, 64).half()
+
+
+def _paged_value_sum(
+    probabilities: Tensor, allocator: KVAllocator, request_id: RequestId, layer_index: int
+) -> Tensor:
+    """Experimental page-local products with FP32 accumulation until the final cast."""
+    output = torch.zeros((4, 8, 64), dtype=torch.float32, device=probabilities.device)
+    start = 0
+    for _, value in allocator.iter_layer_blocks(request_id, layer_index=layer_index):
+        stop = start + value.shape[0]
+        page = value.transpose(0, 1).float()
+        weights = probabilities[..., start:stop].float()
+        for head in range(4):
+            output[head] = torch.baddbmm(
+                output[head, :, None], weights[head, :, None], page[head][None].expand(8, -1, -1)
+            )[:, 0]
+        start = stop
     return output.reshape(1, 32, 1, 64).half()

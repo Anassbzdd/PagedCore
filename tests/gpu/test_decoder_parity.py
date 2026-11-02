@@ -10,6 +10,7 @@ from torch import Tensor
 from torch.utils._python_dispatch import TorchDispatchMode
 from transformers import AutoModelForCausalLM
 
+import pagedcore.attention as attention_module
 from pagedcore.config import MODEL_ID, MODEL_REVISION
 from pagedcore.decoder import GreedyResult, decode_paged, prefill_paged
 from pagedcore.engine_types import CapacityCounts, KVReservation, RequestId
@@ -230,6 +231,19 @@ def test_pinned_paged_decode_on_t4(
         for request in requests:
             allocator.release_all(request)
         assert allocator.capacity() == CapacityCounts(16, 16, 0, 0, 0, 0)
+
+
+@pytest.mark.parametrize("lengths", [(15,), (1, 15, 16, 17, 49)], ids=["single", "mixed"])
+def test_pinned_candidate_paged_decode_on_t4(
+    pinned_decoders: tuple[Any, TinyLlamaWeights],
+    lengths: tuple[int, ...],
+    forbid_dense_kv_history: Callable[[Tensor], TorchDispatchMode],
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(
+        attention_module, "_multi_page_value_sum", attention_module._paged_value_sum
+    )
+    test_pinned_paged_decode_on_t4(pinned_decoders, lengths, forbid_dense_kv_history)
 
 
 @pytest.mark.parametrize("case", FIXTURES["prompts"], ids=lambda case: case["name"])

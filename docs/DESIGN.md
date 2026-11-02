@@ -161,6 +161,14 @@ and exact greedy checks must pass on T4 before accepting the change.
 Per-position value operations add kernel launches. Their throughput cost is
 unmeasured; correctness takes priority over a later fused implementation.
 
+The November 2 investigation separates this value reducer from score computation
+so the diagnostic can hold HF probabilities fixed. An experimental reducer uses
+page-local FP32 `baddbmm` with one persistent FP32 accumulator and one final FP16
+cast. It borrows only page-sized V storage. The serving default remains the
+striped reduction above; only the diagnostic's `--value-reduction paged` and
+explicit candidate tests select the experiment. CPU results cannot select a
+CUDA arithmetic policy. See the [investigation and T4 commands](validation/2026-11-02-p53-numerical-investigation.md).
+
 The [decode test guard](../tests/conftest.py) follows KV storage aliases and
 copies during `decode_paged`, rejecting temporary K/V storage larger than one
 16-token page. Per-page FP32 conversions and RoPE concatenation remain allowed;

@@ -18,6 +18,7 @@ from torch.utils._python_dispatch import TorchDispatchMode
 from transformers import AutoModelForCausalLM
 from transformers.models.llama import modeling_llama as llama
 
+import pagedcore.attention as attention_module
 from pagedcore.attention import paged_attention
 from pagedcore.cli import collect_environment_diagnostics, collect_validation_provenance
 from pagedcore.config import MODEL_ID, MODEL_REVISION
@@ -30,15 +31,24 @@ from pagedcore.weights import load_weights
 
 
 class AttentionScores(TorchDispatchMode):
-    def __init__(self) -> None:
+    def __init__(self, forced_probabilities: Tensor | None = None) -> None:
         super().__init__()
         self.value: Tensor | None = None
+        self.probabilities: Tensor | None = None
+        self.forced_probabilities = forced_probabilities
 
     def __torch_dispatch__(
         self, func: Any, types: Any, args: tuple[Any, ...] = (), kwargs: Any = None
     ) -> Any:
         if func in (torch.ops.aten.softmax.int, torch.ops.aten._softmax.default):
             self.value = args[0].detach().clone()
+            result = func(*args, **(kwargs or {}))
+            self.probabilities = result.detach().clone()
+            if self.forced_probabilities is not None:
+                forced = self.forced_probabilities.reshape_as(result)
+                assert forced.dtype == result.dtype and forced.device == result.device
+                return forced.clone()
+            return result
         return func(*args, **(kwargs or {}))
 
 
@@ -46,7 +56,15 @@ def measurement(actual: Tensor, expected: Tensor, tolerance: float = 2e-3) -> di
     assert actual.shape == expected.shape
     assert torch.isfinite(actual).all() and torch.isfinite(expected).all()
     error = (actual.float() - expected.float()).abs()
+    indices = (actual != expected).nonzero()
+    first = tuple(indices[0].tolist()) if indices.shape[0] else None
     return {
+        "shape": list(actual.shape),
+        "actual_stride": list(actual.stride()),
+        "expected_stride": list(expected.stride()),
+        "first_unequal_index": first,
+        "actual_at_first": float(actual[first].item()) if first is not None else None,
+        "expected_at_first": float(expected[first].item()) if first is not None else None,
         "unequal": int((actual != expected).sum().item()),
         "max_absolute_error": float(error.max().item()),
         "max_tolerance_ratio": float(
@@ -85,9 +103,12 @@ def component_controls(
         return result
 
     def eager(module: Any, query: Tensor, key: Tensor, value: Tensor, *args: Any, **kw: Any) -> Any:
-        result = original(module, query, key, value, *args, **kw)
+        with AttentionScores() as observed:
+            result = original(module, query, key, value, *args, **kw)
+        assert observed.probabilities is not None
         attention[row][module.layer_idx] = tuple(
-            tensor.detach().clone() for tensor in (query, key, value, result[0])
+            tensor.detach().clone()
+            for tensor in (query, key, value, result[0], observed.probabilities, result[1])
         )
         return result
 
@@ -108,7 +129,9 @@ def component_controls(
     return expected, rows, attention
 
 
-def run(device: str, steps: int = 3) -> dict[str, Any]:
+def run(device: str, steps: int = 3, value_reduction: str = "striped") -> dict[str, Any]:
+    if value_reduction not in ("striped", "paged"):
+        raise ValueError("value_reduction must be striped or paged")
     fixture = Path(__file__).resolve().parents[1] / "tests/fixtures/reference_prompts.json"
     ids = next(
         case["input_ids"]
@@ -116,7 +139,13 @@ def run(device: str, steps: int = 3) -> dict[str, Any]:
         if case["name"] == "maximum_output"
     )
     records: list[dict[str, Any]] = []
-    with reference_math() as policy, torch.inference_mode():
+    with ExitStack() as cleanup, reference_math() as policy, torch.inference_mode():
+        if value_reduction == "paged":
+            cleanup.enter_context(
+                patch.object(
+                    attention_module, "_multi_page_value_sum", attention_module._paged_value_sum
+                )
+            )
         weights = load_weights(device=device)
         model = (
             AutoModelForCausalLM.from_pretrained(
@@ -237,7 +266,31 @@ def run(device: str, steps: int = 3) -> dict[str, Any]:
                             [value[0].transpose(0, 1) for _, value in reference.past_key_values]
                         ),
                     )
-                    for layer, (query, key, _value, target) in attention[row].items():
+                    for layer, (
+                        query,
+                        key,
+                        value,
+                        target,
+                        hf_probabilities,
+                        hf_rounded,
+                    ) in attention[row].items():
+                        start = 0
+                        for page_key, page_value in control.iter_layer_blocks(
+                            request, layer_index=layer
+                        ):
+                            stop = start + page_key.shape[0]
+                            for kind, page_tensor, reference_tensor in (
+                                ("key", page_key, key),
+                                ("value", page_value, value),
+                            ):
+                                record(
+                                    "control_storage",
+                                    f"layer.{layer}.{kind}",
+                                    page_tensor,
+                                    reference_tensor[0, :, start:stop].transpose(0, 1),
+                                    row=row,
+                                )
+                            start = stop
                         # Full score tensors are diagnostic outputs, never gathered K/V.
                         product = torch.matmul(query, llama.repeat_kv(key, 8).transpose(-1, -2))
                         legacy_scores = torch.empty_like(product, dtype=torch.float32)
@@ -270,11 +323,26 @@ def run(device: str, steps: int = 3) -> dict[str, Any]:
                                 )
                             if eager_rounding:
                                 assert scores.value is not None
+                                assert scores.probabilities is not None
                                 record(
                                     mode,
                                     f"layer.{layer}.scaled_scores",
                                     scores.value.reshape_as(product),
                                     product / 8,
+                                    row=row,
+                                )
+                                record(
+                                    mode,
+                                    f"layer.{layer}.probabilities_fp32",
+                                    scores.probabilities.reshape_as(hf_probabilities),
+                                    hf_probabilities,
+                                    row=row,
+                                )
+                                record(
+                                    mode,
+                                    f"layer.{layer}.probabilities_fp16",
+                                    scores.probabilities.half().reshape_as(hf_rounded),
+                                    hf_rounded,
                                     row=row,
                                 )
                             record(
@@ -284,6 +352,17 @@ def run(device: str, steps: int = 3) -> dict[str, Any]:
                                 target,
                                 row=row,
                             )
+                        with AttentionScores(hf_probabilities):
+                            fixed = paged_attention(
+                                query, control, request, layer_index=layer, eager_rounding=True
+                            )
+                        record(
+                            "fixed_probabilities",
+                            f"layer.{layer}.attention",
+                            fixed.transpose(1, 2),
+                            target,
+                            row=row,
+                        )
                     control.release_all(request)
 
                 actual = decode_paged(
@@ -336,6 +415,7 @@ def run(device: str, steps: int = 3) -> dict[str, Any]:
     return {
         "scope": "Diagnostic replay; not T4 release evidence",
         "device": device,
+        "value_reduction": value_reduction,
         "steps": steps,
         "observed_at_utc": datetime.now(UTC).isoformat(),
         "model_revision": MODEL_REVISION,
@@ -353,12 +433,13 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--device", choices=("cpu", "cuda:0"), default="cpu")
     parser.add_argument("--steps", type=int, choices=(1, 2, 3), default=3)
+    parser.add_argument("--value-reduction", choices=("striped", "paged"), default="striped")
     parser.add_argument(
         "--output", type=Path, default=Path("results/local/paged-decode-arithmetic.json")
     )
     arguments = parser.parse_args()
     torch.set_num_threads(1)
-    report = run(arguments.device, arguments.steps)
+    report = run(arguments.device, arguments.steps, arguments.value_reduction)
     arguments.output.parent.mkdir(parents=True, exist_ok=True)
     arguments.output.write_text(json.dumps(report, indent=2) + "\n", encoding="utf-8")
     print(json.dumps(report["summaries"], indent=2))
