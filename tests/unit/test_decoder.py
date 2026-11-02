@@ -129,11 +129,16 @@ def test_paged_decode_batches_distinct_positions_and_appends_each_layer(
     pointer = pool.untyped_storage().data_ptr()
     counts = allocator.capacity()
     project = decoder_module.project_qkv
+    linear = torch.nn.functional.linear
     batch_sizes = []
 
     def record_projection(hidden: Tensor, layer: LayerWeights) -> tuple[Tensor, Tensor, Tensor]:
         batch_sizes.append(hidden.shape[0])
         return project(hidden, layer)
+
+    def single_request_linear(hidden: Tensor, weight: Tensor) -> Tensor:
+        assert hidden.shape[:2] == (1, 1), "decode arithmetic must use single-request shapes"
+        return linear(hidden, weight)
 
     for step in range(2):
         # Request order can change between worker iterations.
@@ -146,6 +151,7 @@ def test_paged_decode_batches_distinct_positions_and_appends_each_layer(
         before = pool.clone()
         with monkeypatch.context() as patch:
             patch.setattr(decoder_module, "project_qkv", record_projection)
+            patch.setattr(decoder_module.F, "linear", single_request_linear)
             with forbid_dense_kv_history(pool):
                 logits = decode_paged(tokens, paged_weights, allocator, order)
         assert logits.shape == (len(order), 1, 31)
@@ -167,7 +173,7 @@ def test_paged_decode_batches_distinct_positions_and_appends_each_layer(
                         (1, value[layer], expected_value),
                     ):
                         torch.testing.assert_close(
-                            actual, target[0, :, start:end].transpose(0, 1), atol=5e-3, rtol=5e-3
+                            actual, target[0, :, start:end].transpose(0, 1), atol=2e-3, rtol=2e-3
                         )
                         valid_old = max(0, min(end, old.length) - start)
                         torch.testing.assert_close(
@@ -182,10 +188,54 @@ def test_paged_decode_batches_distinct_positions_and_appends_each_layer(
         assert current.reserved_blocks == counts.reserved_blocks
         assert current.active_slots == len(order)
         assert pool.untyped_storage().data_ptr() == pointer
-    assert batch_sizes == [len(requests)] * 44
+    assert batch_sizes == [1] * (44 * len(requests))
     for request in requests:
         allocator.release_all(request)
     assert allocator.capacity() == CapacityCounts(16, 16, 0, 0, 0, 0)
+
+
+def test_paged_decode_is_independent_of_batch_composition_and_row_order(
+    paged_weights: TinyLlamaWeights,
+    forbid_dense_kv_history: Callable[[Tensor], TorchDispatchMode],
+) -> None:
+    requests = tuple(RequestId(str(row)) for row in range(3))
+    pools = [torch.full((22, 2, 12, 16, 4, 64), torch.nan, dtype=torch.float16) for _ in range(2)]
+    separate, batched = (KVAllocator(pool) for pool in pools)
+    for request, length in zip(requests, (1, 16, 49), strict=True):
+        _, cache = prefill(torch.arange(length)[None] % 31, paged_weights)
+        key = torch.stack([key[0].transpose(0, 1) for key, _ in cache.layers])
+        value = torch.stack([value[0].transpose(0, 1) for _, value in cache.layers])
+        for allocator in (separate, batched):
+            allocator.create(KVReservation(request, (length + 18) // 16))
+            allocator.append(request, key, value)
+    for step in range(3):
+        order = requests if step % 2 == 0 else requests[::-1]
+        tokens = torch.tensor([[3 + int(request) + step] for request in order])
+        with forbid_dense_kv_history(pools[0]):
+            expected = torch.cat(
+                [
+                    decode_paged(tokens[row : row + 1], paged_weights, separate, (request,))
+                    for row, request in enumerate(order)
+                ]
+            )
+        with forbid_dense_kv_history(pools[1]):
+            actual = decode_paged(tokens, paged_weights, batched, order)
+        torch.testing.assert_close(actual, expected, atol=0, rtol=0)
+        assert torch.equal(actual.argmax(-1), expected.argmax(-1))
+        assert batched.capacity() == separate.capacity()
+        for request in order:
+            assert batched.cached_length(request) == separate.cached_length(request)
+            for block in range(len(batched.block_table(request))):
+                for actual_kv, expected_kv in zip(
+                    batched.read_block(request, block),
+                    separate.read_block(request, block),
+                    strict=True,
+                ):
+                    torch.testing.assert_close(actual_kv, expected_kv, atol=0, rtol=0)
+    for allocator in (separate, batched):
+        for request in requests:
+            allocator.release_all(request)
+        assert allocator.capacity() == CapacityCounts(12, 12, 0, 0, 0, 0)
 
 
 @pytest.mark.parametrize("shortcut", ["cat", "stack", "index_select", "copy"])
@@ -209,7 +259,12 @@ def test_paged_decode_guard_rejects_dense_history_shortcuts(
     attention = decoder_module.paged_attention
 
     def materialize_history(
-        query: Tensor, allocator: KVAllocator, request_id: RequestId, *, layer_index: int
+        query: Tensor,
+        allocator: KVAllocator,
+        request_id: RequestId,
+        *,
+        layer_index: int,
+        eager_rounding: bool = False,
     ) -> Tensor:
         pages = [
             pair[kind] for pair in allocator.iter_layer_blocks(request_id, layer_index=layer_index)
@@ -223,7 +278,9 @@ def test_paged_decode_guard_rejects_dense_history_shortcuts(
         else:
             for index, page in enumerate(pages):
                 buffer[index * 16 : (index + 1) * 16].copy_(page)
-        return attention(query, allocator, request_id, layer_index=layer_index)
+        return attention(
+            query, allocator, request_id, layer_index=layer_index, eager_rounding=eager_rounding
+        )
 
     monkeypatch.setattr(decoder_module, "paged_attention", materialize_history)
     with (
@@ -237,7 +294,7 @@ def test_paged_decode_guard_rejects_dense_history_shortcuts(
     assert allocator.capacity() == CapacityCounts(3, 3, 0, 0, 0, 0)
 
 
-@pytest.mark.parametrize("fault", ["attention", "logits", "copy"])
+@pytest.mark.parametrize("fault", ["attention", "logits", "second_logits", "copy"])
 def test_paged_decode_failure_preserves_entire_batch_and_allows_retry(
     paged_weights: TinyLlamaWeights, monkeypatch: pytest.MonkeyPatch, fault: str
 ) -> None:
@@ -254,12 +311,19 @@ def test_paged_decode_failure_preserves_entire_batch_and_allows_retry(
     counts = allocator.capacity()
     tables = [allocator.block_table(request) for request in requests]
     calls = 0
-    original = torch.Tensor.copy_ if fault == "copy" else decoder_module.paged_attention
+    original = (
+        torch.Tensor.copy_
+        if fault == "copy"
+        else decoder_module.final_logits
+        if fault in ("logits", "second_logits")
+        else decoder_module.paged_attention
+    )
 
     def fail(*args: Any, **kwargs: Any) -> Any:
         nonlocal calls
         calls += 1
-        if calls == (4 if fault == "copy" else 3) or fault == "logits":
+        failure_call = {"copy": 4, "attention": 3, "logits": 1, "second_logits": 2}[fault]
+        if calls == failure_call:
             raise RuntimeError("injected decode failure")
         return original(*args, **kwargs)
 
@@ -269,7 +333,9 @@ def test_paged_decode_failure_preserves_entire_batch_and_allows_retry(
             patch.setattr(torch.Tensor, "copy_", fail)
         else:
             patch.setattr(
-                decoder_module, "final_logits" if fault == "logits" else "paged_attention", fail
+                decoder_module,
+                "final_logits" if fault in ("logits", "second_logits") else "paged_attention",
+                fail,
             )
         with pytest.raises(RuntimeError, match="injected decode failure"):
             decode_paged(tokens, paged_weights, allocator, requests)

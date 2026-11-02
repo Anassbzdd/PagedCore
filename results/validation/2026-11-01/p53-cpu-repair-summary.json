@@ -1,0 +1,188 @@
+{
+  "scope": "CPU-only numerical repair review; P5.3 requires manual T4 acceptance",
+  "observed_at_utc": "2026-11-01T16:24:49.597687+00:00",
+  "checks": [
+    {
+      "command": ".venv/Scripts/python.exe -m pytest -m \"not gpu and not benchmark\" -ra --junitxml=results/local/p53-repair-final-cpu.xml",
+      "exit_code": 0,
+      "collected": 691,
+      "selected": 674,
+      "executed": 674,
+      "passed": 674,
+      "deselected_gpu": 17,
+      "failed": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "command": ".venv/Scripts/python.exe -m ruff check .",
+      "exit_code": 0
+    },
+    {
+      "command": ".venv/Scripts/python.exe -m ruff format --check .",
+      "exit_code": 0
+    },
+    {
+      "command": ".venv/Scripts/python.exe -m mypy --strict src/pagedcore",
+      "exit_code": 0
+    },
+    {
+      "command": "git diff --check",
+      "exit_code": 0
+    },
+    {
+      "command": ".venv/Scripts/python.exe -u scripts/diagnose_paged_decode.py --device cpu --output results/local/p53-repair-final-arithmetic.json",
+      "exit_code": 0
+    }
+  ],
+  "environment_variables": {
+    "HF_HUB_OFFLINE": "1",
+    "OMP_NUM_THREADS": "1",
+    "MKL_NUM_THREADS": "1"
+  },
+  "provenance": {
+    "setup_command": null,
+    "command_arguments": null,
+    "git_revision": "8ec8b0bc2311a114c509754b82c36aae0c7aa565",
+    "working_tree_clean": false,
+    "uv_lock_sha256": "46700b60b0a8d492fc673aec8a0e12c27ae43124dd8e194f8c754dbd6ca7ea48",
+    "source_sha256": {
+      ".python-version": "db82937e1f1830581a9553c7814f5c5fcacb6dfdef8310b43e9a812c887acaf5",
+      "pyproject.toml": "55b3d48fd0a5297b3adea9b812bad4c561751c84d95e2d0d2d8a0b588ce78a71",
+      "src/pagedcore/__init__.py": "42b1e9884f56caa6de42f8177eedcc2f9b81ae2df2f9db28e45114117e8f3d29",
+      "src/pagedcore/attention.py": "713359feeaacefbb82a74263731a3243337f847368cb378569367cf604abf013",
+      "src/pagedcore/cli.py": "e36cb0cf9e342e76787b3d74e98b778c22b1b76b580bf76e556a5f03aa6c2c16",
+      "src/pagedcore/config.py": "9ad8fceb558dafef9274d6c83bfe9bcf904a97e3df3fa2cec4d08551e490dccb",
+      "src/pagedcore/decoder.py": "076982b248e728e72b1a593b5020e882d2bb1d17f85ce6843acc333f6b26208e",
+      "src/pagedcore/dense.py": "8b11e7684379d0138bab80071b37b223e3749bfa01d99293e871627a84e36ea5",
+      "src/pagedcore/determinism.py": "2fdcba5697c59b4f68942fb7d3a14baff46cc4d0d70470c7f23e5c56a437afa2",
+      "src/pagedcore/engine_types.py": "db31cb04b5dd4e127d37f1b3a4b88bc20f2272520893a150428197713c6cae40",
+      "src/pagedcore/kv_cache.py": "b532677340b9f4bf82bbe59dfa615a24fe1351660e93200aa030f1f124d722ec",
+      "src/pagedcore/measurements.py": "760946d8dac98f4a9bfcc182a2426a5b92af62aa23fb859d239895d42ca5c3f0",
+      "src/pagedcore/oracle.py": "6fbc7fe7fdd01eb7cb23055ad3189fad00b733bc1dcd727e091306dcf34f9eb8",
+      "src/pagedcore/verification.py": "4e6b77ea1e88b81ae96047b59b4e5fa859c4237251d9e674a6ee27c2fbd75044",
+      "src/pagedcore/weights.py": "1a0b9f34003ab9ca99ccd00e2f193253071d45b480adce7ed809e65ffa72ec5b",
+      "tests/conftest.py": "8a3000ca0e5b32a4cafd996049ada1d24a2b3491009c0fe6487443146e82ddb4",
+      "tests/gpu/test_attention_cuda.py": "5727d5ef6cc1820f640aaf1fdccc8762282d5c0ae45658d7155800a79afa7b47",
+      "tests/gpu/test_decoder_parity.py": "60f4676a5e2572cc470606beaf2d73409ade27c8915a8785dc52f4cc88e56466",
+      "tests/gpu/test_kv_pool_cuda.py": "ba3f57c802b5a722c4ea2ca43207599f727a53dceeadd3cc85727c34220c01ff",
+      "tests/gpu/test_oracle_reference.py": "6617aa0cc73197779f22c52441d85a34e1c3e38e9090fb08a9bd871510f53a78",
+      "tests/gpu/test_target_verification.py": "c40e8cf67d0b972f6737b71787a8d2c8ce4231538ca9b1503da6d65722c5e554",
+      "tests/unit/test_attention.py": "4c4259a91e392546c9f2e78f8994580f7cac384d118d114574bb1294498abece",
+      "tests/unit/test_cli.py": "f1d72b629020a78f89f50b1b8ccdb01a69ac28fb2f2a4d80405f770bcb22b5f2",
+      "tests/unit/test_config.py": "9625b57c40407152e93bf39d4d518a2b735212efadd2a48804ed0abdefff9996",
+      "tests/unit/test_decoder.py": "2a03821785c69b3fcaf705a0ad133875e2eaef37d70923d57eb1557ee7f16258",
+      "tests/unit/test_dense.py": "346107a33eae54cdfd5b9a8bfb38017e95379338e6574049521b060c814d3d92",
+      "tests/unit/test_dense_workspace.py": "b555081e6f11029c3dddd70c54804ec21af618f6465696d1058eca725a091dc8",
+      "tests/unit/test_determinism.py": "4da0279f676caced156a2db72ebc0c691ff787f22ac15c9635e85d723835eefa",
+      "tests/unit/test_engine_types.py": "ea9c52b46ac60f72c0dc95ade581b799e2b6746d627c9334c4ba7e8ab11193f3",
+      "tests/unit/test_kv_cache.py": "d939ca4764890edf53b4bd136f4d9aff366518dcfe0250a97f435b3f8e74d480",
+      "tests/unit/test_kv_cache_properties.py": "4803bdd58b04100f8d5e84cf8518d1dbd939c8cfc42b26e9454ab2be1d55fd5e",
+      "tests/unit/test_measurements.py": "469ae30346ef880b1bbfadc58af72320f7597d3a658a0fda017c9df8fbddd00a",
+      "tests/unit/test_oracle.py": "b47f8f38a3988704da5bc5b2b11d9539728a0d86fba414f46cdfab4ef8f8166b",
+      "tests/unit/test_reference_fixtures.py": "13b2af5294380e4426f77f2955c217e4483418305360526cbbe22ea7984fe90d",
+      "tests/unit/test_t4_evidence.py": "3d100569c7be2f8f2bf561c4e91d0f3596dbc7c654e8829769bd740dfeb3ffa0",
+      "tests/unit/test_verification.py": "75df0ea776fd91478db64e74b0861be1cb9e49a1cbb8464fbff1ceeb49cfb2b1",
+      "tests/unit/test_weights.py": "5555b55d797ddd5020887016ff19f9b7dfb54432f09a95b17ffe42ab58ea64ae"
+    }
+  },
+  "script_sha256": "f099410414e3922f9583bc0b327bb5cf6756764cc1c3089c2ddac3967aa88696",
+  "summaries": {
+    "batched_components": {
+      "first_unequal": null,
+      "first_failure": null,
+      "max_tolerance_ratio": 0.0,
+      "all_greedy_matches": true
+    },
+    "isolated_components": {
+      "first_unequal": null,
+      "first_failure": null,
+      "max_tolerance_ratio": 0.0,
+      "all_greedy_matches": true
+    },
+    "online_attention": {
+      "first_unequal": {
+        "lengths": [
+          15
+        ],
+        "step": 1,
+        "mode": "online_attention",
+        "operation": "layer.0.scaled_scores",
+        "row": 0,
+        "unequal": 512,
+        "max_absolute_error": 0.0017948150634765625,
+        "max_tolerance_ratio": 0.15575343370437622
+      },
+      "first_failure": null,
+      "max_tolerance_ratio": 0.24464231729507446,
+      "all_greedy_matches": true
+    },
+    "eager_attention": {
+      "first_unequal": null,
+      "first_failure": null,
+      "max_tolerance_ratio": 0.0,
+      "all_greedy_matches": true
+    },
+    "integrated": {
+      "first_unequal": null,
+      "first_failure": null,
+      "max_tolerance_ratio": 0.0,
+      "all_greedy_matches": true
+    }
+  },
+  "snapshot_sha256": {
+    "arithmetic.json": "8263554cc0f68263e1edd72918622d67fb28347cea0ce5a32ba2b3a4ade72cd0",
+    "cpu-tests.xml": "5ce57a773dcb198f27a832d574c5eaabd3539f6007c3f777e9458df236714201",
+    "probes/attention.pt": "24b2eb327eacf241faedfbe06bb574e94fa5b34e591aab42c360fbd36c070155",
+    "probes/capture.py": "66527b487e6e7bf71472c8b7beebbf300e695072cff1a7aa0bff9006ecbcbabc",
+    "probes/reduction-controls.json": "ce6d3d2b09828e2203c5d5d8304387f5bfff51f638775ce43a409fb5d3232e7d",
+    "probes/reduction-controls.py": "ed6202d9566271b558d208e0120fa93a02cbeaa8e4e475371e82f7116a81b640",
+    "rejected/fp32-page-matmul-attention.py": "2045c5350a09ff4d1a42e51511bb269ee6b8a3378e13ebd020491a9f158ee3c2",
+    "rejected/fp32-page-matmul.json": "a15ebb713e96c0cb3624eeaf5f10c52ad97713b338a43605053c874ef15aa840",
+    "rejected/grouped-score-attention.py": "66e7e652000ee020ec49375318269abdcae8ed7849d409749f590134eb95c70f",
+    "rejected/grouped-score.json": "559da38926149cd4da13ab06ba02ee2d73aeef5343b9e29afb8d8980b51a349c",
+    "rejected/initial-diagnostic.py": "dda04e9209cd16f4e891c3811bdea7a6771978dfcca66a1de16eba19e5d05bef",
+    "source/.python-version": "db82937e1f1830581a9553c7814f5c5fcacb6dfdef8310b43e9a812c887acaf5",
+    "source/pyproject.toml": "55b3d48fd0a5297b3adea9b812bad4c561751c84d95e2d0d2d8a0b588ce78a71",
+    "source/scripts/diagnose_paged_decode.py": "f099410414e3922f9583bc0b327bb5cf6756764cc1c3089c2ddac3967aa88696",
+    "source/src/pagedcore/__init__.py": "42b1e9884f56caa6de42f8177eedcc2f9b81ae2df2f9db28e45114117e8f3d29",
+    "source/src/pagedcore/attention.py": "713359feeaacefbb82a74263731a3243337f847368cb378569367cf604abf013",
+    "source/src/pagedcore/cli.py": "e36cb0cf9e342e76787b3d74e98b778c22b1b76b580bf76e556a5f03aa6c2c16",
+    "source/src/pagedcore/config.py": "9ad8fceb558dafef9274d6c83bfe9bcf904a97e3df3fa2cec4d08551e490dccb",
+    "source/src/pagedcore/decoder.py": "076982b248e728e72b1a593b5020e882d2bb1d17f85ce6843acc333f6b26208e",
+    "source/src/pagedcore/dense.py": "8b11e7684379d0138bab80071b37b223e3749bfa01d99293e871627a84e36ea5",
+    "source/src/pagedcore/determinism.py": "2fdcba5697c59b4f68942fb7d3a14baff46cc4d0d70470c7f23e5c56a437afa2",
+    "source/src/pagedcore/engine_types.py": "db31cb04b5dd4e127d37f1b3a4b88bc20f2272520893a150428197713c6cae40",
+    "source/src/pagedcore/kv_cache.py": "b532677340b9f4bf82bbe59dfa615a24fe1351660e93200aa030f1f124d722ec",
+    "source/src/pagedcore/measurements.py": "760946d8dac98f4a9bfcc182a2426a5b92af62aa23fb859d239895d42ca5c3f0",
+    "source/src/pagedcore/oracle.py": "6fbc7fe7fdd01eb7cb23055ad3189fad00b733bc1dcd727e091306dcf34f9eb8",
+    "source/src/pagedcore/verification.py": "4e6b77ea1e88b81ae96047b59b4e5fa859c4237251d9e674a6ee27c2fbd75044",
+    "source/src/pagedcore/weights.py": "1a0b9f34003ab9ca99ccd00e2f193253071d45b480adce7ed809e65ffa72ec5b",
+    "source/tests/conftest.py": "8a3000ca0e5b32a4cafd996049ada1d24a2b3491009c0fe6487443146e82ddb4",
+    "source/tests/fixtures/reference_prompts.json": "143f89f62b0b85956ddd7ab94cd7b7ec559799725b947b5404409dcdf6365190",
+    "source/tests/gpu/test_attention_cuda.py": "5727d5ef6cc1820f640aaf1fdccc8762282d5c0ae45658d7155800a79afa7b47",
+    "source/tests/gpu/test_decoder_parity.py": "60f4676a5e2572cc470606beaf2d73409ade27c8915a8785dc52f4cc88e56466",
+    "source/tests/gpu/test_kv_pool_cuda.py": "ba3f57c802b5a722c4ea2ca43207599f727a53dceeadd3cc85727c34220c01ff",
+    "source/tests/gpu/test_oracle_reference.py": "6617aa0cc73197779f22c52441d85a34e1c3e38e9090fb08a9bd871510f53a78",
+    "source/tests/gpu/test_target_verification.py": "c40e8cf67d0b972f6737b71787a8d2c8ce4231538ca9b1503da6d65722c5e554",
+    "source/tests/unit/test_attention.py": "4c4259a91e392546c9f2e78f8994580f7cac384d118d114574bb1294498abece",
+    "source/tests/unit/test_cli.py": "f1d72b629020a78f89f50b1b8ccdb01a69ac28fb2f2a4d80405f770bcb22b5f2",
+    "source/tests/unit/test_config.py": "9625b57c40407152e93bf39d4d518a2b735212efadd2a48804ed0abdefff9996",
+    "source/tests/unit/test_decoder.py": "2a03821785c69b3fcaf705a0ad133875e2eaef37d70923d57eb1557ee7f16258",
+    "source/tests/unit/test_dense.py": "346107a33eae54cdfd5b9a8bfb38017e95379338e6574049521b060c814d3d92",
+    "source/tests/unit/test_dense_workspace.py": "b555081e6f11029c3dddd70c54804ec21af618f6465696d1058eca725a091dc8",
+    "source/tests/unit/test_determinism.py": "4da0279f676caced156a2db72ebc0c691ff787f22ac15c9635e85d723835eefa",
+    "source/tests/unit/test_engine_types.py": "ea9c52b46ac60f72c0dc95ade581b799e2b6746d627c9334c4ba7e8ab11193f3",
+    "source/tests/unit/test_kv_cache.py": "d939ca4764890edf53b4bd136f4d9aff366518dcfe0250a97f435b3f8e74d480",
+    "source/tests/unit/test_kv_cache_properties.py": "4803bdd58b04100f8d5e84cf8518d1dbd939c8cfc42b26e9454ab2be1d55fd5e",
+    "source/tests/unit/test_measurements.py": "469ae30346ef880b1bbfadc58af72320f7597d3a658a0fda017c9df8fbddd00a",
+    "source/tests/unit/test_oracle.py": "b47f8f38a3988704da5bc5b2b11d9539728a0d86fba414f46cdfab4ef8f8166b",
+    "source/tests/unit/test_reference_fixtures.py": "13b2af5294380e4426f77f2955c217e4483418305360526cbbe22ea7984fe90d",
+    "source/tests/unit/test_t4_evidence.py": "3d100569c7be2f8f2bf561c4e91d0f3596dbc7c654e8829769bd740dfeb3ffa0",
+    "source/tests/unit/test_verification.py": "75df0ea776fd91478db64e74b0861be1cb9e49a1cbb8464fbff1ceeb49cfb2b1",
+    "source/tests/unit/test_weights.py": "5555b55d797ddd5020887016ff19f9b7dfb54432f09a95b17ffe42ab58ea64ae",
+    "source/uv.lock": "46700b60b0a8d492fc673aec8a0e12c27ae43124dd8e194f8c754dbd6ca7ea48"
+  },
+  "archive_sha256": "a2e0c8ff1c9bbb4bc9de1f2b7b0b320fca590235d9cbcadbd7574985df03c0fc",
+  "archive_bytes": 2074305
+}

@@ -17,7 +17,7 @@ Complete each runtime gate before starting the next substantial runtime feature.
 | P2.1-P2.5: types/reference | Minimal interfaces, lifecycle/accounting validators, timing schema, fixtures and frozen oracle | CPU rejection of illegal transitions and invalid capacity snapshots; deterministic reference IDs/tensors; documented special-token, attention, and numerical settings |
 | P3.1-P3.7: dense parity | Owned TinyLlama forward without paging | Layer/logit/greedy T4 parity and dense-prefill workspace record |
 | P4.1-P4.6: allocator | One pool, free list, tables and capacity ledger | Boundary, rollback, isolation, reuse and independent property-model tests |
-| P5.1-P5.7: paged attention | Block-table traversal and FP32 online softmax | Poisoned fragmentation, no-full-gather traces, T4 parity and batched workspace record |
+| P5.1-P5.7: paged attention | Block-table traversal, standalone FP32 online softmax and eager-rounding decode | Poisoned fragmentation, no-full-gather traces, T4 parity and batched workspace record |
 | P6.1-P6.10: lifecycle | Credits, FIFO, active limits, bounded thread bridge, cleanup, measurements and cooperative stop | Fake-model scheduling/fault/race tests, release-once assertions and safe CUDA reuse |
 | P7.1-P7.8: HTTP | Bounded preprocessing, strict validation, SSE/transport supervision and operational endpoints | CPU fake-model plus T4 black-box tests, delivery ordering and shutdown escalation |
 | P8.1-P8.8: hardening | Verify existing instrumentation/shutdown; final memory/fault/soak checks | Bounded retention, privacy, worst-case T4 memory and graceful/forced-stop reports |
@@ -65,6 +65,19 @@ concatenation, stacking, indexed gathering and preallocated-buffer copies.
 The required single/mixed T4 decode cases use the same guard. Their execution
 and retained evidence remain pending; CPU success does not close the Phase 5
 T4 gate.
+
+The November 1 numerical repair selects the design's two-pass eager-rounding
+attention for integrated decode and single-request arithmetic shapes within the
+batch transaction. The original online primitive/reference/fixtures remain in
+place. Logits retain `atol=rtol=5e-3`, K/V retain `atol=rtol=2e-3`, and greedy
+tokens must match exactly. Regression tests cover global probability rounding,
+batch composition/order, staged rollback and the existing storage guard. The
+[arithmetic diagnostic](../scripts/diagnose_paged_decode.py) replays each eager
+operation's identical input and copies reference K/V into control pages outside
+serving forwards. It separates batch-dependent components, online/eager attention,
+and integrated logit/K/V errors. CPU results do not identify the first
+T4-specific divergent operation or close the T4 gate; retain a manual CUDA replay
+and the full collector result before acceptance.
 
 ## Evidence attribution
 

@@ -13,7 +13,12 @@ from pagedcore.kv_cache import KVAllocator
 
 @torch.inference_mode()
 def paged_attention(
-    query: Tensor, allocator: KVAllocator, request_id: RequestId, *, layer_index: int
+    query: Tensor,
+    allocator: KVAllocator,
+    request_id: RequestId,
+    *,
+    layer_index: int,
+    eager_rounding: bool = False,
 ) -> Tensor:
     if query.shape != (1, 32, 1, 64) or query.dtype != torch.float16:
         raise ValueError("query must be FP16 [1, 32, 1, 64]")
@@ -26,6 +31,8 @@ def paged_attention(
     # Autocast must not round the FP32 score or weighted-value matmuls to FP16.
     with torch.autocast(device_type=query.device.type, enabled=False):
         grouped_query = query.reshape(4, 8, 64).float()
+        if eager_rounding:
+            return _eager_attention(grouped_query, allocator, request_id, layer_index)
         maximum = torch.full((4, 8, 1), -torch.inf, dtype=torch.float32, device=query.device)
         denominator = torch.zeros_like(maximum)
         numerator = torch.zeros_like(grouped_query)
@@ -41,3 +48,56 @@ def paged_attention(
             )
             maximum = next_maximum
         return (numerator / denominator).reshape(1, 32, 1, 64).half()
+
+
+def _eager_attention(
+    query: Tensor, allocator: KVAllocator, request_id: RequestId, layer_index: int
+) -> Tensor:
+    # Scores may span the bounded context; K/V storage must stay page-sized.
+    scores = torch.empty((4, 8, 2048), dtype=torch.float32, device=query.device)
+    heads = query.half().unsqueeze(2)
+    length = 0
+    for key, _ in allocator.iter_layer_blocks(request_id, layer_index=layer_index):
+        stop = length + key.shape[0]
+        # Native FP16 products matter: FP32 matmul followed by half() can
+        # select a different reduction and cross an FP16 rounding boundary.
+        if length and key.shape[0] < 16:
+            # A short final page must not select the tiny-history reduction.
+            page = torch.zeros((4, 16, 64), dtype=torch.float16, device=query.device)
+            page[:, : key.shape[0]].copy_(key.transpose(0, 1))
+        else:
+            page = key.transpose(0, 1).contiguous()
+        for head in range(4):
+            products = torch.bmm(heads[head], page[head].T[None].expand(8, -1, -1))
+            scores[head, :, length:stop] = (products[:, 0, : key.shape[0]] * (64**-0.5)).float()
+        length = stop
+    # Normalize once, before rounding probabilities. Page-local rounding or an
+    # online weighted sum changes eager's FP16 probability boundaries.
+    probabilities = scores[..., :length].softmax(dim=-1).half()
+    if length <= 16:
+        _, value = next(allocator.iter_layer_blocks(request_id, layer_index=layer_index))
+        page = value.transpose(0, 1).contiguous()
+        output = torch.empty((4, 8, 64), dtype=torch.float16, device=query.device)
+        for head in range(4):
+            output[head] = torch.bmm(
+                probabilities[head, :, None], page[head][None].expand(8, -1, -1)
+            )[:, 0]
+        return output.reshape(1, 32, 1, 64)
+    # Carry reduction lanes across page boundaries instead of summing rounded
+    # page products. Keep separate storages so each temporary fits one KV page.
+    partials = tuple(torch.zeros_like(query) for _ in range(4))
+    tail = length - length % 4
+    start = 0
+    for _, value in allocator.iter_layer_blocks(request_id, layer_index=layer_index):
+        stop = start + value.shape[0]
+        for slot in range(value.shape[0]):
+            position = start + slot
+            lane = position % 4 if position < tail else 0
+            partials[lane].add_(
+                torch.matmul(
+                    probabilities[..., position, None].float(), value[slot, :, None, :].float()
+                )
+            )
+        start = stop
+    output = ((partials[0] + partials[1]) + partials[2]) + partials[3]
+    return output.reshape(1, 32, 1, 64).half()

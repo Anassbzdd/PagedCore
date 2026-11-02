@@ -169,17 +169,25 @@ def decode_paged(
     with allocator.append_decode(request_ids):
         hidden = F.embedding(input_ids, weights.embedding)
         for index, layer in enumerate(weights.layers):
-            query, key, value = project_qkv(rms_norm(hidden, layer.input_norm), layer)
-            query, key = apply_rope(query, key, positions)
-            attention = torch.empty_like(query)
+            next_hidden = torch.empty_like(hidden)
             for row, request in enumerate(request_ids):
-                allocator.write_decode_layer(request, index, key[row, :, 0], value[row, :, 0])
-                attention[row : row + 1] = paged_attention(
-                    query[row : row + 1], allocator, request, layer_index=index
+                # Match the oracle's single-request operation shapes, including
+                # norms and activations; bmm projections alone are insufficient.
+                residual = hidden[row : row + 1]
+                query, key, value = project_qkv(rms_norm(residual, layer.input_norm), layer)
+                query, key = apply_rope(query, key, positions[row : row + 1])
+                allocator.write_decode_layer(request, index, key[0, :, 0], value[0, :, 0])
+                attention = paged_attention(
+                    query, allocator, request, layer_index=index, eager_rounding=True
                 )
-            hidden = hidden + output_projection(attention, layer)
-            hidden = hidden + swiglu(rms_norm(hidden, layer.post_attention_norm), layer)
-        logits = final_logits(hidden, weights)
+                residual = residual + output_projection(attention, layer)
+                next_hidden[row : row + 1] = residual + swiglu(
+                    rms_norm(residual, layer.post_attention_norm), layer
+                )
+            hidden = next_hidden
+        logits = torch.cat(
+            [final_logits(hidden[row : row + 1], weights) for row in range(len(request_ids))]
+        )
     return logits
 
 

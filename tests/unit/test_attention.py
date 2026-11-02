@@ -3,10 +3,72 @@ import torch
 from torch import Tensor
 
 from pagedcore.attention import paged_attention
+from pagedcore.dense import dense_attention
 from pagedcore.engine_types import KVReservation, RequestId
 from pagedcore.kv_cache import KVAllocator
 
 pytestmark = pytest.mark.unit
+
+
+@pytest.mark.parametrize("tokens", [1, 2, 3, 4, 5, 6, 7, 15, 16, 17, 49, 2048])
+def test_paged_attention_preserves_eager_score_and_probability_rounding(tokens: int) -> None:
+    generator = torch.Generator().manual_seed(20261101)
+    key = torch.randn(22, tokens, 4, 64, generator=generator).half() * 3
+    value = torch.randn(key.shape, generator=generator).half() * 3
+    query = torch.randn(1, 32, 1, 64, generator=generator).half() * 3
+    allocator, request, _ = _cache(key, value)
+    expected = dense_attention(
+        query,
+        key[0].transpose(0, 1)[None],
+        value[0].transpose(0, 1)[None],
+        torch.ones(1, 1, 1, tokens, dtype=torch.bool),
+    )
+
+    actual = paged_attention(query, allocator, request, layer_index=0, eager_rounding=True)
+
+    torch.testing.assert_close(actual, expected, atol=0, rtol=0)
+    with torch.autocast("cpu", dtype=torch.bfloat16):
+        autocast_actual = paged_attention(
+            query, allocator, request, layer_index=0, eager_rounding=True
+        )
+    torch.testing.assert_close(autocast_actual, actual, atol=0, rtol=0)
+
+
+def test_eager_probabilities_are_rounded_after_normalizing_all_pages() -> None:
+    key = torch.zeros(22, 49, 4, 64, dtype=torch.float16)
+    value = torch.full_like(key, 512)
+    query = torch.zeros(1, 32, 1, 64, dtype=torch.float16)
+    allocator, request, _ = _cache(key, value)
+    expected = dense_attention(
+        query,
+        key[0].transpose(0, 1)[None],
+        value[0].transpose(0, 1)[None],
+        torch.ones(1, 1, 1, 49, dtype=torch.bool),
+    )
+
+    actual = paged_attention(query, allocator, request, layer_index=0, eager_rounding=True)
+
+    torch.testing.assert_close(actual, expected, atol=0, rtol=0)
+    # Retaining FP32 normalized probabilities would instead return exactly 512.
+    assert not torch.equal(actual, value[0, :1].reshape(1, 4, 1, 64).repeat_interleave(8, 1))
+
+
+def test_short_eager_attention_preserves_per_head_product_shapes() -> None:
+    generator = torch.Generator().manual_seed(147)
+    key = torch.randn(3, 4, 64, generator=generator).half()
+    value = torch.randn(3, 4, 64, generator=generator).half()
+    query = torch.randn(1, 32, 1, 64, generator=generator).half()
+    allocator, request, _ = _cache(key[None].repeat(22, 1, 1, 1), value[None].repeat(22, 1, 1, 1))
+    expected = dense_attention(
+        query,
+        key.transpose(0, 1)[None],
+        value.transpose(0, 1)[None],
+        torch.ones(1, 1, 1, 3, dtype=torch.bool),
+    )
+
+    actual = paged_attention(query, allocator, request, layer_index=0, eager_rounding=True)
+
+    torch.testing.assert_close(actual, expected, atol=0, rtol=0)
 
 
 def _cache(key: Tensor, value: Tensor) -> tuple[KVAllocator, RequestId, Tensor]:

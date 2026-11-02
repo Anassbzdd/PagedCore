@@ -8,6 +8,7 @@ There are no serving benchmarks or vLLM comparison results yet.
 
 | Scope | Retained evidence | Boundary |
 |---|---|---|
+| Paged decode numerical repair | [November 1 CPU review](../docs/validation/2026-11-01-p53-numerical-repair.md) and [CPU archive](validation/2026-11-01/p53-cpu-repair.zip) | Operation-level pinned CPU replay and guarded regressions; no new T4 acceptance or performance evidence |
 | Standalone paged attention completion | [October 31 review](../docs/validation/2026-10-31-p52-t4-review.md), [structured audit](validation/2026-10-31/p52-t4-review.json) and both linked T4 archives | Clean `3401406`: each run passes 617 CPU / 15 GPU cases, zero failures/errors/skips; both explicit CUDA attention tests pass. Later staged-layer/batched decode changes are outside this evidence |
 | Paged prefill | [October 30 review](../docs/validation/2026-10-30-p52-t4-review.md) and [T4 archive](validation/2026-10-30/t4-20261030T172045Z.zip) | Clean `922588b`: 609 CPU / 13 GPU passes, zero skips; pinned paged prefill passed on T4; this older run predates the explicit CUDA attention tests |
 | Phase 4 allocator completion | [October 27 review](../docs/validation/2026-10-27-phase4-review.md) and [T4 archive](validation/2026-10-27/t4-20261027T200933Z.zip) | Clean `986392e`: 554 CPU / 12 GPU passes, zero skips; current allocator runtime, small-pool T4 accounting/failure/reuse checks, dense parity and workspace probes |
@@ -27,7 +28,8 @@ records intact so claims can be audited.
 Use `bash scripts/validate_t4.sh` on a clean Linux/T4 checkout. The collector
 retains setup/commands, source/lock identity, selected-device details, CPU/GPU
 reports, dense workspace probes and reference captures. It currently requires
-15 GPU cases, including both KV tests, paged prefill and two CUDA attention tests.
+17 GPU cases, including both KV tests, paged prefill, two CUDA attention tests
+and the single/mixed paged-decode cases.
 Review actual executed/skipped counts
 and source identity before copying a bundle from `results/local/` into
 `results/validation/`. Extend the required suite when new GPU surfaces exist.

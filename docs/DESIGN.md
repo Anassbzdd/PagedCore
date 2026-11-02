@@ -103,8 +103,8 @@ slots in the final page. Eight consecutive query heads share each KV head withou
 expanding the full history. Reads use the allocator's owning thread and stream;
 attention does not mutate cache storage or accounting.
 
-Score products, the running maximum, softmax denominator and weighted-value sum
-use FP32 with autocast disabled. When a page raises the running maximum, the
+The default standalone mode keeps score products, the running maximum, softmax
+denominator and weighted-value sum in FP32 with autocast disabled. When a page raises the running maximum, the
 previous denominator and weighted sum are rescaled before adding that page's
 contribution. This keeps all pages on the same exponential scale without
 retaining their scores or copying full-history K/V. Only the normalized output
@@ -116,6 +116,50 @@ other layers' unpublished slots cannot be read. The standalone primitive has
 [T4 evidence at `3401406`](validation/2026-10-31-p52-t4-review.md). The newer
 staged-layer iterator, integrated pinned-checkpoint/T4 decoder parity, T4 decode
 traces and workspace evidence remain pending.
+
+Integrated decode selects `eager_rounding=True`. The
+[November 1 failure investigation](validation/2026-11-01-p53-t4-failure.md)
+shows that retaining FP32 scores and unrounded weighted probabilities changes
+the pinned eager decoder's arithmetic. This mode makes two block-table passes:
+
+1. Compute each page's Q/K products with native FP16 per-head matmul, then scale in FP16,
+   matching eager's rounding boundaries. FP32 matmul followed by an FP16 cast
+   still differs at rounding boundaries and is insufficient. Store only scores
+   in a fixed `[4, 8, 2048]` FP32 buffer. Each KV head supplies a borrowed expanded
+   view to eight `[1, 64]` query vectors; keep the query dimension at one like
+   eager rather than using eight as the matrix row count. A contiguous K copy
+   covers one page only. A partial page after the first is zero-padded to 16
+   slots for the product, avoiding a tiny-history reduction selected from that
+   page's length. Only its valid scores enter softmax. A genuinely short whole
+   history keeps its actual length and eager per-head shapes.
+2. Apply one FP32 softmax over the valid scores, round globally normalized
+   probabilities to FP16, then read V page by page. When the whole cache fits
+   one page, use native FP16 per-head value matmul. Otherwise carry four FP32 reduction
+   lanes across all pages, accumulating each logical position into lane
+   `position % 4`. The final zero-to-three positions accumulate into lane zero;
+   fold the lanes from zero through three, then round the complete output once.
+
+This deliberately replaces online normalization in the integrated decode path;
+rounding page-local probabilities or partial outputs does not reproduce eager.
+Four persistent reduction lanes reproduce the pinned CPU fallback's
+[reduction order](https://github.com/pytorch/pytorch/blob/v2.7.1/aten/src/ATen/native/cpu/BlasKernel.cpp#L74-L94)
+without retaining full-history K/V. Page-local FP32 matmul plus a page sum also
+changes rounding, so the lanes remain live across page boundaries. This is an
+explicit arithmetic policy; it is not a claim of bitwise CUDA/cuBLAS equivalence.
+The standalone online mode remains available with its existing FP32 large-score
+behavior and tests. Eager mode inherits eager's FP16 score-overflow limitation;
+it does not silently fall back to different arithmetic. Scores/probabilities
+may span the bounded context, but K/V never do: each conversion holds at most
+one page, with no full-history K/V gather or head expansion. The main score,
+softmax and rounded-probability buffers total at most 640 KiB per attention call
+(256 + 256 + 128 KiB), excluding page temporaries and backend workspace. Calls
+are sequential across rows, so these buffers do not multiply by active batch size.
+The four separate lane buffers add 32 KiB. This bound is derived, not a T4
+workspace measurement. Native score products and the striped reduction can
+still differ from eager's CUDA products; unchanged tensor/logit tolerances
+and exact greedy checks must pass on T4 before accepting the change.
+Per-position value operations add kernel launches. Their throughput cost is
+unmeasured; correctness takes priority over a later fused implementation.
 
 The [decode test guard](../tests/conftest.py) follows KV storage aliases and
 copies during `decode_paged`, rejecting temporary K/V storage larger than one
@@ -134,10 +178,17 @@ the request's prompt and use the supplied weights. It returns FP16
 `[batch, 1, vocabulary]` logits in the same request order. Token selection,
 stopping, active-batch construction and cleanup remain the caller's responsibility.
 
-Each row's committed cache length supplies its absolute RoPE position. Q/K/V,
-output projections and MLP work run across the batch; attention traverses each
-request's pages separately using the existing eight-query-heads-per-KV-head
-mapping. Each layer writes the current rotated K and unrotated V before reading
+Each row's committed cache length supplies its absolute RoPE position. Within
+each layer, norms, Q/K/V, RoPE, attention, output projection, MLP and residuals
+execute with single-request shapes; the final norm/LM head do too. The retained
+T4 dense-attention control still drifted for mixed batches, including with
+independent-row `bmm` projections. Preserving the entire single-request arithmetic
+shape removes that source of batch-dependent kernel selection without changing
+the reference. This is a correctness-first batch interface and shared transaction,
+not simultaneous batched GEMM execution; its throughput cost remains unmeasured.
+Attention traverses each request's pages separately with eager rounding and
+the existing eight-query-heads-per-KV-head mapping. Each layer writes the current
+rotated K and unrotated V before reading
 history, including that token. Valid per-request lengths exclude unused slots;
 one-token decode needs no padded batch-wide causal mask or full-history gather.
 
@@ -345,11 +396,11 @@ If there is no active or pending work, the worker waits without polling. Serial 
 
 **Decode:** For every active request, take its most recently emitted token and current position. Run those tokens together as one batch through the model. Compute their new K/V values and append them to the correct physical KV blocks.
 
-During attention, read the request’s valid physical KV blocks in logical block-table order. Process at most one block at a time and combine the attention results using a numerically stable online softmax. Do not rebuild the entire KV history into one large contiguous tensor.
+During attention, read the request’s valid physical KV blocks in logical block-table order. Integrated decode uses the two-pass eager-rounding mode above: retain bounded scores/probabilities and process K/V at most one block at a time. Do not rebuild the entire KV history into one large contiguous tensor.
 
 After the decode step, emit one new token for each active request. Finished or cancelled requests are then removed.
 
-For this model, eight query heads share each KV head. Apply RoPE using the token’s absolute position before storing K in the cache. Perform the softmax calculations in FP32 for numerical stability, then convert the attention output back to FP16.
+For this model, eight query heads share each KV head. Apply RoPE using the token’s absolute position before storing K in the cache. Perform softmax calculations in FP32, round normalized probabilities to FP16 like eager HF, accumulate V contributions in FP32, then convert the attention output back to FP16.
 
 Before optimizing performance, verify that the outputs and intermediate values closely match the Hugging Face reference.
 

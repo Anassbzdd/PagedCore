@@ -28,8 +28,15 @@ cases, with no skips. Both integrated paged-decode cases fail existing logit
 tolerances. Controlled T4 comparisons isolate attention rounding and
 batch-dependent numerical drift; none of the tested arithmetic alternatives
 closes parity. See the [review](validation/2026-11-01-p53-t4-failure.md).
-Tolerances and engine arithmetic remain unchanged. This predates the newer
-local P5.4 guard and is not accepted Phase 5 completion evidence.
+That investigation changed neither tolerances nor engine arithmetic. It predates
+the newer local P5.4 guard and is not accepted Phase 5 completion evidence.
+
+The November 1 numerical repair now uses two-pass eager rounding for integrated
+attention and single-request operation shapes within the batch transaction.
+The standalone online mode, pinned eager reference, fixtures and numerical
+thresholds remain unchanged. See the [repair review](validation/2026-11-01-p53-numerical-repair.md)
+for attributable CPU checks and operation-level diagnostics. The arithmetic
+redesign has no new T4 evidence; P5.3 and the Phase 5 release gate stay open.
 
 | Surface | Implemented and observed | Evidence boundary |
 |---|---|---|
@@ -41,7 +48,7 @@ local P5.4 guard and is not accepted Phase 5 completion evidence.
 | Single-query paged attention | `attention.paged_attention` reads valid allocator pages in logical order, maps eight query heads per KV head, accumulates scores/online softmax in FP32 and returns FP16 output | 25 CPU cases plus two explicit CUDA cases pass in both October 31 runs at `3401406`: boundary/maximum lengths, shuffled/poisoned pages, head mapping, large scores, autocast, read-only accounting and final release. Later staged-layer iterator changes remain CPU-only |
 | Independent allocator model | Random create/append/release sequences, separate expected token history and credit/ownership model | Four CPU cases for 1/2/4/8-block pools, 50 examples each, up to 40 operations per example; includes failure injection and zero final ownership |
 | Evidence collector | Requires both KV GPU tests, pinned paged prefill and two explicit CUDA attention tests; rejects missing/skipped/failed/errored cases | CPU regression coverage; both October 31 archives include all 15 required passing GPU cases and complete logs/reports |
-| Batched one-token paged decode | `decoder.decode_paged` batches projections/model layers, uses per-request absolute positions and valid page lengths, and commits staged K/V after the full forward succeeds | Synthetic CPU comparisons against separate dense decode calls; layer K/V, mixed lengths, reordered rows, page boundaries, input rejection and synchronous failure/retry coverage. No pinned-checkpoint/T4 decoder parity or workspace evidence |
+| Batched one-token paged decode | `decoder.decode_paged` uses single-request arithmetic shapes inside each layer, eager-rounding block-table attention, per-request positions/valid lengths and one staged commit for all rows | CPU comparisons against separate dense decode calls, exact batch-composition/order checks, layer K/V at `2e-3`, page boundaries, unchanged history, input rejection and synchronous failure/retry including a later row's logits. New T4 decoder parity and workspace evidence remain pending |
 | No dense-history decode guard | Shared test instrumentation follows K/V storage aliases and copies, rejecting temporary storage larger than one page during actual decode | CPU boundary/mixed/maximum-context checks and eight injected K/V shortcut cases pass; the same guard wraps required T4 decode cases, which have not executed |
 | Worker and HTTP/SSE | Planned | No continuous batching, request cancellation or service validation yet |
 | Container, benchmark and technical report | Planned | No serving performance or vLLM comparison results |
@@ -52,6 +59,14 @@ copy-failure recovery does not establish recovery from asynchronous CUDA/context
 failure. These lifecycle requirements remain in Phases 5–8.
 
 ## Current CPU evidence
+
+The 2026-11-01 numerical repair passes **674 CPU tests, 17 GPU cases deselected,
+zero failures/errors/skips**, plus Ruff, formatting and strict mypy. The
+[repair review](validation/2026-11-01-p53-numerical-repair.md) records commands,
+regressions and [retained source identity](../results/validation/2026-11-01/p53-cpu-repair-summary.json).
+The pinned CPU replay is exact for logits, all-layer K/V and greedy argmax in
+18 single/mixed row-step comparisons (three steps, reordered rows). This is
+CPU-only evidence; no new T4 acceptance or throughput claim is made.
 
 On 2026-11-01, P5.4 adds the [shared storage guard](../tests/conftest.py) to
 existing [CPU decode tests](../tests/unit/test_decoder.py) and required
