@@ -10,6 +10,23 @@ from pagedcore.kv_cache import KVAllocator
 pytestmark = pytest.mark.unit
 
 
+def test_guard_stops_tracking_kv_after_batched_weighted_value_reduction(
+    forbid_dense_kv_history,
+) -> None:
+    pool = torch.ones(22, 2, 1, 16, 4, 64, dtype=torch.float16)
+    probabilities = torch.full((4, 8, 16), 1 / 16)
+    accumulator = torch.zeros(4, 8, 64)
+    projection = torch.ones(5632, 64)
+
+    with forbid_dense_kv_history(pool):
+        page = pool[0, 1, 0].transpose(0, 1).float()
+        attention = torch.baddbmm(accumulator, probabilities, page)
+        output = torch.nn.functional.linear(attention[0, 0], projection)
+
+    # The reduced attention output is an activation, not retained KV history.
+    torch.testing.assert_close(output, torch.full_like(output, 64), atol=0, rtol=0)
+
+
 @pytest.mark.parametrize("tokens", [17, 31, 32, 33, 49, 2048])
 def test_candidate_value_sum_keeps_page_storage_and_accounting(
     tokens, forbid_dense_kv_history

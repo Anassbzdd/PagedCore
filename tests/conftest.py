@@ -57,6 +57,7 @@ class _BlockwiseKVGuard(TorchDispatchMode):
                 if func not in (
                     torch.ops.aten.matmul.default,
                     torch.ops.aten.bmm.default,
+                    torch.ops.aten.baddbmm.default,
                     torch.ops.aten.mm.default,
                 ):
                     self._kv_storage.add(identity)

@@ -241,3 +241,40 @@ GPU-directory collection finds 18 cases, including both new candidate cases;
 one additional GPU-marked unit case accounts for the full CPU run's 19
 deselections. Collection is not GPU execution. Ruff, formatting, strict mypy,
 and diff checks pass. P5.3 remains unsatisfied.
+
+## Supplied Kaggle failure: storage-guard instrumentation
+
+The later [user-supplied test transcript](../../results/validation/2026-11-2/p53-candidate-t4-guard-failure.txt)
+reports both candidate cases aborting at the MLP projection, before parity
+assertions. It does not include a source manifest or the two diagnostic JSONs,
+so it is a reported T4 failure, not attributable release evidence or a numerical
+measurement of the candidate.
+
+The guard stops tracking K/V after `matmul`, `bmm` and `mm`, because their reduced
+results are attention activations. It omitted the candidate's `baddbmm`. That
+omission tracks the reduced output through subsequent operations and eventually
+rejects a normal `[1, 1, 5632]` FP16 MLP activation (11,264 bytes versus the
+8,192-byte page limit). This is a false positive, not evidence of a KV gather.
+
+The new CPU regression performs a page-sized weighted-value `baddbmm`, then a
+5,632-element linear projection. Before the fix it fails the same storage-size
+assertion (CPU dispatch exposes `mm` rather than CUDA's `linear`). After adding
+only `aten.baddbmm.default` to the reduction boundary, it passes. The guard still
+checks the reduction's output size before ending tracking; direct gathers and
+copies continue to be checked. No blanket exemption for linear layers and no
+larger page limit was introduced. Engine arithmetic and serving selection are
+unchanged.
+
+The JSON replay runs outside this test guard, so the existing `striped.json` and
+`paged.json` from Kaggle remain useful. The T4 candidate tests need rerunning
+with the corrected guard. This instrumentation repair does not change the
+candidate's known failed CPU numerical replay or close P5.3.
+
+Local validation after the guard fix passes 685 CPU tests, with 19 deselected,
+zero skipped, in 159.03s. The retained
+[JUnit report](../../results/validation/2026-11-2/p53-guard-baddbmm-cpu.xml)
+comes from `uv run --no-sync python -m pytest -m "not gpu and not benchmark" -ra --junitxml=results/local/p53-guard-baddbmm-cpu.xml`
+with `HF_HUB_OFFLINE=1`, `OMP_NUM_THREADS=1`, `MKL_NUM_THREADS=1` on
+Torch 2.7.1+cpu. Ruff lint/format checks, strict mypy and diff checks pass.
+The existing eight injected full-history shortcuts are still rejected. The new
+regression failed before the fix and passed afterward. No T4 rerun is claimed.

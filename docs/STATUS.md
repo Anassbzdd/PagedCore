@@ -57,9 +57,21 @@ fails integrated tolerance (maximum ratio `2.660326`), despite exact probabiliti
 and control-page K/V. It is not accepted as a fix; the serving default remains
 unchanged. The [CPU JUnit report](../results/validation/2026-11-2/p53-value-replay-cpu.xml)
 records 684 passes and 19 deselected cases, with zero skips; Ruff, formatting,
-strict mypy and diff checks pass. Candidate T4 tests are added but not executed.
+strict mypy and diff checks pass. A subsequently supplied Kaggle test transcript
+records both candidate T4 tests aborting in the storage guard; see below.
 The original reducer still needs the new probability/value replay on T4 before
 choosing another numerical change.
+
+On November 2, the supplied [Kaggle transcript](../results/validation/2026-11-2/p53-candidate-t4-guard-failure.txt)
+shows both candidate cases stopping before logit comparison: the guard propagates
+KV tracking through `baddbmm` and incorrectly rejects the ordinary 5,632-element
+MLP output. A CPU regression reproduces the false positive before the fix and
+passes after recognizing `baddbmm` as a reduction, alongside existing matmuls.
+The one-page storage check remains in force. This repairs test instrumentation,
+not numerical parity; candidate T4 comparisons still need a rerun.
+The corrected guard passes [685 CPU tests](../results/validation/2026-11-2/p53-guard-baddbmm-cpu.xml),
+with 19 cases deselected and zero skips; Ruff, formatting, strict mypy and diff
+checks pass. This is CPU evidence for the instrumentation fix only.
 
 | Surface | Implemented and observed | Evidence boundary |
 |---|---|---|
@@ -72,7 +84,7 @@ choosing another numerical change.
 | Independent allocator model | Random create/append/release sequences, separate expected token history and credit/ownership model | Four CPU cases for 1/2/4/8-block pools, 50 examples each, up to 40 operations per example; includes failure injection and zero final ownership |
 | Evidence collector | Requires both KV GPU tests, pinned paged prefill and two explicit CUDA attention tests; rejects missing/skipped/failed/errored cases | CPU regression coverage; both October 31 archives include all 15 required passing GPU cases and complete logs/reports |
 | Batched one-token paged decode | `decoder.decode_paged` uses single-request arithmetic shapes inside each layer, eager-rounding block-table attention, per-request positions/valid lengths and one staged commit for all rows | CPU comparisons against separate dense decode calls, exact batch-composition/order checks, layer K/V at `2e-3`, page boundaries, unchanged history, input rejection and synchronous failure/retry including a later row's logits. New T4 decoder parity and workspace evidence remain pending |
-| No dense-history decode guard | Shared test instrumentation follows K/V storage aliases and copies, rejecting temporary storage larger than one page during actual decode | CPU boundary/mixed/maximum-context checks and eight injected K/V shortcut cases pass; the same guard wraps required T4 decode cases, which have not executed |
+| No dense-history decode guard | Shared test instrumentation follows K/V storage aliases and copies, rejecting temporary storage larger than one page during actual decode | CPU boundary/mixed/maximum-context checks and eight injected K/V shortcut cases pass; the same guard wraps T4 decode cases; the supplied candidate run stopped at a guard false positive, corrected locally, so T4 parity still requires a rerun |
 | Worker and HTTP/SSE | Planned | No continuous batching, request cancellation or service validation yet |
 | Container, benchmark and technical report | Planned | No serving performance or vLLM comparison results |
 
