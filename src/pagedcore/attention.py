@@ -96,26 +96,40 @@ def _eager_value_sum(
 def _multi_page_value_sum(
     probabilities: Tensor, allocator: KVAllocator, request_id: RequestId, layer_index: int
 ) -> Tensor:
+    return _striped_value_sum(probabilities, allocator, request_id, layer_index, lanes=4)
+
+
+def _striped_value_sum(
+    probabilities: Tensor,
+    allocator: KVAllocator,
+    request_id: RequestId,
+    layer_index: int,
+    *,
+    lanes: int,
+) -> Tensor:
     length = probabilities.shape[-1]
     # Carry reduction lanes across page boundaries instead of summing rounded
     # page products. Keep separate storages so each temporary fits one KV page.
     partials = tuple(
-        torch.zeros((4, 8, 64), dtype=torch.float32, device=probabilities.device) for _ in range(4)
+        torch.zeros((4, 8, 64), dtype=torch.float32, device=probabilities.device)
+        for _ in range(lanes)
     )
-    tail = length - length % 4
+    tail = length - length % lanes
     start = 0
     for _, value in allocator.iter_layer_blocks(request_id, layer_index=layer_index):
         stop = start + value.shape[0]
         for slot in range(value.shape[0]):
             position = start + slot
-            lane = position % 4 if position < tail else 0
+            lane = position % lanes if position < tail else 0
             partials[lane].add_(
                 torch.matmul(
                     probabilities[..., position, None].float(), value[slot, :, None, :].float()
                 )
             )
         start = stop
-    output = ((partials[0] + partials[1]) + partials[2]) + partials[3]
+    output = partials[0]
+    for partial in partials[1:]:
+        output = output + partial
     return output.reshape(1, 32, 1, 64).half()
 
 
@@ -135,3 +149,9 @@ def _paged_value_sum(
             )[:, 0]
         start = stop
     return output.reshape(1, 32, 1, 64).half()
+
+
+def _paired_value_sum(
+    probabilities: Tensor, allocator: KVAllocator, request_id: RequestId, layer_index: int
+) -> Tensor:
+    return _striped_value_sum(probabilities, allocator, request_id, layer_index, lanes=2)

@@ -1,0 +1,328 @@
+{
+  "scope": "17-token weighted-value diagnostic; not release evidence",
+  "observed_at_utc": "2026-11-04T22:53:07.839225+00:00",
+  "script_sha256": "cdd0819df6a0736effeed9dcae11b6ef802f09b512dfa0ff92c1cd86dbdc12e2",
+  "fixture_sha256": "e7b266732b235e44b3b43fff949e8bbb6e40ecb12e661cb482aa660144b355d6",
+  "device": "cuda:0",
+  "environment": {
+    "python": "3.11.15",
+    "package": {
+      "name": "pagedcore",
+      "version": "0.1.0"
+    },
+    "dependencies": {
+      "torch": "2.7.1+cu126",
+      "transformers": "4.52.4"
+    },
+    "cuda": {
+      "available": true,
+      "runtime": "12.6"
+    },
+    "driver": "580.178.04",
+    "gpu": [
+      {
+        "name": "Tesla T4",
+        "memory_mib": 15360
+      },
+      {
+        "name": "Tesla T4",
+        "memory_mib": 15360
+      }
+    ],
+    "model": {
+      "id": "TinyLlama/TinyLlama-1.1B-Chat-v1.0",
+      "revision": "af8e934848d8dd00074cc2cd8a40a9b05c3b011e"
+    },
+    "settings": {
+      "model_id": "TinyLlama/TinyLlama-1.1B-Chat-v1.0",
+      "model_revision": "af8e934848d8dd00074cc2cd8a40a9b05c3b011e",
+      "context_limit": 2048,
+      "min_new_tokens": 1,
+      "default_max_new_tokens": 128,
+      "max_new_tokens": 256,
+      "block_tokens": 16,
+      "kv_pool_mib": 8192,
+      "workspace_margin_mib": 1536,
+      "max_pending_requests": 64,
+      "max_active_sequences": 32,
+      "token_queue_size": 32,
+      "bind_address": "localhost",
+      "log_level": "INFO"
+    }
+  },
+  "provenance": {
+    "setup_command": null,
+    "command_arguments": null,
+    "git_revision": "fcc3639a200e28325cc11a7fb2180633fccd66be",
+    "working_tree_clean": false,
+    "uv_lock_sha256": "46700b60b0a8d492fc673aec8a0e12c27ae43124dd8e194f8c754dbd6ca7ea48",
+    "source_sha256": {
+      ".python-version": "db82937e1f1830581a9553c7814f5c5fcacb6dfdef8310b43e9a812c887acaf5",
+      "pyproject.toml": "55b3d48fd0a5297b3adea9b812bad4c561751c84d95e2d0d2d8a0b588ce78a71",
+      "src/pagedcore/__init__.py": "42b1e9884f56caa6de42f8177eedcc2f9b81ae2df2f9db28e45114117e8f3d29",
+      "src/pagedcore/attention.py": "497a9ba88e7ceab68e3a0bd24aa0fff3e237917131e238acbd0e3b90ab02a41b",
+      "src/pagedcore/cli.py": "e36cb0cf9e342e76787b3d74e98b778c22b1b76b580bf76e556a5f03aa6c2c16",
+      "src/pagedcore/config.py": "9ad8fceb558dafef9274d6c83bfe9bcf904a97e3df3fa2cec4d08551e490dccb",
+      "src/pagedcore/decoder.py": "076982b248e728e72b1a593b5020e882d2bb1d17f85ce6843acc333f6b26208e",
+      "src/pagedcore/dense.py": "8b11e7684379d0138bab80071b37b223e3749bfa01d99293e871627a84e36ea5",
+      "src/pagedcore/determinism.py": "2fdcba5697c59b4f68942fb7d3a14baff46cc4d0d70470c7f23e5c56a437afa2",
+      "src/pagedcore/engine_types.py": "db31cb04b5dd4e127d37f1b3a4b88bc20f2272520893a150428197713c6cae40",
+      "src/pagedcore/kv_cache.py": "b532677340b9f4bf82bbe59dfa615a24fe1351660e93200aa030f1f124d722ec",
+      "src/pagedcore/measurements.py": "760946d8dac98f4a9bfcc182a2426a5b92af62aa23fb859d239895d42ca5c3f0",
+      "src/pagedcore/oracle.py": "6fbc7fe7fdd01eb7cb23055ad3189fad00b733bc1dcd727e091306dcf34f9eb8",
+      "src/pagedcore/verification.py": "4e6b77ea1e88b81ae96047b59b4e5fa859c4237251d9e674a6ee27c2fbd75044",
+      "src/pagedcore/weights.py": "1a0b9f34003ab9ca99ccd00e2f193253071d45b480adce7ed809e65ffa72ec5b",
+      "tests/conftest.py": "8cd379a1d9fd98bcf9b6e01e24d7f7e2b41b6671a0d97b3f45a76b9a819f1c61",
+      "tests/gpu/test_attention_cuda.py": "5727d5ef6cc1820f640aaf1fdccc8762282d5c0ae45658d7155800a79afa7b47",
+      "tests/gpu/test_decoder_parity.py": "051412131bb3420cd7184f752ae35508311ecd32d1ddb2eb944068615a418fe9",
+      "tests/gpu/test_kv_pool_cuda.py": "ba3f57c802b5a722c4ea2ca43207599f727a53dceeadd3cc85727c34220c01ff",
+      "tests/gpu/test_oracle_reference.py": "6617aa0cc73197779f22c52441d85a34e1c3e38e9090fb08a9bd871510f53a78",
+      "tests/gpu/test_target_verification.py": "c40e8cf67d0b972f6737b71787a8d2c8ce4231538ca9b1503da6d65722c5e554",
+      "tests/unit/test_attention.py": "72966ff2d39df206fab702567ef2c65a9986946e759bc1da444482e92835e755",
+      "tests/unit/test_cli.py": "a1001cd023c1925f4b3f4642bfb3bcceae9076e0ae05a3e4956a4d3bb25695c6",
+      "tests/unit/test_config.py": "9625b57c40407152e93bf39d4d518a2b735212efadd2a48804ed0abdefff9996",
+      "tests/unit/test_decode_diagnostic.py": "8d48f79ff4c7e74950d7fe7ed34a7e9601e981f5cf388de9bd9f2c3edbc44607",
+      "tests/unit/test_decoder.py": "2a03821785c69b3fcaf705a0ad133875e2eaef37d70923d57eb1557ee7f16258",
+      "tests/unit/test_dense.py": "346107a33eae54cdfd5b9a8bfb38017e95379338e6574049521b060c814d3d92",
+      "tests/unit/test_dense_workspace.py": "b555081e6f11029c3dddd70c54804ec21af618f6465696d1058eca725a091dc8",
+      "tests/unit/test_determinism.py": "c14bcfd55d86108881ad14783e8033ff8361bc93b5e587608ee32d9f622d8d7b",
+      "tests/unit/test_engine_types.py": "74fa0bf1941e898625f4ac6e89c6677ee8e5053de7071e5542f4e43921b614e0",
+      "tests/unit/test_kv_cache.py": "d939ca4764890edf53b4bd136f4d9aff366518dcfe0250a97f435b3f8e74d480",
+      "tests/unit/test_kv_cache_properties.py": "4803bdd58b04100f8d5e84cf8518d1dbd939c8cfc42b26e9454ab2be1d55fd5e",
+      "tests/unit/test_measurements.py": "59289e37896067b39350143f461af08d9353259f96ba701406615bc3e6e99ea9",
+      "tests/unit/test_oracle.py": "5d887cb07283f55b127d8e756b209beeb8906ad2dda3e8da49205551c6ad4f62",
+      "tests/unit/test_reference_fixtures.py": "18b45a9ee2ba4f3cd59c5fcb2385a6bd159e136d79cc894e7f49f874ea3d296b",
+      "tests/unit/test_t4_evidence.py": "3d100569c7be2f8f2bf561c4e91d0f3596dbc7c654e8829769bd740dfeb3ffa0",
+      "tests/unit/test_verification.py": "0595fdbbcf22f3f705e89e822ac349ae9e5ba2f6d30b1e0e3af0e2c3c594da9f",
+      "tests/unit/test_weights.py": "5555b55d797ddd5020887016ff19f9b7dfb54432f09a95b17ffe42ab58ea64ae"
+    }
+  },
+  "math_policy": {
+    "matmul_allow_tf32": false,
+    "fp16_reduced_precision_reduction": false,
+    "bf16_reduced_precision_reduction": false,
+    "cudnn_allow_tf32": false,
+    "cudnn_benchmark": false,
+    "cudnn_deterministic": true,
+    "float32_matmul_precision": "highest",
+    "deterministic_algorithms": true,
+    "deterministic_warn_only": false,
+    "cublas_workspace_config": ":4096:8"
+  },
+  "records": [
+    {
+      "layer": 0,
+      "fp64_unequal": 0,
+      "sequential_unequal": 0
+    },
+    {
+      "layer": 1,
+      "fp64_unequal": 0,
+      "sequential_unequal": 0,
+      "probabilities": [
+        0.11798095703125,
+        0.008819580078125,
+        0.0152130126953125,
+        0.01922607421875,
+        0.059539794921875,
+        0.0211639404296875,
+        0.0220489501953125,
+        0.07769775390625,
+        0.025726318359375,
+        0.028594970703125,
+        0.03106689453125,
+        0.01348114013671875,
+        0.00948333740234375,
+        0.019378662109375,
+        0.01345062255859375,
+        0.058441162109375,
+        0.458740234375
+      ],
+      "values": [
+        -0.0301513671875,
+        0.032623291015625,
+        0.00937652587890625,
+        0.02642822265625,
+        0.0119781494140625,
+        0.0197296142578125,
+        0.0096893310546875,
+        0.035614013671875,
+        0.0565185546875,
+        0.01407623291015625,
+        0.0006241798400878906,
+        -0.0885009765625,
+        0.0189208984375,
+        0.0279083251953125,
+        -0.019989013671875,
+        -0.0031986236572265625,
+        -0.005451202392578125
+      ],
+      "fp64_sum": -6.070735980756581e-05,
+      "fp64_rounded": -6.073713302612305e-05,
+      "sequential_fp32_sum": -6.0707563534379005e-05,
+      "sequential_rounded": -6.073713302612305e-05,
+      "striped_fp32_sum": -6.070733070373535e-05,
+      "striped_rounded": -6.0677528381347656e-05,
+      "head": 2,
+      "dimension": 41,
+      "hf": -6.073713302612305e-05,
+      "cuda_kernels": [
+        "std::enable_if<!(false), void>::type internal::gemvx::kernel<int, int, __half, __half, __half, float, false, true, false, false, 5, false, cublasGemvParamsEx<int, cublasGemvTensorStridedBatched<__half const>, cublasGemvTensorStridedBatched<__half const>, cublasGemvTensorStridedBatched<__half>, float> >(cublasGemvParamsEx<int, cublasGemvTensorStridedBatched<__half const>, cublasGemvTensorStridedBatched<__half const>, cublasGemvTensorStridedBatched<__half>, float>)",
+        "void at::native::elementwise_kernel<128, 4, at::native::gpu_kernel_impl_nocast<at::native::direct_copy_kernel_cuda(at::TensorIteratorBase&)::{lambda()#3}::operator()() const::{lambda()#10}::operator()() const::{lambda(c10::Half)#1}>(at::TensorIteratorBase&, at::native::direct_copy_kernel_cuda(at::TensorIteratorBase&)::{lambda()#3}::operator()() const::{lambda()#10}::operator()() const::{lambda(c10::Half)#1} const&)::{lambda(int)#1}>(int, at::native::gpu_kernel_impl_nocast<at::native::direct_copy_kernel_cuda(at::TensorIteratorBase&)::{lambda()#3}::operator()() const::{lambda()#10}::operator()() const::{lambda(c10::Half)#1}>(at::TensorIteratorBase&, at::native::direct_copy_kernel_cuda(at::TensorIteratorBase&)::{lambda()#3}::operator()() const::{lambda()#10}::operator()() const::{lambda(c10::Half)#1} const&)::{lambda(int)#1})",
+        "void at::native::vectorized_elementwise_kernel<4, at::native::FillFunctor<c10::Half>, std::array<char*, 1ul> >(int, at::native::FillFunctor<c10::Half>, std::array<char*, 1ul>)"
+      ]
+    },
+    {
+      "layer": 2,
+      "fp64_unequal": 1,
+      "sequential_unequal": 0
+    },
+    {
+      "layer": 3,
+      "fp64_unequal": 0,
+      "sequential_unequal": 0
+    },
+    {
+      "layer": 4,
+      "fp64_unequal": 1,
+      "sequential_unequal": 1,
+      "probabilities": [
+        0.85107421875,
+        0.007305145263671875,
+        0.005252838134765625,
+        0.00514984130859375,
+        0.01129150390625,
+        0.002574920654296875,
+        0.0084381103515625,
+        0.011627197265625,
+        0.0017900466918945312,
+        0.0020847320556640625,
+        0.005168914794921875,
+        0.003849029541015625,
+        0.006237030029296875,
+        0.0028667449951171875,
+        0.0025653839111328125,
+        0.004177093505859375,
+        0.068603515625
+      ],
+      "values": [
+        -0.004547119140625,
+        0.28515625,
+        -0.10650634765625,
+        0.1580810546875,
+        -0.050994873046875,
+        0.1253662109375,
+        -0.16259765625,
+        0.005115509033203125,
+        -0.1451416015625,
+        -0.232421875,
+        -0.09063720703125,
+        -0.335693359375,
+        0.0838623046875,
+        0.077392578125,
+        0.1693115234375,
+        0.09698486328125,
+        0.05938720703125
+      ],
+      "fp64_sum": 5.587935447692871e-05,
+      "fp64_rounded": 5.5909156799316406e-05,
+      "sequential_fp32_sum": 5.5880285799503326e-05,
+      "sequential_rounded": 5.5909156799316406e-05,
+      "striped_fp32_sum": 5.587947089225054e-05,
+      "striped_rounded": 5.5909156799316406e-05,
+      "head": 20,
+      "dimension": 19,
+      "hf": 5.5849552154541016e-05,
+      "cuda_kernels": [
+        "std::enable_if<!(false), void>::type internal::gemvx::kernel<int, int, __half, __half, __half, float, false, true, false, false, 5, false, cublasGemvParamsEx<int, cublasGemvTensorStridedBatched<__half const>, cublasGemvTensorStridedBatched<__half const>, cublasGemvTensorStridedBatched<__half>, float> >(cublasGemvParamsEx<int, cublasGemvTensorStridedBatched<__half const>, cublasGemvTensorStridedBatched<__half const>, cublasGemvTensorStridedBatched<__half>, float>)",
+        "void at::native::elementwise_kernel<128, 4, at::native::gpu_kernel_impl_nocast<at::native::direct_copy_kernel_cuda(at::TensorIteratorBase&)::{lambda()#3}::operator()() const::{lambda()#10}::operator()() const::{lambda(c10::Half)#1}>(at::TensorIteratorBase&, at::native::direct_copy_kernel_cuda(at::TensorIteratorBase&)::{lambda()#3}::operator()() const::{lambda()#10}::operator()() const::{lambda(c10::Half)#1} const&)::{lambda(int)#1}>(int, at::native::gpu_kernel_impl_nocast<at::native::direct_copy_kernel_cuda(at::TensorIteratorBase&)::{lambda()#3}::operator()() const::{lambda()#10}::operator()() const::{lambda(c10::Half)#1}>(at::TensorIteratorBase&, at::native::direct_copy_kernel_cuda(at::TensorIteratorBase&)::{lambda()#3}::operator()() const::{lambda()#10}::operator()() const::{lambda(c10::Half)#1} const&)::{lambda(int)#1})",
+        "void at::native::vectorized_elementwise_kernel<4, at::native::FillFunctor<c10::Half>, std::array<char*, 1ul> >(int, at::native::FillFunctor<c10::Half>, std::array<char*, 1ul>)"
+      ]
+    },
+    {
+      "layer": 5,
+      "fp64_unequal": 0,
+      "sequential_unequal": 0
+    },
+    {
+      "layer": 6,
+      "fp64_unequal": 0,
+      "sequential_unequal": 0
+    },
+    {
+      "layer": 7,
+      "fp64_unequal": 0,
+      "sequential_unequal": 0
+    },
+    {
+      "layer": 8,
+      "fp64_unequal": 0,
+      "sequential_unequal": 1
+    },
+    {
+      "layer": 9,
+      "fp64_unequal": 0,
+      "sequential_unequal": 0
+    },
+    {
+      "layer": 10,
+      "fp64_unequal": 0,
+      "sequential_unequal": 0
+    },
+    {
+      "layer": 11,
+      "fp64_unequal": 0,
+      "sequential_unequal": 0
+    },
+    {
+      "layer": 12,
+      "fp64_unequal": 0,
+      "sequential_unequal": 0
+    },
+    {
+      "layer": 13,
+      "fp64_unequal": 0,
+      "sequential_unequal": 0
+    },
+    {
+      "layer": 14,
+      "fp64_unequal": 0,
+      "sequential_unequal": 0
+    },
+    {
+      "layer": 15,
+      "fp64_unequal": 1,
+      "sequential_unequal": 1
+    },
+    {
+      "layer": 16,
+      "fp64_unequal": 0,
+      "sequential_unequal": 0
+    },
+    {
+      "layer": 17,
+      "fp64_unequal": 0,
+      "sequential_unequal": 0
+    },
+    {
+      "layer": 18,
+      "fp64_unequal": 1,
+      "sequential_unequal": 2
+    },
+    {
+      "layer": 19,
+      "fp64_unequal": 0,
+      "sequential_unequal": 0
+    },
+    {
+      "layer": 20,
+      "fp64_unequal": 0,
+      "sequential_unequal": 1
+    },
+    {
+      "layer": 21,
+      "fp64_unequal": 0,
+      "sequential_unequal": 0
+    }
+  ]
+}

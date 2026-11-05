@@ -90,6 +90,15 @@ logit/K/V tolerances, greedy, ownership and storage guards to that candidate.
 Passing these experiments is required before proposing a default change; the
 full collector and remaining Phase 5 gates are still required afterward.
 
+For a focused reduction replay, run
+`python scripts/probe_value_reduction.py --device cuda:0 --profile --output results/local/value-scalar-t4.json`
+under the same pinned CUDA environment. It retains the 17 probability/value
+operands for the first striped and page-product discrepancies, compares FP64 and
+sequential FP32 results on all 22 layers, and optionally profiles the reference
+CUDA matmul. This is diagnostic reference math outside serving, not a different
+oracle or permission to gather K/V in owned decode. CPU operands and reduction
+orders cannot substitute for their actual T4 counterparts.
+
 ## Evidence attribution
 
 For each completed gate retain a reviewed artifact under `results/validation/` identifying the gate, UTC capture time, implementation revision, source identity, lock SHA-256, actual sanitized arguments, setup record, resolved configuration, seeds, installed dependency versions, device identity and test report. Capture GPU name/UUID, selected CUDA device, compute capability, driver/runtime and relevant memory totals; distinguish CUDA-visible devices from physical inventory.

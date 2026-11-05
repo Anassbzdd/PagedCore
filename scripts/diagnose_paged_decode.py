@@ -130,8 +130,8 @@ def component_controls(
 
 
 def run(device: str, steps: int = 3, value_reduction: str = "striped") -> dict[str, Any]:
-    if value_reduction not in ("striped", "paged"):
-        raise ValueError("value_reduction must be striped or paged")
+    if value_reduction not in ("striped", "paged", "paired"):
+        raise ValueError("value_reduction must be striped, paged or paired")
     fixture = Path(__file__).resolve().parents[1] / "tests/fixtures/reference_prompts.json"
     ids = next(
         case["input_ids"]
@@ -140,10 +140,14 @@ def run(device: str, steps: int = 3, value_reduction: str = "striped") -> dict[s
     )
     records: list[dict[str, Any]] = []
     with ExitStack() as cleanup, reference_math() as policy, torch.inference_mode():
-        if value_reduction == "paged":
+        if value_reduction != "striped":
             cleanup.enter_context(
                 patch.object(
-                    attention_module, "_multi_page_value_sum", attention_module._paged_value_sum
+                    attention_module,
+                    "_multi_page_value_sum",
+                    attention_module._paged_value_sum
+                    if value_reduction == "paged"
+                    else attention_module._paired_value_sum,
                 )
             )
         weights = load_weights(device=device)
@@ -433,7 +437,9 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--device", choices=("cpu", "cuda:0"), default="cpu")
     parser.add_argument("--steps", type=int, choices=(1, 2, 3), default=3)
-    parser.add_argument("--value-reduction", choices=("striped", "paged"), default="striped")
+    parser.add_argument(
+        "--value-reduction", choices=("striped", "paged", "paired"), default="striped"
+    )
     parser.add_argument(
         "--output", type=Path, default=Path("results/local/paged-decode-arithmetic.json")
     )

@@ -1,13 +1,38 @@
+import json
+from pathlib import Path
+
 import pytest
 import torch
 from torch import Tensor
 
-from pagedcore.attention import _paged_value_sum, paged_attention
+from pagedcore.attention import _paged_value_sum, _paired_value_sum, paged_attention
 from pagedcore.dense import dense_attention
 from pagedcore.engine_types import KVReservation, RequestId
 from pagedcore.kv_cache import KVAllocator
 
 pytestmark = pytest.mark.unit
+
+
+@pytest.mark.parametrize(
+    "case",
+    json.loads((Path(__file__).parents[1] / "fixtures/t4_value_reduction.json").read_text())[
+        "cases"
+    ],
+    ids=lambda case: f"layer-{case['layer']}",
+)
+def test_paired_reduction_matches_captured_t4_rounding(case, forbid_dense_kv_history) -> None:
+    key = torch.zeros(22, 17, 4, 64, dtype=torch.float16)
+    value = torch.zeros_like(key)
+    layer, head, dimension = case["layer"], case["head"], case["dimension"]
+    value[layer, :, head // 8, dimension] = torch.tensor(case["values"]).half()
+    probabilities = torch.zeros(32, 17, dtype=torch.float16)
+    probabilities[head] = torch.tensor(case["probabilities"]).half()
+    allocator, request, pool = _cache(key, value)
+    counts = allocator.capacity()
+    with forbid_dense_kv_history(pool):
+        actual = _paired_value_sum(probabilities.reshape(4, 8, 17), allocator, request, layer)
+    assert actual[0, head, 0, dimension].item() == case["hf"]
+    assert allocator.capacity() == counts
 
 
 def test_guard_stops_tracking_kv_after_batched_weighted_value_reduction(

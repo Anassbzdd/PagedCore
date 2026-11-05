@@ -1,0 +1,731 @@
+{
+  "scope": "T4 diagnostic review, not release acceptance",
+  "review_date": "2026-11-04",
+  "archive_sha256": "37c943309a047a4cc9b9a95743a0dbaf5cc5eb1371a652d6e107bbcb89186881",
+  "reports": {
+    "striped.json": {
+      "observed_at_utc": "2026-11-04T22:15:23.397575+00:00",
+      "value_reduction": "striped",
+      "git_revision": "fcc3639a200e28325cc11a7fb2180633fccd66be",
+      "source_matches": 31,
+      "source_mismatches": [
+        "tests/unit/test_cli.py",
+        "tests/unit/test_determinism.py",
+        "tests/unit/test_engine_types.py",
+        "tests/unit/test_measurements.py",
+        "tests/unit/test_oracle.py",
+        "tests/unit/test_reference_fixtures.py",
+        "tests/unit/test_verification.py"
+      ],
+      "script_matches": true,
+      "fixture_matches": false,
+      "lock_matches": true,
+      "environment": {
+        "python": "3.11.15",
+        "package": {
+          "name": "pagedcore",
+          "version": "0.1.0"
+        },
+        "dependencies": {
+          "torch": "2.7.1+cu126",
+          "transformers": "4.52.4"
+        },
+        "cuda": {
+          "available": true,
+          "runtime": "12.6"
+        },
+        "driver": "580.178.04",
+        "gpu": [
+          {
+            "name": "Tesla T4",
+            "memory_mib": 15360
+          },
+          {
+            "name": "Tesla T4",
+            "memory_mib": 15360
+          }
+        ],
+        "model": {
+          "id": "TinyLlama/TinyLlama-1.1B-Chat-v1.0",
+          "revision": "af8e934848d8dd00074cc2cd8a40a9b05c3b011e"
+        },
+        "settings": {
+          "model_id": "TinyLlama/TinyLlama-1.1B-Chat-v1.0",
+          "model_revision": "af8e934848d8dd00074cc2cd8a40a9b05c3b011e",
+          "context_limit": 2048,
+          "min_new_tokens": 1,
+          "default_max_new_tokens": 128,
+          "max_new_tokens": 256,
+          "block_tokens": 16,
+          "kv_pool_mib": 8192,
+          "workspace_margin_mib": 1536,
+          "max_pending_requests": 64,
+          "max_active_sequences": 32,
+          "token_queue_size": 32,
+          "bind_address": "localhost",
+          "log_level": "INFO"
+        }
+      },
+      "math_policy": {
+        "matmul_allow_tf32": false,
+        "fp16_reduced_precision_reduction": false,
+        "bf16_reduced_precision_reduction": false,
+        "cudnn_allow_tf32": false,
+        "cudnn_benchmark": false,
+        "cudnn_deterministic": true,
+        "float32_matmul_precision": "highest",
+        "deterministic_algorithms": true,
+        "deterministic_warn_only": false,
+        "cublas_workspace_config": ":4096:8"
+      },
+      "probabilities": {
+        "probabilities_fp32": {
+          "unequal_elements_all_cases": 687,
+          "unequal_elements_single_17_tokens": 0
+        },
+        "probabilities_fp16": {
+          "unequal_elements_all_cases": 17,
+          "unequal_elements_single_17_tokens": 0
+        }
+      },
+      "summaries": {
+        "batched_components": {
+          "first_unequal": {
+            "lengths": [
+              1,
+              15,
+              16,
+              17,
+              49
+            ],
+            "step": 1,
+            "mode": "batched_components",
+            "operation": "model.layers.0.self_attn.q_proj",
+            "shape": [
+              5,
+              1,
+              2048
+            ],
+            "actual_stride": [
+              2048,
+              2048,
+              1
+            ],
+            "expected_stride": [
+              2048,
+              2048,
+              1
+            ],
+            "first_unequal_index": [
+              0,
+              0,
+              22
+            ],
+            "actual_at_first": 0.322265625,
+            "expected_at_first": 0.322509765625,
+            "unequal": 114,
+            "max_absolute_error": 0.0009765625,
+            "max_tolerance_ratio": 0.22065313160419464
+          },
+          "first_failure": null,
+          "max_tolerance_ratio": 0.4332755506038666,
+          "all_greedy_matches": true
+        },
+        "isolated_components": {
+          "first_unequal": null,
+          "first_failure": null,
+          "max_tolerance_ratio": 0.0,
+          "all_greedy_matches": true
+        },
+        "control_storage": {
+          "first_unequal": null,
+          "first_failure": null,
+          "max_tolerance_ratio": 0.0,
+          "all_greedy_matches": true
+        },
+        "online_attention": {
+          "first_unequal": {
+            "lengths": [
+              15
+            ],
+            "step": 1,
+            "mode": "online_attention",
+            "operation": "layer.0.scaled_scores",
+            "row": 0,
+            "shape": [
+              1,
+              32,
+              1,
+              16
+            ],
+            "actual_stride": [
+              512,
+              16,
+              16,
+              1
+            ],
+            "expected_stride": [
+              512,
+              16,
+              16,
+              1
+            ],
+            "first_unequal_index": [
+              0,
+              0,
+              0,
+              0
+            ],
+            "actual_at_first": 0.006132135167717934,
+            "expected_at_first": 0.006134033203125,
+            "unequal": 512,
+            "max_absolute_error": 0.0017948150634765625,
+            "max_tolerance_ratio": 0.15575343370437622
+          },
+          "first_failure": null,
+          "max_tolerance_ratio": 0.25451767444610596,
+          "all_greedy_matches": true
+        },
+        "eager_attention": {
+          "first_unequal": {
+            "lengths": [
+              15
+            ],
+            "step": 2,
+            "mode": "eager_attention",
+            "operation": "layer.1.attention",
+            "row": 0,
+            "shape": [
+              1,
+              1,
+              32,
+              64
+            ],
+            "actual_stride": [
+              2048,
+              64,
+              64,
+              1
+            ],
+            "expected_stride": [
+              2048,
+              64,
+              64,
+              1
+            ],
+            "first_unequal_index": [
+              0,
+              0,
+              2,
+              41
+            ],
+            "actual_at_first": -6.0677528381347656e-05,
+            "expected_at_first": -6.073713302612305e-05,
+            "unequal": 1,
+            "max_absolute_error": 5.960464477539063e-08,
+            "max_tolerance_ratio": 2.980051067424938e-05
+          },
+          "first_failure": null,
+          "max_tolerance_ratio": 0.4009622633457184,
+          "all_greedy_matches": true
+        },
+        "fixed_probabilities": {
+          "first_unequal": {
+            "lengths": [
+              15
+            ],
+            "step": 2,
+            "mode": "fixed_probabilities",
+            "operation": "layer.1.attention",
+            "row": 0,
+            "shape": [
+              1,
+              1,
+              32,
+              64
+            ],
+            "actual_stride": [
+              2048,
+              64,
+              64,
+              1
+            ],
+            "expected_stride": [
+              2048,
+              64,
+              64,
+              1
+            ],
+            "first_unequal_index": [
+              0,
+              0,
+              2,
+              41
+            ],
+            "actual_at_first": -6.0677528381347656e-05,
+            "expected_at_first": -6.073713302612305e-05,
+            "unequal": 1,
+            "max_absolute_error": 5.960464477539063e-08,
+            "max_tolerance_ratio": 2.980051067424938e-05
+          },
+          "first_failure": null,
+          "max_tolerance_ratio": 0.09759905934333801,
+          "all_greedy_matches": true
+        },
+        "integrated": {
+          "first_unequal": {
+            "lengths": [
+              15
+            ],
+            "step": 2,
+            "mode": "integrated",
+            "operation": "logits",
+            "row": 0,
+            "greedy_matches": true,
+            "shape": [
+              1,
+              1,
+              32000
+            ],
+            "actual_stride": [
+              32000,
+              32000,
+              1
+            ],
+            "expected_stride": [
+              32000,
+              32000,
+              1
+            ],
+            "first_unequal_index": [
+              0,
+              0,
+              0
+            ],
+            "actual_at_first": -9.65625,
+            "expected_at_first": -9.6640625,
+            "unequal": 25521,
+            "max_absolute_error": 0.0234375,
+            "max_tolerance_ratio": 1.977457046508789
+          },
+          "first_failure": {
+            "lengths": [
+              15
+            ],
+            "step": 2,
+            "mode": "integrated",
+            "operation": "logits",
+            "row": 0,
+            "greedy_matches": true,
+            "shape": [
+              1,
+              1,
+              32000
+            ],
+            "actual_stride": [
+              32000,
+              32000,
+              1
+            ],
+            "expected_stride": [
+              32000,
+              32000,
+              1
+            ],
+            "first_unequal_index": [
+              0,
+              0,
+              0
+            ],
+            "actual_at_first": -9.65625,
+            "expected_at_first": -9.6640625,
+            "unequal": 25521,
+            "max_absolute_error": 0.0234375,
+            "max_tolerance_ratio": 1.977457046508789
+          },
+          "max_tolerance_ratio": 3.502408742904663,
+          "all_greedy_matches": true
+        }
+      },
+      "local_line_ending_only_differences": [
+        "tests/unit/test_cli.py",
+        "tests/unit/test_determinism.py",
+        "tests/unit/test_engine_types.py",
+        "tests/unit/test_measurements.py",
+        "tests/unit/test_oracle.py",
+        "tests/unit/test_reference_fixtures.py",
+        "tests/unit/test_verification.py"
+      ],
+      "git_blob_matches": 38,
+      "git_blob_mismatches": []
+    },
+    "paged.json": {
+      "observed_at_utc": "2026-11-04T22:15:51.898151+00:00",
+      "value_reduction": "paged",
+      "git_revision": "fcc3639a200e28325cc11a7fb2180633fccd66be",
+      "source_matches": 31,
+      "source_mismatches": [
+        "tests/unit/test_cli.py",
+        "tests/unit/test_determinism.py",
+        "tests/unit/test_engine_types.py",
+        "tests/unit/test_measurements.py",
+        "tests/unit/test_oracle.py",
+        "tests/unit/test_reference_fixtures.py",
+        "tests/unit/test_verification.py"
+      ],
+      "script_matches": true,
+      "fixture_matches": false,
+      "lock_matches": true,
+      "environment": {
+        "python": "3.11.15",
+        "package": {
+          "name": "pagedcore",
+          "version": "0.1.0"
+        },
+        "dependencies": {
+          "torch": "2.7.1+cu126",
+          "transformers": "4.52.4"
+        },
+        "cuda": {
+          "available": true,
+          "runtime": "12.6"
+        },
+        "driver": "580.178.04",
+        "gpu": [
+          {
+            "name": "Tesla T4",
+            "memory_mib": 15360
+          },
+          {
+            "name": "Tesla T4",
+            "memory_mib": 15360
+          }
+        ],
+        "model": {
+          "id": "TinyLlama/TinyLlama-1.1B-Chat-v1.0",
+          "revision": "af8e934848d8dd00074cc2cd8a40a9b05c3b011e"
+        },
+        "settings": {
+          "model_id": "TinyLlama/TinyLlama-1.1B-Chat-v1.0",
+          "model_revision": "af8e934848d8dd00074cc2cd8a40a9b05c3b011e",
+          "context_limit": 2048,
+          "min_new_tokens": 1,
+          "default_max_new_tokens": 128,
+          "max_new_tokens": 256,
+          "block_tokens": 16,
+          "kv_pool_mib": 8192,
+          "workspace_margin_mib": 1536,
+          "max_pending_requests": 64,
+          "max_active_sequences": 32,
+          "token_queue_size": 32,
+          "bind_address": "localhost",
+          "log_level": "INFO"
+        }
+      },
+      "math_policy": {
+        "matmul_allow_tf32": false,
+        "fp16_reduced_precision_reduction": false,
+        "bf16_reduced_precision_reduction": false,
+        "cudnn_allow_tf32": false,
+        "cudnn_benchmark": false,
+        "cudnn_deterministic": true,
+        "float32_matmul_precision": "highest",
+        "deterministic_algorithms": true,
+        "deterministic_warn_only": false,
+        "cublas_workspace_config": ":4096:8"
+      },
+      "probabilities": {
+        "probabilities_fp32": {
+          "unequal_elements_all_cases": 687,
+          "unequal_elements_single_17_tokens": 0
+        },
+        "probabilities_fp16": {
+          "unequal_elements_all_cases": 17,
+          "unequal_elements_single_17_tokens": 0
+        }
+      },
+      "summaries": {
+        "batched_components": {
+          "first_unequal": {
+            "lengths": [
+              1,
+              15,
+              16,
+              17,
+              49
+            ],
+            "step": 1,
+            "mode": "batched_components",
+            "operation": "model.layers.0.self_attn.q_proj",
+            "shape": [
+              5,
+              1,
+              2048
+            ],
+            "actual_stride": [
+              2048,
+              2048,
+              1
+            ],
+            "expected_stride": [
+              2048,
+              2048,
+              1
+            ],
+            "first_unequal_index": [
+              0,
+              0,
+              22
+            ],
+            "actual_at_first": 0.322265625,
+            "expected_at_first": 0.322509765625,
+            "unequal": 114,
+            "max_absolute_error": 0.0009765625,
+            "max_tolerance_ratio": 0.22065313160419464
+          },
+          "first_failure": null,
+          "max_tolerance_ratio": 0.4332755506038666,
+          "all_greedy_matches": true
+        },
+        "isolated_components": {
+          "first_unequal": null,
+          "first_failure": null,
+          "max_tolerance_ratio": 0.0,
+          "all_greedy_matches": true
+        },
+        "control_storage": {
+          "first_unequal": null,
+          "first_failure": null,
+          "max_tolerance_ratio": 0.0,
+          "all_greedy_matches": true
+        },
+        "online_attention": {
+          "first_unequal": {
+            "lengths": [
+              15
+            ],
+            "step": 1,
+            "mode": "online_attention",
+            "operation": "layer.0.scaled_scores",
+            "row": 0,
+            "shape": [
+              1,
+              32,
+              1,
+              16
+            ],
+            "actual_stride": [
+              512,
+              16,
+              16,
+              1
+            ],
+            "expected_stride": [
+              512,
+              16,
+              16,
+              1
+            ],
+            "first_unequal_index": [
+              0,
+              0,
+              0,
+              0
+            ],
+            "actual_at_first": 0.006132135167717934,
+            "expected_at_first": 0.006134033203125,
+            "unequal": 512,
+            "max_absolute_error": 0.0017948150634765625,
+            "max_tolerance_ratio": 0.15575343370437622
+          },
+          "first_failure": null,
+          "max_tolerance_ratio": 0.25451767444610596,
+          "all_greedy_matches": true
+        },
+        "eager_attention": {
+          "first_unequal": {
+            "lengths": [
+              15
+            ],
+            "step": 2,
+            "mode": "eager_attention",
+            "operation": "layer.4.attention",
+            "row": 0,
+            "shape": [
+              1,
+              1,
+              32,
+              64
+            ],
+            "actual_stride": [
+              2048,
+              64,
+              64,
+              1
+            ],
+            "expected_stride": [
+              2048,
+              64,
+              64,
+              1
+            ],
+            "first_unequal_index": [
+              0,
+              0,
+              20,
+              19
+            ],
+            "actual_at_first": 5.5909156799316406e-05,
+            "expected_at_first": 5.5849552154541016e-05,
+            "unequal": 1,
+            "max_absolute_error": 5.960464477539063e-08,
+            "max_tolerance_ratio": 2.980065983138047e-05
+          },
+          "first_failure": null,
+          "max_tolerance_ratio": 0.4009622633457184,
+          "all_greedy_matches": true
+        },
+        "fixed_probabilities": {
+          "first_unequal": {
+            "lengths": [
+              15
+            ],
+            "step": 2,
+            "mode": "fixed_probabilities",
+            "operation": "layer.4.attention",
+            "row": 0,
+            "shape": [
+              1,
+              1,
+              32,
+              64
+            ],
+            "actual_stride": [
+              2048,
+              64,
+              64,
+              1
+            ],
+            "expected_stride": [
+              2048,
+              64,
+              64,
+              1
+            ],
+            "first_unequal_index": [
+              0,
+              0,
+              20,
+              19
+            ],
+            "actual_at_first": 5.5909156799316406e-05,
+            "expected_at_first": 5.5849552154541016e-05,
+            "unequal": 1,
+            "max_absolute_error": 5.960464477539063e-08,
+            "max_tolerance_ratio": 2.980065983138047e-05
+          },
+          "first_failure": null,
+          "max_tolerance_ratio": 0.0846453383564949,
+          "all_greedy_matches": true
+        },
+        "integrated": {
+          "first_unequal": {
+            "lengths": [
+              15
+            ],
+            "step": 2,
+            "mode": "integrated",
+            "operation": "logits",
+            "row": 0,
+            "greedy_matches": true,
+            "shape": [
+              1,
+              1,
+              32000
+            ],
+            "actual_stride": [
+              32000,
+              32000,
+              1
+            ],
+            "expected_stride": [
+              32000,
+              32000,
+              1
+            ],
+            "first_unequal_index": [
+              0,
+              0,
+              3
+            ],
+            "actual_at_first": -4.546875,
+            "expected_at_first": -4.55078125,
+            "unequal": 18733,
+            "max_absolute_error": 0.015625,
+            "max_tolerance_ratio": 1.55353844165802
+          },
+          "first_failure": {
+            "lengths": [
+              15
+            ],
+            "step": 2,
+            "mode": "integrated",
+            "operation": "logits",
+            "row": 0,
+            "greedy_matches": true,
+            "shape": [
+              1,
+              1,
+              32000
+            ],
+            "actual_stride": [
+              32000,
+              32000,
+              1
+            ],
+            "expected_stride": [
+              32000,
+              32000,
+              1
+            ],
+            "first_unequal_index": [
+              0,
+              0,
+              3
+            ],
+            "actual_at_first": -4.546875,
+            "expected_at_first": -4.55078125,
+            "unequal": 18733,
+            "max_absolute_error": 0.015625,
+            "max_tolerance_ratio": 1.55353844165802
+          },
+          "max_tolerance_ratio": 3.6953394412994385,
+          "all_greedy_matches": true
+        }
+      },
+      "local_line_ending_only_differences": [
+        "tests/unit/test_cli.py",
+        "tests/unit/test_determinism.py",
+        "tests/unit/test_engine_types.py",
+        "tests/unit/test_measurements.py",
+        "tests/unit/test_oracle.py",
+        "tests/unit/test_reference_fixtures.py",
+        "tests/unit/test_verification.py"
+      ],
+      "git_blob_matches": 38,
+      "git_blob_mismatches": []
+    }
+  },
+  "testcases": [
+    {
+      "name": "test_pinned_candidate_paged_decode_on_t4[single]",
+      "result": "failed",
+      "failure": "AssertionError: Tensor-likes are not close!\n\nMismatched elements: 10 / 32000 (0.0%)\nGreatest absolute difference: 0.0091552734375 at index (0, 0, 28011) (up to 0.005 allowed)\nGreatest relative difference: 0.7451171875 at index (0, 0, 18909) (up to 0.005 allowed)"
+    },
+    {
+      "name": "test_pinned_candidate_paged_decode_on_t4[mixed]",
+      "result": "failed",
+      "failure": "AssertionError: Tensor-likes are not close!\n\nMismatched elements: 38 / 32000 (0.1%)\nGreatest absolute difference: 0.01025390625 at index (0, 0, 31353) (up to 0.005 allowed)\nGreatest relative difference: 3.701171875 at index (0, 0, 23139) (up to 0.005 allowed)"
+    }
+  ]
+}

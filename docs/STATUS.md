@@ -1,6 +1,6 @@
 # Implementation and evidence status
 
-Snapshot: 2026-11-02. **Phase 4 GPU paged KV cache is complete at the allocator
+Snapshot: 2026-11-04. **Phase 4 GPU paged KV cache is complete at the allocator
 boundary. The current gate is Phase 5: block-table decode attention.**
 Standalone single-query paged attention has reviewed T4 evidence at `3401406`.
 The newer batched one-token paged decode and staged attention reads have
@@ -10,6 +10,32 @@ T4 integrated paged-decoder acceptance, continuous
 batching and the service remain outstanding.
 
 ## Current gate
+
+The [November 4 T4 review](validation/2026-11-04-p53-t4-value-reduction-review.md)
+verifies the supplied [diagnostic ZIP](../results/validation/2026-11-04/p53-diagnostics.zip)
+at clean `fcc3639`, with all 38 recorded source hashes matching Git blobs.
+At the single-request 17-token boundary, scores, both probability dtypes and
+control K/V match HF exactly, but the striped value result differs at layer 1
+even with HF probabilities forced. The experimental page-product reducer delays
+the first local difference to layer 4 but still fails parity: maximum integrated
+ratios are `3.502409` (striped) and `3.695339` (candidate). Both candidate T4 tests
+now reach and fail logit comparison after the guard repair. This isolates the
+first discrepancy to value arithmetic/final rounding; the exact CUDA reduction
+order still needs operand capture/profiling. Neither candidate is accepted, and
+P5.3 remains open. The archive is diagnostic evidence, not release acceptance.
+
+The [focused scalar probe](../scripts/probe_value_reduction.py) now captures the
+17 probability/value operands at the first failing output coordinates and can
+profile the reference CUDA matmul. Its [CPU replay](../results/validation/2026-11-04/value-scalar-cpu.json)
+records three FP64 and ten sequential-FP32 output disagreements against CPU
+HF across 22 layers; neither alternative is adopted as a numerical fix. The
+attempted browser T4 probe did not execute: the Kaggle editor queued the cell,
+then failed to reconnect, reporting `Failed to fetch`. No T4 scalar result or
+additional arithmetic repair is claimed. The serving reducer remains unchanged.
+The scalar-probe follow-up passes [699 CPU tests](../results/validation/2026-11-04/p53-scalar-probe-cpu.xml),
+with 19 deselected and zero skips, plus Ruff lint/format, strict mypy and diff
+checks. The probe itself completed on CPU; GPU profiling and the exact T4 scalar
+operands remain pending.
 
 The owned dense decoder, reservation-aware KV allocator and paged prefill exist.
 The [October 31 review](validation/2026-10-31-p52-t4-review.md) verifies
