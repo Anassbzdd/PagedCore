@@ -3,13 +3,18 @@
 from __future__ import annotations
 
 import argparse
+import gc
 import hashlib
 import json
+import runpy
+import subprocess
 from contextlib import ExitStack
 from datetime import UTC, datetime
+from importlib.metadata import version
 from pathlib import Path
 from typing import Any
 from unittest.mock import patch
+from zipfile import ZIP_DEFLATED, ZipFile
 
 import torch
 import torch.nn.functional as F
@@ -19,15 +24,20 @@ from transformers import AutoModelForCausalLM
 from transformers.models.llama import modeling_llama as llama
 
 import pagedcore.attention as attention_module
+import pagedcore.decoder as decoder_module
 from pagedcore.attention import paged_attention
 from pagedcore.cli import collect_environment_diagnostics, collect_validation_provenance
 from pagedcore.config import MODEL_ID, MODEL_REVISION
 from pagedcore.decoder import decode_paged, prefill_paged
 from pagedcore.dense import apply_rope, rms_norm
+from pagedcore.determinism import seed_everything
 from pagedcore.engine_types import KVReservation, RequestId
 from pagedcore.kv_cache import KVAllocator
 from pagedcore.oracle import reference_math
-from pagedcore.weights import load_weights
+from pagedcore.weights import TinyLlamaWeights, load_weights
+
+ROOT = Path(__file__).resolve().parents[1]
+VALUE_REDUCTIONS = ("striped", "paged", "paired", "fp64", "native_same_v")
 
 
 class AttentionScores(TorchDispatchMode):
@@ -129,27 +139,153 @@ def component_controls(
     return expected, rows, attention
 
 
-def run(device: str, steps: int = 3, value_reduction: str = "striped") -> dict[str, Any]:
-    if value_reduction not in ("striped", "paged", "paired"):
-        raise ValueError("value_reduction must be striped, paged or paired")
-    fixture = Path(__file__).resolve().parents[1] / "tests/fixtures/reference_prompts.json"
+def fp64_page_value_sum(
+    probabilities: Tensor, allocator: KVAllocator, request: RequestId, layer_index: int
+) -> Tensor:
+    total = torch.zeros((4, 8, 64), dtype=torch.float64, device=probabilities.device)
+    start = 0
+    for _, value in allocator.iter_layer_blocks(request, layer_index=layer_index):
+        stop = start + value.shape[0]
+        total = torch.baddbmm(
+            total, probabilities[..., start:stop].double(), value.transpose(0, 1).double()
+        )
+        start = stop
+    return total.reshape(1, 32, 1, 64).half()
+
+
+def _layout(tensor: Tensor) -> dict[str, object]:
+    return {
+        "shape": list(tensor.shape),
+        "stride": list(tensor.stride()),
+        "dtype": str(tensor.dtype),
+    }
+
+
+def _trace_decode(
+    tokens: Tensor,
+    weights: TinyLlamaWeights,
+    allocator: KVAllocator,
+    requests: tuple[RequestId, ...],
+    captures: list[dict[int, tuple[Tensor, ...]]],
+    guard: TorchDispatchMode,
+    mode: str,
+) -> tuple[Tensor, list[dict[str, Any]]]:
+    reference = dict(zip(requests, captures, strict=True))
+    rows: dict[RequestId, dict[str, Any]] = {
+        request: {
+            "request": request,
+            "attended_tokens": allocator.cached_length(request) + 1,
+            "layers": [],
+        }
+        for request in requests
+    }
+    expanded = {}
+    if mode == "native_same_v":
+        # Only independent HF storage is expanded, outside the guarded decoder.
+        expanded = {
+            (request, layer): llama.repeat_kv(capture[2], 8)
+            for request, layers in reference.items()
+            if rows[request]["attended_tokens"] > 16
+            for layer, capture in layers.items()
+        }
+
+    base_attention = decoder_module.paged_attention
+    base_value = attention_module._eager_value_sum
+
+    def observe(
+        query: Tensor,
+        cache: KVAllocator,
+        request: RequestId,
+        *,
+        layer_index: int,
+        eager_rounding: bool,
+    ) -> Tensor:
+        hf_query, hf_key, hf_value, hf_output, _, hf_p = reference[request][layer_index]
+        checks: dict[str, Any] = {"layer": layer_index, "q_equal": torch.equal(query, hf_query)}
+
+        def reduce(p: Tensor, alloc: KVAllocator, req: RequestId, layer: int) -> Tensor:
+            actual_p = p.reshape_as(hf_p).contiguous()
+            start = 0
+            k_equal = v_equal = True
+            page_layouts = []
+            for key, value in alloc.iter_layer_blocks(req, layer_index=layer):
+                stop = start + value.shape[0]
+                k_equal &= torch.equal(key, hf_key[0, :, start:stop].transpose(0, 1))
+                v_equal &= torch.equal(value, hf_value[0, :, start:stop].transpose(0, 1))
+                if layer == 0:
+                    page_layouts.append(_layout(value))
+                start = stop
+            assert start == p.shape[-1] == hf_p.shape[-1]
+            p_equal = torch.equal(actual_p, hf_p)
+            checks.update(k_equal=k_equal, v_equal=v_equal, p_equal=p_equal)
+            native_v = expanded.get((req, layer))
+            if layer == 0:
+                checks["layouts"] = {
+                    "owned_q": _layout(query),
+                    "owned_p": _layout(p),
+                    "pages": page_layouts,
+                    "hf_q": _layout(hf_query),
+                    "hf_k": _layout(hf_key),
+                    "hf_v": _layout(hf_value),
+                    "hf_p": _layout(hf_p),
+                }
+                if native_v is not None:
+                    checks["layouts"]["hf_expanded_v"] = _layout(native_v)
+            if native_v is not None and v_equal:
+                assert actual_p.stride() == hf_p.stride()
+                output = actual_p @ native_v
+                if p_equal:
+                    assert torch.equal(output.transpose(1, 2), hf_output), (
+                        "Native value control failed to reproduce the reference on equal operands"
+                    )
+                checks["reducer"] = "native_same_v"
+                return output
+
+            checks["reducer"] = (
+                "fallback" if native_v is not None else ("one_page" if start <= 16 else mode)
+            )
+            return base_value(p, alloc, req, layer)
+
+        with patch.object(attention_module, "_eager_value_sum", reduce):
+            output = base_attention(
+                query, cache, request, layer_index=layer_index, eager_rounding=eager_rounding
+            )
+        checks["out_equal"] = torch.equal(output.transpose(1, 2), hf_output)
+        rows[request]["layers"].append(checks)
+        return output
+
+    with patch.object(decoder_module, "paged_attention", observe), guard:
+        logits = decode_paged(tokens, weights, allocator, requests)
+    return logits, list(rows.values())
+
+
+def run(
+    device: str, steps: int = 3, value_reduction: str = "striped", *, trace_value: bool = False
+) -> dict[str, Any]:
+    if value_reduction not in VALUE_REDUCTIONS:
+        raise ValueError(f"value_reduction must be one of {VALUE_REDUCTIONS}")
+    trace_value = trace_value or value_reduction in ("fp64", "native_same_v")
+    guard = (
+        runpy.run_path(str(ROOT / "tests/conftest.py"))["_BlockwiseKVGuard"]
+        if trace_value
+        else None
+    )
+    fixture = ROOT / "tests/fixtures/reference_prompts.json"
     ids = next(
         case["input_ids"]
         for case in json.loads(fixture.read_text(encoding="utf-8"))["prompts"]
         if case["name"] == "maximum_output"
     )
     records: list[dict[str, Any]] = []
+    value_trace: list[dict[str, Any]] = []
     with ExitStack() as cleanup, reference_math() as policy, torch.inference_mode():
-        if value_reduction != "striped":
-            cleanup.enter_context(
-                patch.object(
-                    attention_module,
-                    "_multi_page_value_sum",
-                    attention_module._paged_value_sum
-                    if value_reduction == "paged"
-                    else attention_module._paired_value_sum,
-                )
-            )
+        reducer = {
+            "paged": attention_module._paged_value_sum,
+            "paired": attention_module._paired_value_sum,
+            "fp64": fp64_page_value_sum,
+        }.get(value_reduction)
+        if reducer is not None:
+            cleanup.enter_context(patch.object(attention_module, "_multi_page_value_sum", reducer))
         weights = load_weights(device=device)
         model = (
             AutoModelForCausalLM.from_pretrained(
@@ -369,9 +505,20 @@ def run(device: str, steps: int = 3, value_reduction: str = "striped") -> dict[s
                         )
                     control.release_all(request)
 
-                actual = decode_paged(
-                    tokens, weights, allocator, tuple(requests[row] for row in order)
-                )
+                request_order = tuple(requests[row] for row in order)
+                if guard is None:
+                    actual = decode_paged(tokens, weights, allocator, request_order)
+                else:
+                    actual, layer_checks = _trace_decode(
+                        tokens,
+                        weights,
+                        allocator,
+                        request_order,
+                        attention,
+                        guard(pool),
+                        value_reduction,
+                    )
+                    value_trace.append({"lengths": lengths, "step": step + 1, "rows": layer_checks})
                 for row, reference in enumerate(expected):
                     record(
                         "integrated",
@@ -430,27 +577,71 @@ def run(device: str, steps: int = 3, value_reduction: str = "striped") -> dict[s
         "math_policy": policy,
         "summaries": summaries,
         "records": records,
+        "integrated_value_trace": value_trace,
     }
+
+
+def _integrated_passed(report: dict[str, Any]) -> bool:
+    summary = report["summaries"]["integrated"]
+    return summary["max_tolerance_ratio"] <= 1 and summary["all_greedy_matches"]
+
+
+def _probe_value_reduction(device: str, steps: int, output: Path) -> None:
+    runtime: dict[str, object] = {"device": device, "seed": 0, "steps": steps}
+    if device == "cuda:0":
+        runtime.update(
+            cublas_wheel=version("nvidia-cublas-cu12"),
+            selected_uuid=str(torch.cuda.get_device_properties(0).uuid),
+            compute_capability=torch.cuda.get_device_capability(0),
+            nvidia_smi=subprocess.check_output(
+                ["nvidia-smi", "--query-gpu=name,uuid,driver_version", "--format=csv,noheader"],
+                text=True,
+            ).strip(),
+        )
+    output.parent.mkdir(parents=True, exist_ok=True)
+    with ZipFile(output, "w", compression=ZIP_DEFLATED) as archive:
+        archive.writestr("runtime.json", json.dumps(runtime, indent=2))
+        for mode in ("striped", "fp64", "native_same_v"):
+            seed_everything(0)
+            report = run(device, steps, mode, trace_value=True)
+            archive.writestr(f"{mode}.json", json.dumps(report, allow_nan=False))
+            print("PARITY", mode, json.dumps(report["summaries"]["integrated"]), flush=True)
+            passed = _integrated_passed(report)
+            if mode == "striped" and passed:
+                print("Baseline passed. Check runtime provenance before interpreting the probe.")
+                break
+            if mode == "fp64" and passed:
+                break
+            del report
+            gc.collect()
+            if device == "cuda:0":
+                torch.cuda.empty_cache()
+    print("REPORT", output, flush=True)
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--device", choices=("cpu", "cuda:0"), default="cpu")
     parser.add_argument("--steps", type=int, choices=(1, 2, 3), default=3)
-    parser.add_argument(
-        "--value-reduction", choices=("striped", "paged", "paired"), default="striped"
+    mode = parser.add_mutually_exclusive_group()
+    mode.add_argument("--value-reduction", choices=VALUE_REDUCTIONS, default="striped")
+    mode.add_argument(
+        "--probe-value-reduction", action="store_true", help="Run the controlled A/B probe"
     )
-    parser.add_argument(
-        "--output", type=Path, default=Path("results/local/paged-decode-arithmetic.json")
-    )
+    parser.add_argument("--output", type=Path)
     arguments = parser.parse_args()
     torch.set_num_threads(1)
+    if arguments.probe_value_reduction:
+        _probe_value_reduction(
+            arguments.device,
+            arguments.steps,
+            arguments.output or Path("results/local/pagedcore-parity-probe.zip"),
+        )
+        raise SystemExit(0)
+    output = arguments.output or Path("results/local/paged-decode-arithmetic.json")
     report = run(arguments.device, arguments.steps, arguments.value_reduction)
-    arguments.output.parent.mkdir(parents=True, exist_ok=True)
-    arguments.output.write_text(json.dumps(report, indent=2) + "\n", encoding="utf-8")
+    output.parent.mkdir(parents=True, exist_ok=True)
+    output.write_text(json.dumps(report, indent=2) + "\n", encoding="utf-8")
     print(json.dumps(report["summaries"], indent=2))
-    if (
-        report["summaries"]["integrated"]["max_tolerance_ratio"] > 1
-        or not report["summaries"]["integrated"]["all_greedy_matches"]
-    ):
+    if not _integrated_passed(report):
         raise SystemExit("Integrated parity still fails; retain this diagnostic report.")

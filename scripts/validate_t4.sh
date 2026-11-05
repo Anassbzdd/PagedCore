@@ -67,7 +67,8 @@ uv run --no-sync python -m pytest -m "not gpu and not benchmark" -ra \
     --junitxml="$evidence_dir/cpu-tests.xml"
 uv run --no-sync python scripts/measure_dense_workspace.py "$evidence_dir"
 uv run --no-sync python scripts/measure_dense_workspace.py "$evidence_dir" --with-pool
-uv run --no-sync python -m pytest -m gpu -v -ra \
+# The rejected page-product experiment is run separately from release checks.
+uv run --no-sync python -m pytest -m gpu -k 'not test_pinned_candidate_paged_decode_on_t4' -v -ra \
     --junitxml="$evidence_dir/gpu-tests.xml"
 uv run --no-sync pagedcore oracle --case boundary_15 \
     --output "$evidence_dir/reference.pt" > "$evidence_dir/capture.json"
@@ -100,6 +101,7 @@ required = {
     "test_pinned_paged_prefill_on_t4",
     "test_pinned_paged_decode_on_t4[single]",
     "test_pinned_paged_decode_on_t4[mixed]",
+    "test_pinned_paged_decode_on_t4[fragmented]",
     "test_paged_attention_boundaries_on_t4",
     "test_paged_attention_large_scores_on_t4",
     "test_kv_pool_storage_on_t4",

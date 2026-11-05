@@ -1,0 +1,491 @@
+{
+  "scope": "Selected saved notebook outputs from a T4 diagnostic with runtime overrides",
+  "notebook_sha256": "b9e6c47d7ef60cfb6bf9d6b5789be7c5c6c64a4865dda2fddeb4ac8e29599e6e",
+  "scalar_observed_at_utc": "2026-11-05T09:07:41.051273+00:00",
+  "scalar_probe_base": "fcc3639a200e28325cc11a7fb2180633fccd66be",
+  "uv_lock_sha256": "46700b60b0a8d492fc673aec8a0e12c27ae43124dd8e194f8c754dbd6ca7ea48",
+  "environment": {
+    "python": "3.11.15",
+    "dependencies": {
+      "torch": "2.7.1+cu126",
+      "transformers": "4.52.4"
+    },
+    "cuda": {
+      "available": true,
+      "runtime": "12.6"
+    },
+    "gpu": [
+      {
+        "name": "Tesla T4",
+        "memory_mib": 14911
+      }
+    ]
+  },
+  "runs": [
+    {
+      "notebook_cell": 3,
+      "tail_modulus": 2,
+      "override": "\nimport inspect, json, hashlib, gc, torch\nfrom pathlib import Path\nfrom unittest.mock import patch\nimport pagedcore.attention as attention\nfrom scripts import diagnose_paged_decode as diagnostic\nimport pytest\n\ntorch.set_num_threads(1)\nsource = inspect.getsource(attention._multi_page_value_sum)\npaired = source.replace('def _multi_page_value_sum(', 'def _paired_value_sum(').replace('range(4)', 'range(2)').replace('length % 4', 'length % 2').replace('position % 4', 'position % 2').replace('((partials[0] + partials[1]) + partials[2]) + partials[3]', 'partials[0] + partials[1]')\nassert paired != source and 'partials[3]' not in paired\nexec(compile(paired, '<paired-value-reduction>', 'exec'), attention.__dict__)\nwith patch.object(attention, '_multi_page_value_sum', attention._paired_value_sum):\n    report = diagnostic.run('cuda:0', steps=3)\n    report['value_reduction'] = 'paired'\n    report['runtime_override_source'] = paired\n    Path('/kaggle/working/paired-t4.json').write_text(json.dumps(report, indent=2))\n    print('PAIRED_DIAGNOSTIC', json.dumps({name:report['summaries'][name] for name in ['eager_attention','fixed_probabilities','integrated']}), flush=True)\n    gc.collect(); torch.cuda.empty_cache()\n    result = pytest.main(['tests/gpu/test_decoder_parity.py', '-k', 'test_pinned_paged_decode_on_t4', '-q', '--tb=short', '--junitxml=/kaggle/working/paired-t4-tests.xml'])\n    print('PAIRED_TEST_EXIT', result, flush=True)\n",
+      "summaries": {
+        "eager_attention": {
+          "first_unequal": {
+            "lengths": [
+              15
+            ],
+            "step": 3,
+            "mode": "eager_attention",
+            "operation": "layer.0.attention",
+            "row": 0,
+            "shape": [
+              1,
+              1,
+              32,
+              64
+            ],
+            "actual_stride": [
+              2048,
+              64,
+              64,
+              1
+            ],
+            "expected_stride": [
+              2048,
+              64,
+              64,
+              1
+            ],
+            "first_unequal_index": [
+              0,
+              0,
+              2,
+              39
+            ],
+            "actual_at_first": 4.8279762268066406e-05,
+            "expected_at_first": 4.83393669128418e-05,
+            "unequal": 1,
+            "max_absolute_error": 5.960464477539063e-08,
+            "max_tolerance_ratio": 2.9800878110108897e-05
+          },
+          "first_failure": null,
+          "max_tolerance_ratio": 0.4009622633457184,
+          "all_greedy_matches": true
+        },
+        "fixed_probabilities": {
+          "first_unequal": {
+            "lengths": [
+              15
+            ],
+            "step": 3,
+            "mode": "fixed_probabilities",
+            "operation": "layer.0.attention",
+            "row": 0,
+            "shape": [
+              1,
+              1,
+              32,
+              64
+            ],
+            "actual_stride": [
+              2048,
+              64,
+              64,
+              1
+            ],
+            "expected_stride": [
+              2048,
+              64,
+              64,
+              1
+            ],
+            "first_unequal_index": [
+              0,
+              0,
+              2,
+              39
+            ],
+            "actual_at_first": 4.8279762268066406e-05,
+            "expected_at_first": 4.83393669128418e-05,
+            "unequal": 1,
+            "max_absolute_error": 5.960464477539063e-08,
+            "max_tolerance_ratio": 2.9800878110108897e-05
+          },
+          "first_failure": null,
+          "max_tolerance_ratio": 0.014757098630070686,
+          "all_greedy_matches": true
+        },
+        "integrated": {
+          "first_unequal": {
+            "lengths": [
+              15
+            ],
+            "step": 3,
+            "mode": "integrated",
+            "operation": "logits",
+            "row": 0,
+            "greedy_matches": true,
+            "shape": [
+              1,
+              1,
+              32000
+            ],
+            "actual_stride": [
+              32000,
+              32000,
+              1
+            ],
+            "expected_stride": [
+              32000,
+              32000,
+              1
+            ],
+            "first_unequal_index": [
+              0,
+              0,
+              2
+            ],
+            "actual_at_first": 4.55078125,
+            "expected_at_first": 4.546875,
+            "unequal": 20222,
+            "max_absolute_error": 0.01171875,
+            "max_tolerance_ratio": 1.6762148141860962
+          },
+          "first_failure": {
+            "lengths": [
+              15
+            ],
+            "step": 3,
+            "mode": "integrated",
+            "operation": "logits",
+            "row": 0,
+            "greedy_matches": true,
+            "shape": [
+              1,
+              1,
+              32000
+            ],
+            "actual_stride": [
+              32000,
+              32000,
+              1
+            ],
+            "expected_stride": [
+              32000,
+              32000,
+              1
+            ],
+            "first_unequal_index": [
+              0,
+              0,
+              2
+            ],
+            "actual_at_first": 4.55078125,
+            "expected_at_first": 4.546875,
+            "unequal": 20222,
+            "max_absolute_error": 0.01171875,
+            "max_tolerance_ratio": 1.6762148141860962
+          },
+          "max_tolerance_ratio": 3.7734148502349854,
+          "all_greedy_matches": true
+        }
+      },
+      "pytest_console": "FF                                                                       [100%]\n=================================== FAILURES ===================================\n____________________ test_pinned_paged_decode_on_t4[single] ____________________\ntests/gpu/test_decoder_parity.py:198: in test_pinned_paged_decode_on_t4\n    torch.testing.assert_close(\nE   AssertionError: Tensor-likes are not close!\nE   \nE   Mismatched elements: 48 / 32000 (0.1%)\nE   Greatest absolute difference: 0.01025390625 at index (0, 0, 815) (up to 0.005 allowed)\nE   Greatest relative difference: 2.525390625 at index (0, 0, 1495) (up to 0.005 allowed)\n____________________ test_pinned_paged_decode_on_t4[mixed] _____________________\ntests/gpu/test_decoder_parity.py:198: in test_pinned_paged_decode_on_t4\n    torch.testing.assert_close(\nE   AssertionError: Tensor-likes are not close!\nE   \nE   Mismatched elements: 119 / 32000 (0.4%)\nE   Greatest absolute difference: 0.0126953125 at index (0, 0, 2890) (up to 0.005 allowed)\nE   Greatest relative difference: 1.6318359375 at index (0, 0, 10032) (up to 0.005 allowed)\n=========================== short test summary info ============================\nFAILED tests/gpu/test_decoder_parity.py::test_pinned_paged_decode_on_t4[single]\nFAILED tests/gpu/test_decoder_parity.py::test_pinned_paged_decode_on_t4[mixed]\n2 failed, 10 deselected in 10.28s\nPAIRED_TEST_EXIT 1",
+      "pytest_exit": 1
+    },
+    {
+      "notebook_cell": 4,
+      "tail_modulus": 4,
+      "override": "\nimport inspect, json, hashlib, gc, torch\nfrom pathlib import Path\nfrom unittest.mock import patch\nimport pagedcore.attention as attention\nfrom scripts import diagnose_paged_decode as diagnostic\nimport pytest\n\ntorch.set_num_threads(1)\nsource = inspect.getsource(attention._multi_page_value_sum)\npaired = source.replace('def _multi_page_value_sum(', 'def _paired_value_sum(').replace('range(4)', 'range(2)').replace('position % 4', 'position % 2').replace('((partials[0] + partials[1]) + partials[2]) + partials[3]', 'partials[0] + partials[1]')\nassert paired != source and 'partials[3]' not in paired\nexec(compile(paired, '<paired-value-reduction>', 'exec'), attention.__dict__)\nwith patch.object(attention, '_multi_page_value_sum', attention._paired_value_sum):\n    report = diagnostic.run('cuda:0', steps=3)\n    report['value_reduction'] = 'paired-tail4'\n    report['runtime_override_source'] = paired\n    Path('/kaggle/working/paired-tail4-t4.json').write_text(json.dumps(report, indent=2))\n    print('PAIRED_DIAGNOSTIC', json.dumps({name:report['summaries'][name] for name in ['eager_attention','fixed_probabilities','integrated']}), flush=True)\n    gc.collect(); torch.cuda.empty_cache()\n    result = pytest.main(['tests/gpu/test_decoder_parity.py', '-k', 'test_pinned_paged_decode_on_t4', '-q', '--tb=short', '--junitxml=/kaggle/working/paired-tail4-t4-tests.xml'])\n    print('PAIRED_TEST_EXIT', result, flush=True)\n",
+      "summaries": {
+        "eager_attention": {
+          "first_unequal": {
+            "lengths": [
+              15
+            ],
+            "step": 3,
+            "mode": "eager_attention",
+            "operation": "layer.0.attention",
+            "row": 0,
+            "shape": [
+              1,
+              1,
+              32,
+              64
+            ],
+            "actual_stride": [
+              2048,
+              64,
+              64,
+              1
+            ],
+            "expected_stride": [
+              2048,
+              64,
+              64,
+              1
+            ],
+            "first_unequal_index": [
+              0,
+              0,
+              2,
+              39
+            ],
+            "actual_at_first": 4.8279762268066406e-05,
+            "expected_at_first": 4.83393669128418e-05,
+            "unequal": 1,
+            "max_absolute_error": 5.960464477539063e-08,
+            "max_tolerance_ratio": 2.9800878110108897e-05
+          },
+          "first_failure": null,
+          "max_tolerance_ratio": 0.4009622633457184,
+          "all_greedy_matches": true
+        },
+        "fixed_probabilities": {
+          "first_unequal": {
+            "lengths": [
+              15
+            ],
+            "step": 3,
+            "mode": "fixed_probabilities",
+            "operation": "layer.0.attention",
+            "row": 0,
+            "shape": [
+              1,
+              1,
+              32,
+              64
+            ],
+            "actual_stride": [
+              2048,
+              64,
+              64,
+              1
+            ],
+            "expected_stride": [
+              2048,
+              64,
+              64,
+              1
+            ],
+            "first_unequal_index": [
+              0,
+              0,
+              2,
+              39
+            ],
+            "actual_at_first": 4.8279762268066406e-05,
+            "expected_at_first": 4.83393669128418e-05,
+            "unequal": 1,
+            "max_absolute_error": 5.960464477539063e-08,
+            "max_tolerance_ratio": 2.9800878110108897e-05
+          },
+          "first_failure": null,
+          "max_tolerance_ratio": 0.014757098630070686,
+          "all_greedy_matches": true
+        },
+        "integrated": {
+          "first_unequal": {
+            "lengths": [
+              15
+            ],
+            "step": 3,
+            "mode": "integrated",
+            "operation": "logits",
+            "row": 0,
+            "greedy_matches": true,
+            "shape": [
+              1,
+              1,
+              32000
+            ],
+            "actual_stride": [
+              32000,
+              32000,
+              1
+            ],
+            "expected_stride": [
+              32000,
+              32000,
+              1
+            ],
+            "first_unequal_index": [
+              0,
+              0,
+              0
+            ],
+            "actual_at_first": -9.2421875,
+            "expected_at_first": -9.234375,
+            "unequal": 20145,
+            "max_absolute_error": 0.01171875,
+            "max_tolerance_ratio": 1.5902767181396484
+          },
+          "first_failure": {
+            "lengths": [
+              15
+            ],
+            "step": 3,
+            "mode": "integrated",
+            "operation": "logits",
+            "row": 0,
+            "greedy_matches": true,
+            "shape": [
+              1,
+              1,
+              32000
+            ],
+            "actual_stride": [
+              32000,
+              32000,
+              1
+            ],
+            "expected_stride": [
+              32000,
+              32000,
+              1
+            ],
+            "first_unequal_index": [
+              0,
+              0,
+              0
+            ],
+            "actual_at_first": -9.2421875,
+            "expected_at_first": -9.234375,
+            "unequal": 20145,
+            "max_absolute_error": 0.01171875,
+            "max_tolerance_ratio": 1.5902767181396484
+          },
+          "max_tolerance_ratio": 3.573859453201294,
+          "all_greedy_matches": true
+        }
+      },
+      "pytest_console": "FF                                                                       [100%]\n=================================== FAILURES ===================================\n____________________ test_pinned_paged_decode_on_t4[single] ____________________\ntests/gpu/test_decoder_parity.py:198: in test_pinned_paged_decode_on_t4\n    torch.testing.assert_close(\nE   AssertionError: Tensor-likes are not close!\nE   \nE   Mismatched elements: 48 / 32000 (0.1%)\nE   Greatest absolute difference: 0.01025390625 at index (0, 0, 11310) (up to 0.005 allowed)\nE   Greatest relative difference: 10.1328125 at index (0, 0, 7527) (up to 0.005 allowed)\n____________________ test_pinned_paged_decode_on_t4[mixed] _____________________\ntests/gpu/test_decoder_parity.py:198: in test_pinned_paged_decode_on_t4\n    torch.testing.assert_close(\nE   AssertionError: Tensor-likes are not close!\nE   \nE   Mismatched elements: 119 / 32000 (0.4%)\nE   Greatest absolute difference: 0.0126953125 at index (0, 0, 2890) (up to 0.005 allowed)\nE   Greatest relative difference: 1.6318359375 at index (0, 0, 10032) (up to 0.005 allowed)\n=========================== short test summary info ============================\nFAILED tests/gpu/test_decoder_parity.py::test_pinned_paged_decode_on_t4[single]\nFAILED tests/gpu/test_decoder_parity.py::test_pinned_paged_decode_on_t4[mixed]\n2 failed, 10 deselected in 9.53s\nPAIRED_TEST_EXIT 1",
+      "pytest_exit": 1
+    }
+  ],
+  "value18": {
+    "layer": 0,
+    "fp64_unequal": 0,
+    "sequential_unequal": 0,
+    "probabilities": [
+      0.0675048828125,
+      0.05889892578125,
+      0.061248779296875,
+      0.058319091796875,
+      0.053955078125,
+      0.060516357421875,
+      0.06622314453125,
+      0.04107666015625,
+      0.062225341796875,
+      0.056732177734375,
+      0.0394287109375,
+      0.048309326171875,
+      0.058258056640625,
+      0.0616455078125,
+      0.0550537109375,
+      0.0704345703125,
+      0.026123046875,
+      0.0540771484375
+    ],
+    "values": [
+      0.0013561248779296875,
+      0.0004506111145019531,
+      -0.00164031982421875,
+      -0.002925872802734375,
+      0.0003559589385986328,
+      -0.0001512765884399414,
+      0.0029811859130859375,
+      -0.0013446807861328125,
+      0.0043792724609375,
+      -0.0010366439819335938,
+      -0.0013446807861328125,
+      0.0003249645233154297,
+      -0.0014848709106445312,
+      0.0015954971313476562,
+      -0.0028972625732421875,
+      -0.0007128715515136719,
+      -0.0031890869140625,
+      0.00284576416015625
+    ],
+    "fp64_sum": 4.830959005630575e-05,
+    "fp64_rounded": 4.83393669128418e-05,
+    "sequential_fp32_sum": 4.830959369428456e-05,
+    "sequential_rounded": 4.83393669128418e-05,
+    "striped_fp32_sum": 4.830959369428456e-05,
+    "striped_rounded": 4.83393669128418e-05,
+    "head": 2,
+    "dimension": 39,
+    "hf": 4.83393669128418e-05,
+    "cuda_kernels": [
+      "std::enable_if<!(false), void>::type internal::gemvx::kernel<int, int, __half, __half, __half, float, false, true, false, false, 6, false, cublasGemvParamsEx<int, cublasGemvTensorStridedBatched<__half const>, cublasGemvTensorStridedBatched<__half const>, cublasGemvTensorStridedBatched<__half>, float> >(cublasGemvParamsEx<int, cublasGemvTensorStridedBatched<__half const>, cublasGemvTensorStridedBatched<__half const>, cublasGemvTensorStridedBatched<__half>, float>)",
+      "void at::native::elementwise_kernel<128, 4, at::native::gpu_kernel_impl_nocast<at::native::direct_copy_kernel_cuda(at::TensorIteratorBase&)::{lambda()#3}::operator()() const::{lambda()#10}::operator()() const::{lambda(c10::Half)#1}>(at::TensorIteratorBase&, at::native::direct_copy_kernel_cuda(at::TensorIteratorBase&)::{lambda()#3}::operator()() const::{lambda()#10}::operator()() const::{lambda(c10::Half)#1} const&)::{lambda(int)#1}>(int, at::native::gpu_kernel_impl_nocast<at::native::direct_copy_kernel_cuda(at::TensorIteratorBase&)::{lambda()#3}::operator()() const::{lambda()#10}::operator()() const::{lambda(c10::Half)#1}>(at::TensorIteratorBase&, at::native::direct_copy_kernel_cuda(at::TensorIteratorBase&)::{lambda()#3}::operator()() const::{lambda()#10}::operator()() const::{lambda(c10::Half)#1} const&)::{lambda(int)#1})",
+      "void at::native::vectorized_elementwise_kernel<4, at::native::FillFunctor<c10::Half>, std::array<char*, 1ul> >(int, at::native::FillFunctor<c10::Half>, std::array<char*, 1ul>)"
+    ]
+  },
+  "kernel_launches": [
+    {
+      "cached_tokens": 17,
+      "replayed_value": -6.073713302612305e-05,
+      "hf_value": -6.073713302612305e-05,
+      "events": [
+        {
+          "name": "std::enable_if<!(false), void>::type internal::gemvx::kernel<int, int, __half, __half, __half, float, false, true, false, false, 5, false, cublasGemvParamsEx<int, cublasGemvTensorStridedBatched<__half const>, cublasGemvTensorStridedBatched<__half const>, cublasGemvTensorStridedBatched<__half>, float> >(cublasGemvParamsEx<int, cublasGemvTensorStridedBatched<__half const>, cublasGemvTensorStridedBatched<__half const>, cublasGemvTensorStridedBatched<__half>, float>)",
+          "args": {
+            "External id": 10,
+            "queued": 0,
+            "device": 0,
+            "context": 1,
+            "stream": 7,
+            "correlation": 1297,
+            "registers per thread": 96,
+            "shared memory": 192,
+            "blocks per SM": 3.2,
+            "warps per SM": 3.2,
+            "grid": [
+              4,
+              1,
+              32
+            ],
+            "block": [
+              16,
+              2,
+              1
+            ],
+            "est. achieved occupancy %": 10
+          }
+        }
+      ]
+    },
+    {
+      "cached_tokens": 18,
+      "replayed_value": 4.83393669128418e-05,
+      "hf_value": 4.83393669128418e-05,
+      "events": [
+        {
+          "name": "std::enable_if<!(false), void>::type internal::gemvx::kernel<int, int, __half, __half, __half, float, false, true, false, false, 6, false, cublasGemvParamsEx<int, cublasGemvTensorStridedBatched<__half const>, cublasGemvTensorStridedBatched<__half const>, cublasGemvTensorStridedBatched<__half>, float> >(cublasGemvParamsEx<int, cublasGemvTensorStridedBatched<__half const>, cublasGemvTensorStridedBatched<__half const>, cublasGemvTensorStridedBatched<__half>, float>)",
+          "args": {
+            "External id": 522,
+            "queued": 0,
+            "device": 0,
+            "context": 1,
+            "stream": 7,
+            "correlation": 1459,
+            "registers per thread": 96,
+            "shared memory": 384,
+            "blocks per SM": 1.6,
+            "warps per SM": 3.2,
+            "grid": [
+              2,
+              1,
+              32
+            ],
+            "block": [
+              32,
+              2,
+              1
+            ],
+            "est. achieved occupancy %": 10
+          }
+        }
+      ]
+    }
+  ]
+}

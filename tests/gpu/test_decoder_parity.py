@@ -3,6 +3,7 @@ from collections.abc import Callable
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
+from unittest.mock import patch
 
 import pytest
 import torch
@@ -11,6 +12,7 @@ from torch.utils._python_dispatch import TorchDispatchMode
 from transformers import AutoModelForCausalLM
 
 import pagedcore.attention as attention_module
+import pagedcore.decoder as decoder_module
 from pagedcore.config import MODEL_ID, MODEL_REVISION
 from pagedcore.decoder import GreedyResult, decode_paged, prefill_paged
 from pagedcore.engine_types import CapacityCounts, KVReservation, RequestId
@@ -152,14 +154,17 @@ def test_pinned_paged_prefill_on_t4(pinned_decoders: tuple[Any, TinyLlamaWeights
         torch.cuda.synchronize(pool.device)
 
 
-@pytest.mark.parametrize("lengths", [(15,), (1, 15, 16, 17, 49)], ids=["single", "mixed"])
-def test_pinned_paged_decode_on_t4(
+def _assert_pinned_paged_decode(
     pinned_decoders: tuple[Any, TinyLlamaWeights],
     lengths: tuple[int, ...],
     forbid_dense_kv_history: Callable[[Tensor], TorchDispatchMode],
+    *,
+    fragmented: bool = False,
 ) -> None:
     model, weights = pinned_decoders
-    pool = torch.full((22, 2, 16, 16, 4, 64), torch.nan, dtype=torch.float16, device="cuda:0")
+    pool = torch.full(
+        (22, 2, 16, 16, 4, 64), torch.nan, dtype=torch.float16, device=weights.embedding.device
+    )
     allocator = KVAllocator(pool)
     pointer = pool.untyped_storage().data_ptr()
     requests = tuple(RequestId(str(row)) for row in range(len(lengths)))
@@ -167,6 +172,9 @@ def test_pinned_paged_decode_on_t4(
         case["input_ids"] for case in FIXTURES["prompts"] if case["name"] == "maximum_output"
     )
     references = {}
+    blocker = RequestId("unrelated")
+    blocker_table = ()
+    boundary_request = requests[lengths.index(15)] if fragmented else None
     with reference_math(), torch.inference_mode():
         for request, length in zip(requests, lengths, strict=True):
             allocator.create(KVReservation(request, (length + 3 + 15) // 16))
@@ -174,6 +182,12 @@ def test_pinned_paged_decode_on_t4(
             references[request] = model(inputs, use_cache=True)
             logits = prefill_paged(inputs, weights, allocator, request)
             torch.testing.assert_close(logits, references[request].logits, atol=5e-3, rtol=5e-3)
+            if request == boundary_request:
+                allocator.create(KVReservation(blocker, 1))
+                sentinel = torch.full((22, 16, 4, 64), 100, dtype=pool.dtype, device=pool.device)
+                allocator.append(blocker, -sentinel, sentinel)
+                blocker_table = allocator.block_table(blocker)
+                assert blocker_table == (allocator.block_table(request)[0] + 1,)
         reserved = allocator.capacity().reserved_blocks
         for step in range(3):
             # Row order is independent of request identity and absolute position.
@@ -181,6 +195,7 @@ def test_pinned_paged_decode_on_t4(
             tokens = torch.cat([references[request].logits[:, -1:].argmax(-1) for request in order])
             before = pool.clone()
             old_lengths = {request: allocator.cached_length(request) for request in order}
+            old_tables = {request: allocator.block_table(request) for request in order}
             expected = {
                 request: model(
                     tokens[row : row + 1],
@@ -189,6 +204,30 @@ def test_pinned_paged_decode_on_t4(
                 )
                 for row, request in enumerate(order)
             }
+            if fragmented and step == 1:
+                counts = allocator.capacity()
+                # Final logits run after every layer has written its staged K/V.
+                with (
+                    patch.object(
+                        decoder_module, "final_logits", side_effect=RuntimeError("logit failure")
+                    ),
+                    forbid_dense_kv_history(pool),
+                    pytest.raises(RuntimeError, match="logit failure"),
+                ):
+                    decode_paged(tokens, weights, allocator, order)
+                assert allocator.capacity() == counts
+                assert allocator.block_table(blocker) == blocker_table
+                for request in order:
+                    assert allocator.cached_length(request) == old_lengths[request]
+                    assert allocator.block_table(request) == old_tables[request]
+                    for logical, physical in enumerate(old_tables[request]):
+                        valid = min(16, old_lengths[request] - logical * 16)
+                        torch.testing.assert_close(
+                            pool[:, :, physical, :valid],
+                            before[:, :, physical, :valid],
+                            atol=0,
+                            rtol=0,
+                        )
             with forbid_dense_kv_history(pool):
                 logits = decode_paged(tokens, weights, allocator, order)
             assert logits.shape == (len(order), 1, model.config.vocab_size)
@@ -200,7 +239,15 @@ def test_pinned_paged_decode_on_t4(
                 )
                 assert torch.equal(logits[row : row + 1].argmax(-1), reference.logits.argmax(-1))
                 assert allocator.cached_length(request) == old_lengths[request] + 1
-                for logical, physical in enumerate(allocator.block_table(request)):
+                table = allocator.block_table(request)
+                assert table[: len(old_tables[request])] == old_tables[request]
+                if fragmented:
+                    if request == boundary_request and step >= 1:
+                        assert len(table) == 2 and table[1] > table[0] + 1
+                    logical, slot = divmod(old_lengths[request], 16)
+                    physical = table[logical]
+                    before[:, :, physical, slot] = pool[:, :, physical, slot]
+                for logical, physical in enumerate(table):
                     key, value = allocator.read_block(request, logical)
                     start = logical * 16
                     end = start + key.shape[1]
@@ -224,13 +271,37 @@ def test_pinned_paged_decode_on_t4(
                             )
                 references[request] = reference
             counts = allocator.capacity()
-            assert counts.live_cached_token_slots == sum(lengths) + len(order) * (step + 1)
-            assert counts.reserved_blocks == reserved and counts.active_slots == len(order)
+            assert counts.live_cached_token_slots == (
+                sum(lengths) + len(order) * (step + 1) + 16 * len(blocker_table)
+            )
+            assert counts.reserved_blocks == reserved
+            assert counts.active_slots == len(order) + len(blocker_table)
             assert pool.untyped_storage().data_ptr() == pointer
+            if fragmented:
+                assert allocator.block_table(blocker) == blocker_table
+                torch.testing.assert_close(pool, before, atol=0, rtol=0, equal_nan=True)
         torch.cuda.synchronize(pool.device)
         for request in requests:
             allocator.release_all(request)
+        if fragmented:
+            allocator.release_all(blocker)
         assert allocator.capacity() == CapacityCounts(16, 16, 0, 0, 0, 0)
+
+
+@pytest.mark.parametrize(
+    ("lengths", "fragmented"),
+    [((15,), False), ((1, 15, 16, 17, 49), False), ((1, 15, 16, 17, 49), True)],
+    ids=["single", "mixed", "fragmented"],
+)
+def test_pinned_paged_decode_on_t4(
+    pinned_decoders: tuple[Any, TinyLlamaWeights],
+    lengths: tuple[int, ...],
+    fragmented: bool,
+    forbid_dense_kv_history: Callable[[Tensor], TorchDispatchMode],
+) -> None:
+    _assert_pinned_paged_decode(
+        pinned_decoders, lengths, forbid_dense_kv_history, fragmented=fragmented
+    )
 
 
 @pytest.mark.parametrize("lengths", [(15,), (1, 15, 16, 17, 49)], ids=["single", "mixed"])
@@ -243,7 +314,7 @@ def test_pinned_candidate_paged_decode_on_t4(
     monkeypatch.setattr(
         attention_module, "_multi_page_value_sum", attention_module._paged_value_sum
     )
-    test_pinned_paged_decode_on_t4(pinned_decoders, lengths, forbid_dense_kv_history)
+    _assert_pinned_paged_decode(pinned_decoders, lengths, forbid_dense_kv_history)
 
 
 @pytest.mark.parametrize("case", FIXTURES["prompts"], ids=lambda case: case["name"])

@@ -87,8 +87,9 @@ The latter selects an experimental FP32 page-product accumulator without
 changing the serving default. The separate
 `test_pinned_candidate_paged_decode_on_t4[single/mixed]` cases apply the existing
 logit/K/V tolerances, greedy, ownership and storage guards to that candidate.
-Passing these experiments is required before proposing a default change; the
-full collector and remaining Phase 5 gates are still required afterward.
+Both candidate tests failed logit parity in the retained November 4 run. Keep
+their results as diagnostic evidence. A later candidate must pass the required
+integrated cases, the full collector and the remaining Phase 5 gates.
 
 For a focused reduction replay, run
 `python scripts/probe_value_reduction.py --device cuda:0 --profile --output results/local/value-scalar-t4.json`
@@ -98,6 +99,23 @@ sequential FP32 results on all 22 layers, and optionally profiles the reference
 CUDA matmul. This is diagnostic reference math outside serving, not a different
 oracle or permission to gather K/V in owned decode. CPU operands and reduction
 orders cannot substitute for their actual T4 counterparts.
+
+Run the integrated value-reduction control on the pinned T4 environment:
+
+```bash
+uv run --no-sync python scripts/diagnose_paged_decode.py --device cuda:0 \
+  --probe-value-reduction --output results/local/pagedcore-parity-probe.zip
+```
+
+Retain the archive and console summaries. The probe first reproduces the striped
+failure, then tests one FP64 weighted-value accumulation across valid pages with
+one final FP16 cast. If that fails, the native control uses PagedCore's own
+rounded probabilities and independent HF V only where every paged V slice
+matches. It records fallback layers and exact Q/K/V, probability, and output
+comparisons for each request. A mismatch after a fallback can include earlier
+drift. Reference operands are prepared outside the guarded owned forward.
+Only consider changing the serving reducer after reviewing attributable T4
+parity results. The diagnostic archive does not replace the collector.
 
 ## Evidence attribution
 
@@ -122,13 +140,19 @@ head mapping, large scores, autocast and read-only accounting. Both execute and
 pass in each [October 31 archive](validation/2026-10-31-p52-t4-review.md) at
 `3401406`; the October 30 archive predates these tests. The newer staged-layer
 iterator and integrated batched decode still need their own T4 evidence.
-The collector now also requires both `test_pinned_paged_decode_on_t4[single]`
-and `test_pinned_paged_decode_on_t4[mixed]`. They compare one request and a
+The collector also requires `test_pinned_paged_decode_on_t4[single]`,
+`test_pinned_paged_decode_on_t4[mixed]`, and
+`test_pinned_paged_decode_on_t4[fragmented]`. They compare one request and a
 five-request batch at prompt lengths 1/15/16/17/49 against separate eager HF
 cached forwards for three decode steps, reversing row order between steps.
 Checks include logits (`atol=rtol=5e-3`), every layer's K/V
 (`atol=rtol=2e-3`), exact next-token argmax, unchanged historical slots,
 cache lengths, reservations, stable pool storage and final release accounting.
+The fragmented case inserts a sentinel-filled page between the 15-token
+request's first and second blocks and injects a synchronous failure after the
+staged writes. It verifies rollback, retries the same step and checks that only
+the newly committed slots changed. Run the rejected page-product candidate tests
+separately when reproducing the historical experiment.
 Only the owned decode call runs under the no-dense-history guard; permitted
 prefill and full-history reference calculations remain outside it.
 These focused decode comparisons do not close the later end-to-end generation,

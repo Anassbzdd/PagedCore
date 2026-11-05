@@ -1,6 +1,6 @@
 # Implementation and evidence status
 
-Snapshot: 2026-11-04. **Phase 4 GPU paged KV cache is complete at the allocator
+Snapshot: 2026-11-05. **Phase 4 GPU paged KV cache is complete at the allocator
 boundary. The current gate is Phase 5: block-table decode attention.**
 Standalone single-query paged attention has reviewed T4 evidence at `3401406`.
 The newer batched one-token paged decode and staged attention reads have
@@ -20,22 +20,48 @@ even with HF probabilities forced. The experimental page-product reducer delays
 the first local difference to layer 4 but still fails parity: maximum integrated
 ratios are `3.502409` (striped) and `3.695339` (candidate). Both candidate T4 tests
 now reach and fail logit comparison after the guard repair. This isolates the
-first discrepancy to value arithmetic/final rounding; the exact CUDA reduction
-order still needs operand capture/profiling. Neither candidate is accepted, and
-P5.3 remains open. The archive is diagnostic evidence, not release acceptance.
+first discrepancy to value arithmetic and final rounding. P5.3 remains open.
 
-The [focused scalar probe](../scripts/probe_value_reduction.py) now captures the
-17 probability/value operands at the first failing output coordinates and can
-profile the reference CUDA matmul. Its [CPU replay](../results/validation/2026-11-04/value-scalar-cpu.json)
-records three FP64 and ten sequential-FP32 output disagreements against CPU
-HF across 22 layers; neither alternative is adopted as a numerical fix. The
-attempted browser T4 probe did not execute: the Kaggle editor queued the cell,
-then failed to reconnect, reporting `Failed to fetch`. No T4 scalar result or
-additional arithmetic repair is claimed. The serving reducer remains unchanged.
-The scalar-probe follow-up passes [699 CPU tests](../results/validation/2026-11-04/p53-scalar-probe-cpu.xml),
-with 19 deselected and zero skips, plus Ruff lint/format, strict mypy and diff
-checks. The probe itself completed on CPU; GPU profiling and the exact T4 scalar
-operands remain pending.
+The [T4 scalar capture](../results/validation/2026-11-04/value-scalar-t4.json)
+records the 17 probability/value operands at the first failing coordinates.
+The [November 5 notebook results](../results/validation/2026-11-05/value-reduction-notebook-review.json)
+show that two alternating FP32 sums match the 17-token single-request attention
+replay. At 18 tokens, the first local difference moves to layer 0, head 2,
+channel 39, with HF probabilities held fixed. Both two-lane variants fail the
+single- and mixed-request T4 logit checks. The reference profiler records cuBLAS
+GEMVX variants 5 and 6 at 17 and 18 tokens, respectively, and replaying the
+captured operands with the original reference shapes reproduces both HF outputs.
+The per-thread token grouping still needs verification across cache lengths.
+These notebook results used runtime overrides for diagnosis. Serving uses the
+four-lane reducer, and integrated T4 parity and workspace acceptance remain open.
+
+The November 5 [integrated value probe](../scripts/diagnose_paged_decode.py)
+compares the striped baseline with page-wise FP64 accumulation. If FP64 fails,
+it tries the native HF value multiply where every owned V page matches the
+reference, using the owned probabilities and recording fallback layers. The
+guarded CPU regression reproduces the 17-token four-lane and 18-token two-lane
+scalar errors on fragmented pages. FP64 matches both saved scalars, but its
+pinned-checkpoint CPU diagnostic at `fa395d1` plus the probe changes fails
+integrated tolerance (first logit failure at 17 tokens, maximum ratio
+`2.679343`, all argmax comparisons equal) on Torch 2.7.1+cpu. The raw
+`fp64-decode-probe-cpu.json` is retained under local results. On the same CPU
+workload the native control matches every integrated comparison exactly, with
+286 native layer calls and zero fallbacks. Its report is retained locally as
+`native-value-probe-cpu.json`. The collector
+now requires a [fragmented mixed decode case](../tests/gpu/test_decoder_parity.py)
+that checks staged rollback and retry. That case's comparison helper passes
+with the pinned CPU model. The non-GPU suite records 711 passes and 20 GPU cases
+deselected. Ruff, formatting, strict mypy and collector syntax checks pass.
+The [November 5 T4 probe review](validation/2026-11-05-p53-integrated-value-probe.md)
+records all three integrated diagnostic arms. Page-wise FP64 fails T4 parity
+with a worst integrated ratio of 6.974359. The native value control makes the
+single-request 17-token case exact, but a mixed 18-token row first diverges in
+scores with identical Q/K/V and native value arithmetic still active. That
+row's logit ratio is 2.375193. The combined T4 control substitutes HF
+probabilities in 11 layer calls with equal Q/K/V and uses the same native
+value multiply. All 18 logit comparisons and all 1,628 K/V comparisons
+then match exactly, with zero fallbacks. Compare block-local score products
+on equal operands next. P5.3 and the fragmented acceptance case remain open.
 
 The owned dense decoder, reservation-aware KV allocator and paged prefill exist.
 The [October 31 review](validation/2026-10-31-p52-t4-review.md) verifies
