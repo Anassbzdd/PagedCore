@@ -79,11 +79,17 @@ integrated maximum logit tolerance ratio is `2.804499`; greedy tokens match.
 This strengthens localization to value arithmetic but does not identify a
 passing reducer or satisfy the T4 gate. No production arithmetic changed.
 
-On November 6, a [focused 17-token regression](../tests/gpu/test_attention_cuda.py)
-was added for the serving value reducer using the retained layer-1 T4 operands.
-It isolates value arithmetic on nonadjacent pages and checks the captured HF
-output. The scalar mismatch reproduces in the CPU replay. Execution on the
-pinned T4 and validation of a replacement reducer are pending.
+On November 6, the [focused 17-token regression](../tests/gpu/test_attention_cuda.py)
+ran on a Tesla T4 at `6ede22e`. The serving reducer passed the page-table,
+no-full-history and cache-accounting checks, then differed from the captured
+HF output by one FP16 rounding step (`5.96e-8`). The same mismatch reproduces
+in a CPU replay of those operands. A separate profile on clean `6ede22e`
+reproduced all 22 layer records from the November 4 capture. The
+[handoff](validation/2026-11-06-p53-handoff.md) records the baseline and next
+probe. The [addition-order sweep](VALIDATION_PLAN.md) ran on the pinned
+TinyLlama checkpoint on CPU. The four-lane model matched all 4,080 synthetic
+trials at the sampled coordinate. The T4 sweep, a replacement reducer and
+integrated T4 acceptance are pending.
 
 The owned dense decoder, reservation-aware KV allocator and paged prefill exist.
 The [October 31 review](validation/2026-10-31-p52-t4-review.md) verifies

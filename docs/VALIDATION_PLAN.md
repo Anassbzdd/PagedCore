@@ -100,6 +100,24 @@ CUDA matmul. This is diagnostic reference math outside serving, not a different
 oracle or permission to gather K/V in owned decode. CPU operands and reduction
 orders cannot substitute for their actual T4 counterparts.
 
+To probe the addition order, run on the same pinned T4:
+
+```bash
+python scripts/probe_value_reduction.py --device cuda:0 --probe-order \
+  --output results/local/value-order-t4.json
+```
+
+At layer 1, the probe reuses the captured FP16 matmul shapes and strides. It
+moves two large, cancelling terms and one small term through all 4,080 ordered
+placements in the 17 token slots, measuring head 2, channel 41. A small term
+can round away when added before the large terms cancel. The JSON retains
+all observations and mismatch counts for the FP64, sequential FP32, two-lane
+and four-lane models. Check that the reference replay and synthetic sweep
+report a shared GEMVX kernel before interpreting these counts. Matching this
+sweep would narrow the candidate addition orders for this sampled shape and
+coordinate. It would still require validation on real operands and the
+integrated decoder cases.
+
 Run `python -m pytest -q tests/gpu/test_attention_cuda.py -k eager_value_sum_at_17_tokens`
 to replay the captured layer-1 mismatch through the serving value reducer. The
 test supplies fixed FP16 probabilities to isolate value arithmetic, places the
