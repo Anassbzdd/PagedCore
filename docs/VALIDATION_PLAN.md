@@ -100,6 +100,13 @@ CUDA matmul. This is diagnostic reference math outside serving, not a different
 oracle or permission to gather K/V in owned decode. CPU operands and reduction
 orders cannot substitute for their actual T4 counterparts.
 
+Run `python -m pytest -q tests/gpu/test_attention_cuda.py -k eager_value_sum_at_17_tokens`
+to replay the captured layer-1 mismatch through the serving value reducer. The
+test supplies fixed FP16 probabilities to isolate value arithmetic, places the
+17 values in two nonadjacent physical pages, and checks the captured HF scalar
+exactly. This is a focused reproduction of the one-step FP16 rounding difference.
+The integrated logit and K/V tolerances and greedy-token checks still apply.
+
 Run the integrated value-reduction control on the pinned T4 environment:
 
 ```bash

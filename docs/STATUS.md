@@ -1,6 +1,6 @@
 # Implementation and evidence status
 
-Snapshot: 2026-11-05. **Phase 4 GPU paged KV cache is complete at the allocator
+Snapshot: 2026-11-06. **Phase 4 GPU paged KV cache is complete at the allocator
 boundary. The current gate is Phase 5: block-table decode attention.**
 Standalone single-query paged attention has reviewed T4 evidence at `3401406`.
 The newer batched one-token paged decode and staged attention reads have
@@ -60,8 +60,30 @@ scores with identical Q/K/V and native value arithmetic still active. That
 row's logit ratio is 2.375193. The combined T4 control substitutes HF
 probabilities in 11 layer calls with equal Q/K/V and uses the same native
 value multiply. All 18 logit comparisons and all 1,628 K/V comparisons
-then match exactly, with zero fallbacks. Compare block-local score products
-on equal operands next. P5.3 and the fragmented acceptance case remain open.
+then match exactly, with zero fallbacks. The page-local T4 replay compares
+396 layer calls on equal Q/K. The tested batch-32 FP16 layout leaves 17
+rounded probability mismatches, equal to the baseline count. FP32 and FP64
+leave 43 and 22, respectively, and introduce discrepancies in previously
+exact layers. The next control should separate K head packing and logical
+output width. P5.3 and the fragmented acceptance case remain open.
+
+The [November 6 handoff](validation/2026-11-06-p53-handoff.md) reviews two
+additional T4 probes on clean `fa395d1`. The score-layout replay finds the same
+34 raw-dot/17 rounded-probability mismatches for native and packed page-local
+products; both full-width reference-only products match exactly. Those full-width
+scratch calculations are diagnostic only and cannot be used in serving because
+decode must not gather full KV history. A separate actual-reducer control at 17
+attended tokens records the first attention-output differences at layer 1
+(`5.96e-8`) and layer 4 (`1.91e-6`) while reference operands still match. Its
+integrated maximum logit tolerance ratio is `2.804499`; greedy tokens match.
+This strengthens localization to value arithmetic but does not identify a
+passing reducer or satisfy the T4 gate. No production arithmetic changed.
+
+On November 6, a [focused 17-token regression](../tests/gpu/test_attention_cuda.py)
+was added for the serving value reducer using the retained layer-1 T4 operands.
+It isolates value arithmetic on nonadjacent pages and checks the captured HF
+output. The scalar mismatch reproduces in the CPU replay. Execution on the
+pinned T4 and validation of a replacement reducer are pending.
 
 The owned dense decoder, reservation-aware KV allocator and paged prefill exist.
 The [October 31 review](validation/2026-10-31-p52-t4-review.md) verifies

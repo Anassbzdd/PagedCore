@@ -68,3 +68,26 @@ The independent score errors include both full and short pages, so the next
 comparison should hold Q/K fixed, measure raw dots and rounded probabilities,
 and check every case for newly introduced differences. Integrated serving parity
 and the fragmented T4 acceptance case remain open.
+
+## Page-local score replay
+
+The [score-product replay ZIP](../../results/validation/2026-11-05/pagedcore-score-products.zip)
+has SHA-256 `fbfa012796b33738a9e2ae1a9eb17cf0d4e38721ea7e82c46ac80ed719d0e6a8`.
+ZIP integrity and all 39 base source hashes verify. The ZIP also retains the
+inline probe, SHA-256 `dd42a1882e96dbddeb578e1def00b0620733924ab008e7e986a383566359e9d5`.
+
+| Score product | Raw dot mismatches | Rounded probability mismatches | New layer-call mismatches |
+|---|---:|---:|---:|
+| Current per-group FP16, batch 8 | 34 | 17 | 0 |
+| FP16, batch 32 with shared K stride | 34 | 17 | 0 |
+| FP32 page-local product rounded to FP16 | 44 | 43 | 13 |
+| FP64 page-local product rounded to FP16 | 50 | 22 | 11 |
+
+All 396 layer calls were compared on equal Q/K. The FP32 variant fixes the
+original probability discrepancies in these calls and introduces new ones.
+FP64 leaves some original discrepancies and introduces new ones. The tested
+batch-count change gives the same recorded mismatch counts and first differing
+dots as the current path. Its K batch stride still differs from HF eager's
+packed operands. The exact integrated comparison is the combined oracle
+control again, with 11 substitutions. Candidate products were measured in
+isolation. None is ready to promote.

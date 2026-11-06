@@ -1,8 +1,13 @@
+import json
+from collections.abc import Callable
+from pathlib import Path
+
 import pytest
 import torch
 from torch import Tensor
+from torch.utils._python_dispatch import TorchDispatchMode
 
-from pagedcore.attention import paged_attention
+from pagedcore.attention import _eager_value_sum, paged_attention
 from pagedcore.engine_types import CapacityCounts, KVReservation, RequestId
 from pagedcore.kv_cache import KVAllocator
 from pagedcore.oracle import reference_math
@@ -16,6 +21,46 @@ def t4_device() -> torch.device:
         pytest.skip("requires CUDA")
     assert "t4" in torch.cuda.get_device_name(0).casefold(), "requires an NVIDIA T4"
     return torch.device("cuda:0")
+
+
+def test_eager_value_sum_at_17_tokens_on_t4(
+    t4_device: torch.device,
+    forbid_dense_kv_history: Callable[[Tensor], TorchDispatchMode],
+) -> None:
+    fixture = Path(__file__).parents[1] / "fixtures" / "t4_value_reduction.json"
+    case = json.loads(fixture.read_text(encoding="utf-8"))["cases"][0]
+    layer, head, channel = case["layer"], case["head"], case["dimension"]
+    group, query_head = divmod(head, 8)
+    pool = torch.full((22, 2, 3, 16, 4, 64), torch.nan, dtype=torch.float16, device=t4_device)
+    cache = KVAllocator(pool)
+    request, blocker = RequestId("boundary"), RequestId("blocker")
+    key = pool.new_zeros((22, 17, 4, 64))
+    value = torch.zeros_like(key)
+    value[layer, :, group, channel] = pool.new_tensor(case["values"])
+    probabilities = pool.new_zeros((4, 8, 17))
+    probabilities[group, query_head] = pool.new_tensor(case["probabilities"])
+    cache.create(KVReservation(request, 2))
+    cache.append(request, key[:, :16], value[:, :16])
+    cache.create(KVReservation(blocker, 1))
+    sentinel = torch.full_like(key[:, :16], 100)
+    cache.append(blocker, -sentinel, sentinel)
+    cache.append(request, key[:, 16:], value[:, 16:])
+    assert cache.block_table(request) == (0, 2)
+    assert cache.block_table(blocker) == (1,)
+    before, counts = pool.clone(), cache.capacity()
+
+    with reference_math(), torch.inference_mode(), forbid_dense_kv_history(pool):
+        actual = _eager_value_sum(probabilities, cache, request, layer)
+
+    torch.testing.assert_close(pool, before, atol=0, rtol=0, equal_nan=True)
+    assert cache.cached_length(request) == 17
+    assert cache.block_table(request) == (0, 2)
+    assert cache.capacity() == counts
+    cache.release_all(request)
+    cache.release_all(blocker)
+    assert cache.capacity() == CapacityCounts(3, 3, 0, 0, 0, 0)
+    # The captured value differs by one FP16 step, below the end-to-end tolerances.
+    assert actual[0, head, 0, channel].item() == case["hf"]
 
 
 def _reference(query: Tensor, key: Tensor, value: Tensor) -> Tensor:
