@@ -67,8 +67,9 @@ uv run --no-sync python -m pytest -m "not gpu and not benchmark" -ra \
     --junitxml="$evidence_dir/cpu-tests.xml"
 uv run --no-sync python scripts/measure_dense_workspace.py "$evidence_dir"
 uv run --no-sync python scripts/measure_dense_workspace.py "$evidence_dir" --with-pool
-# The rejected page-product experiment is run separately from release checks.
-uv run --no-sync python -m pytest -m gpu -k 'not test_pinned_candidate_paged_decode_on_t4' -v -ra \
+# Reducer experiments run separately from release checks.
+uv run --no-sync python -m pytest -m gpu \
+    -k 'not test_pinned_candidate_paged_decode_on_t4 and not paired_at_17' -v -ra \
     --junitxml="$evidence_dir/gpu-tests.xml"
 uv run --no-sync pagedcore oracle --case boundary_15 \
     --output "$evidence_dir/reference.pt" > "$evidence_dir/capture.json"

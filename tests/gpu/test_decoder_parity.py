@@ -160,6 +160,7 @@ def _assert_pinned_paged_decode(
     forbid_dense_kv_history: Callable[[Tensor], TorchDispatchMode],
     *,
     fragmented: bool = False,
+    steps: int = 3,
 ) -> None:
     model, weights = pinned_decoders
     pool = torch.full(
@@ -177,7 +178,7 @@ def _assert_pinned_paged_decode(
     boundary_request = requests[lengths.index(15)] if fragmented else None
     with reference_math(), torch.inference_mode():
         for request, length in zip(requests, lengths, strict=True):
-            allocator.create(KVReservation(request, (length + 3 + 15) // 16))
+            allocator.create(KVReservation(request, (length + steps + 15) // 16))
             inputs = torch.tensor([public_ids[:length]], device=pool.device)
             references[request] = model(inputs, use_cache=True)
             logits = prefill_paged(inputs, weights, allocator, request)
@@ -189,7 +190,7 @@ def _assert_pinned_paged_decode(
                 blocker_table = allocator.block_table(blocker)
                 assert blocker_table == (allocator.block_table(request)[0] + 1,)
         reserved = allocator.capacity().reserved_blocks
-        for step in range(3):
+        for step in range(steps):
             # Row order is independent of request identity and absolute position.
             order = requests if step % 2 == 0 else requests[::-1]
             tokens = torch.cat([references[request].logits[:, -1:].argmax(-1) for request in order])
@@ -315,6 +316,29 @@ def test_pinned_candidate_paged_decode_on_t4(
         attention_module, "_multi_page_value_sum", attention_module._paged_value_sum
     )
     _assert_pinned_paged_decode(pinned_decoders, lengths, forbid_dense_kv_history)
+
+
+@pytest.mark.usefixtures("paired_at_17")
+@pytest.mark.parametrize(
+    ("lengths", "fragmented", "steps"),
+    [
+        ((15,), True, 2),
+        ((15,), False, 3),
+        ((1, 15, 16, 17, 49), False, 3),
+        ((1, 15, 16, 17, 49), True, 3),
+    ],
+    ids=["boundary", "single", "mixed", "fragmented"],
+)
+def test_paired_at_17_pinned_decode_on_t4(
+    pinned_decoders: tuple[Any, TinyLlamaWeights],
+    lengths: tuple[int, ...],
+    fragmented: bool,
+    steps: int,
+    forbid_dense_kv_history: Callable[[Tensor], TorchDispatchMode],
+) -> None:
+    _assert_pinned_paged_decode(
+        pinned_decoders, lengths, forbid_dense_kv_history, fragmented=fragmented, steps=steps
+    )
 
 
 @pytest.mark.parametrize("case", FIXTURES["prompts"], ids=lambda case: case["name"])

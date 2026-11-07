@@ -10,10 +10,12 @@ from torch.utils._python_dispatch import TorchDispatchMode
 from torch.utils._pytree import tree_leaves
 from transformers import GenerationConfig
 
+import pagedcore.attention as attention_module
 import pagedcore.decoder as decoder_module
 import pagedcore.dense as dense_module
 from pagedcore.determinism import seed_everything
-from pagedcore.engine_types import FinishReason
+from pagedcore.engine_types import FinishReason, RequestId
+from pagedcore.kv_cache import KVAllocator
 from pagedcore.oracle import reference_math
 from pagedcore.weights import LayerWeights, TinyLlamaWeights
 
@@ -67,6 +69,20 @@ class _BlockwiseKVGuard(TorchDispatchMode):
 @pytest.fixture
 def forbid_dense_kv_history() -> Callable[[Tensor], TorchDispatchMode]:
     return _BlockwiseKVGuard
+
+
+@pytest.fixture
+def paired_at_17(monkeypatch: pytest.MonkeyPatch) -> None:
+    baseline = attention_module._multi_page_value_sum
+
+    def reduce(
+        probabilities: Tensor, allocator: KVAllocator, request: RequestId, layer: int
+    ) -> Tensor:
+        if probabilities.shape[-1] == 17:
+            return attention_module._paired_value_sum(probabilities, allocator, request, layer)
+        return baseline(probabilities, allocator, request, layer)
+
+    monkeypatch.setattr(attention_module, "_multi_page_value_sum", reduce)
 
 
 @pytest.fixture

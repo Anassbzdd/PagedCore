@@ -87,9 +87,16 @@ in a CPU replay of those operands. A separate profile on clean `6ede22e`
 reproduced all 22 layer records from the November 4 capture. The
 [handoff](validation/2026-11-06-p53-handoff.md) records the baseline and next
 probe. The [addition-order sweep](VALIDATION_PLAN.md) ran on the pinned
-TinyLlama checkpoint on CPU. The four-lane model matched all 4,080 synthetic
-trials at the sampled coordinate. The T4 sweep, a replacement reducer and
-integrated T4 acceptance are pending.
+TinyLlama checkpoint on CPU and T4. At layer 1, head 2, channel 41, the four-lane
+model matches all 4,080 CPU trials. On T4, the synthetic and reference multiplies
+share cuBLAS GEMVX variant 5. The two-lane model matches all 4,080 T4 trials,
+while the four-lane model differs in 1,232. The
+[T4 report](../results/validation/2026-11-06/value-order-t4.json) was captured on
+November 6 at clean `30dd435`; its script and fixture hashes match the revision.
+This identifies a candidate addition order for the sampled 17-token shape.
+The [test-only candidate](VALIDATION_PLAN.md) selects two lanes only at 17
+tokens. Its captured-value, fragmented-boundary and broader decoder cases
+still need T4 execution. A serving replacement and T4 acceptance are pending.
 
 The owned dense decoder, reservation-aware KV allocator and paged prefill exist.
 The [October 31 review](validation/2026-10-31-p52-t4-review.md) verifies

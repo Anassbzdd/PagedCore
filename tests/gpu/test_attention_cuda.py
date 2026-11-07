@@ -27,6 +27,21 @@ def test_eager_value_sum_at_17_tokens_on_t4(
     t4_device: torch.device,
     forbid_dense_kv_history: Callable[[Tensor], TorchDispatchMode],
 ) -> None:
+    _assert_captured_value_at_17(t4_device, forbid_dense_kv_history)
+
+
+@pytest.mark.usefixtures("paired_at_17")
+def test_paired_at_17_captured_value_on_t4(
+    t4_device: torch.device,
+    forbid_dense_kv_history: Callable[[Tensor], TorchDispatchMode],
+) -> None:
+    _assert_captured_value_at_17(t4_device, forbid_dense_kv_history)
+
+
+def _assert_captured_value_at_17(
+    t4_device: torch.device,
+    forbid_dense_kv_history: Callable[[Tensor], TorchDispatchMode],
+) -> None:
     fixture = Path(__file__).parents[1] / "fixtures" / "t4_value_reduction.json"
     case = json.loads(fixture.read_text(encoding="utf-8"))["cases"][0]
     layer, head, channel = case["layer"], case["head"], case["dimension"]

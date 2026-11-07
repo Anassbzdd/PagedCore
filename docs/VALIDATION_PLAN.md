@@ -125,6 +125,21 @@ test supplies fixed FP16 probabilities to isolate value arithmetic, places the
 exactly. This is a focused reproduction of the one-step FP16 rounding difference.
 The integrated logit and K/V tolerances and greedy-token checks still apply.
 
+Run the two-lane candidate separately on the pinned T4:
+
+```bash
+python -m pytest -q -ra tests/gpu/test_attention_cuda.py \
+  tests/gpu/test_decoder_parity.py -k paired_at_17
+```
+
+The test fixture selects two FP32 sums only when attention sees exactly 17
+tokens. The captured-value case checks the original scalar on nonadjacent
+pages. The pinned-model boundary case starts with 15 tokens and decodes two
+steps across fragmented pages, including staged rollback and retry. The
+single, mixed and fragmented three-step cases check the wider impact at the
+existing tolerances. Retain the result even if a later step fails. These
+test-only runs are separate from the release collector.
+
 Run the integrated value-reduction control on the pinned T4 environment:
 
 ```bash
