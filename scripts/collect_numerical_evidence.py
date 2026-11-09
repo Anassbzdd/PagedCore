@@ -466,7 +466,7 @@ def trace_decode(
             return out
 
         with patch.object(attention, "_eager_value_sum", reduce), AttentionScores() as scores:
-            out = base(q, cache, request, layer_index=layer_index, eager_rounding=eager_rounding)
+            out = base(q, cache, request, layer_index=layer_index, eager_rounding=True)
         checks["scores"] = guarded_measurement(scores.value.reshape_as(hf["scores"]), hf["scores"])
         checks["probabilities_fp32"] = guarded_measurement(
             scores.probabilities.reshape_as(hf["probabilities_fp32"]), hf["probabilities_fp32"]

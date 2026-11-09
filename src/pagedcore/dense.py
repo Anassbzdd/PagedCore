@@ -88,6 +88,17 @@ def output_projection(attention: Tensor, weights: LayerWeights) -> Tensor:
     return F.linear(merged, weights.o_proj)
 
 
+def dense_attention_fp32(query: Tensor, key: Tensor, value: Tensor, causal_mask: Tensor) -> Tensor:
+    """Independent contiguous reference with one final attention-output rounding."""
+    if causal_mask.dtype != torch.bool:
+        raise ValueError("causal_mask must be boolean with True for allowed keys")
+    with torch.autocast(device_type=query.device.type, enabled=False):
+        scores = torch.matmul(query.float(), repeat_kv(key).float().transpose(-2, -1))
+        scores = (scores * (_HEAD_DIM**-0.5)).masked_fill(~causal_mask, -torch.inf)
+        probabilities = scores.softmax(dim=-1)
+        return torch.matmul(probabilities, repeat_kv(value).float()).to(query.dtype)
+
+
 def swiglu(hidden: Tensor, weights: LayerWeights) -> Tensor:
     gate = F.silu(F.linear(hidden, weights.gate_proj))
     return F.linear(gate * F.linear(hidden, weights.up_proj), weights.down_proj)

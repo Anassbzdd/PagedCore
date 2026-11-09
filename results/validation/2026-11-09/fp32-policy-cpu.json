@@ -1,0 +1,208 @@
+{
+  "captured_at_utc": "2026-11-09T18:57:57.039941+00:00",
+  "scope": "CPU preparation for fp32-paged-v1; not pinned-checkpoint T4 acceptance",
+  "current_gate": "P5.3 open pending revised T4 evidence and review",
+  "environment": {
+    "platform": "Windows-10-10.0.26200-SP0",
+    "python": "3.11.15 (main, Jun 23 2026, 15:20:37) [MSC v.1944 64 bit (AMD64)]",
+    "torch": "2.7.1+cpu",
+    "transformers": "4.52.4",
+    "cuda_available": false
+  },
+  "source": {
+    "base_revision": "946e7598b656f957f5b107bbd8e087ed5dc77c3a",
+    "working_tree_status": " M CONTRIBUTING.md\n M README.md\n M docs/CONSTANTS.md\n M docs/DESIGN.md\n M docs/SPEC.md\n M docs/STATUS.md\n M docs/TRACEABILITY.md\n M docs/VALIDATION_PLAN.md\n M scripts/build_numerical_notebook.py\n M scripts/collect_numerical_evidence.py\n M scripts/diagnose_paged_decode.py\n M scripts/validate_t4.sh\n M src/pagedcore/decoder.py\n M src/pagedcore/dense.py\n M tests/conftest.py\n M tests/gpu/test_attention_cuda.py\n M tests/gpu/test_decoder_parity.py\n M tests/unit/test_decoder.py\n M tests/unit/test_numerical_evidence.py\n M tests/unit/test_t4_evidence.py\n?? docs/NUMERICAL_POLICY.md\n?? docs/validation/2026-11-09-numerical-policy-revision.md\n?? docs/validation/2026-11-09-value-followup-review.md\n?? results/validation/2026-11-09/\n?? scripts/export_paged_accuracy.py\n?? src/pagedcore/accuracy.py\n?? tests/unit/test_accuracy.py\n",
+    "source_identity": "Complete bundled working files plus per-file SHA-256; not a clean-commit claim",
+    "sha256": {
+      ".python-version": "db82937e1f1830581a9553c7814f5c5fcacb6dfdef8310b43e9a812c887acaf5",
+      "AGENTS.md": "0e763ccdc00b564e8a97712e455ba7ee2d9b8e3483b57993a9190d4c20577411",
+      "docs/CONSTANTS.md": "a67be66bc96d751c92ed64e2e69e2b73f4c7596adc99ccea811d0922229dc38d",
+      "docs/DESIGN.md": "69519b0a03e8e960f1d72c70cfc8953a0b13f9a7a261afe2defe1f05ae5da56f",
+      "docs/NUMERICAL_POLICY.md": "83cd7a9f858e27a31cc3225b3185d934475317748dc831b6de9d486f3085ac5d",
+      "docs/SPEC.md": "561dce5c052fbcfecb8fc1dcaa2097c5c871bc66f8c3cf968f4bb03ce3dec07e",
+      "docs/STATUS.md": "c002b43b0ff5d9411d586989b2e118c0f5901255a61cc390d67904d80cac704b",
+      "docs/task.md": "9a7d973851ec9f29cf3ae7b6a21742a6f09bfe512f795b27b128665e2d2a1b06",
+      "docs/TRACEABILITY.md": "6eb56bc7e3ee237e425012b6a40dcb1895c0a94fbeaf2c652a668038fbefca81",
+      "docs/validation/2026-10-26-p42-t4-review.md": "8d5b869243988729a89a9b1dce3b617e95ed2a320078aa75d508fac693f0337a",
+      "docs/validation/2026-10-27-phase4-review.md": "c2b961e47fa0c210fce6e1b724b088f10c47e9a6c44128cfd1d6eb28ee525fd8",
+      "docs/validation/2026-10-30-p52-t4-review.md": "5b2732cecc783f70718ed7213961c47ab8fd7c06cf1b4a307789f9e4c542d874",
+      "docs/validation/2026-10-31-p52-t4-review.md": "52d55f4a9ad34af8ba46dc8bc39d78ee8fd8f49a20f6ecedeafe30e0f1a63b5e",
+      "docs/validation/2026-11-01-p53-numerical-repair.md": "cee91892f9548112673fd8e0974400c0d1e9ecd1ea1223f8603aea1fd689858f",
+      "docs/validation/2026-11-01-p53-t4-failure.md": "d9cd91a9106d9ca0835a13196841108481212d0252a7c630915e2b7c2904a956",
+      "docs/validation/2026-11-02-p53-numerical-investigation.md": "c17cad46bb52b44782538293d89b46ae0e5eacd2cefae2b5de4dff276db06385",
+      "docs/validation/2026-11-04-p53-t4-value-reduction-review.md": "9926919d0ae6c2736c242283048aa2160abb4da14264e42387323ccadb4e85d5",
+      "docs/validation/2026-11-05-p53-integrated-value-probe.md": "76f9e20eb62cc2dadc1990de02ce45826cf8a292b3f25f6ec1bdec9adfbb5e2d",
+      "docs/validation/2026-11-06-p53-handoff.md": "4cdce1fbb8d6d3a6b702293c546c71a06b6a087ce8fec95293f2ec2af99f344f",
+      "docs/validation/2026-11-07-value-kernel-sweep.md": "76c69807b1543034afd19bcdbf009029f8788913e87c6872495525c94f36280b",
+      "docs/validation/2026-11-08-numerical-evidence-plan.md": "023f0707195ffe2c30e7372a0443a16cdb9184169e87cf7233c6159606c02ffa",
+      "docs/validation/2026-11-08-value-followup-review.md": "12920a69e5f04dff176fb8bfc501ddfd3ec35140dd67a2e0c07bf7a5774fd76c",
+      "docs/validation/2026-11-09-numerical-policy-revision.md": "23cd0291941f99e6b3d11132d3b03ee13b41806e17f200dceaf6750cf5436252",
+      "docs/validation/2026-11-09-value-followup-review.md": "75a93c86adde157a4d0b9ddf6cbba3fb25b991aaff7b2202107278269689ef4d",
+      "docs/VALIDATION_PLAN.md": "c4e5d82c055446eac7716fb1eb03df187ed936f7c9f20af23b6fbe9ca67e388e",
+      "LICENSE": "0ea49ba572ede0846d64c0d6d8a547ca29b322bae4c5f5b7c1d9de7c5d0110af",
+      "pyproject.toml": "55b3d48fd0a5297b3adea9b812bad4c561751c84d95e2d0d2d8a0b588ce78a71",
+      "README.md": "e190ff177b12080e11ecc5e1c5b56c8579a8b80795263322ae9ff67249792bbb",
+      "scripts/build_numerical_notebook.py": "0dd496d8d064e1c2613bca3978bda29f65fdd08d0aeac6f53064869440a674e6",
+      "scripts/collect_numerical_evidence.py": "55aa09e14a7a5d0143eb257883de7bf2c6215c0781d94f87f1fbaa1cb1a40a62",
+      "scripts/diagnose_paged_decode.py": "32e523da7bd574dd23cfdb22060f383a4f2193687c15c0f290964d9749a8e143",
+      "scripts/export_paged_accuracy.py": "0651a6ab6ed7b2ebebf22c799775e2b702be06e9d2c034a0075862339c5f70f7",
+      "scripts/measure_dense_workspace.py": "4f3da204947fca357b23e6322d6f73d26e6c4bfa926ebf6f703057d90361dfbb",
+      "scripts/probe_value_reduction.py": "a300fb16c38574205645b91b47954258128704fe25c6a50c55e7c313f3e992b7",
+      "scripts/validate_t4.sh": "05bb6fd7c79f59dcba2deffda1dec802b5c624f7af0e8b6e8555cecc9c604bab",
+      "src/pagedcore/__init__.py": "42b1e9884f56caa6de42f8177eedcc2f9b81ae2df2f9db28e45114117e8f3d29",
+      "src/pagedcore/accuracy.py": "bbcab864929ae3f404f5d81a168ebfae338b734fc29accba549fa25ae3e50b72",
+      "src/pagedcore/attention.py": "58e4222b14b8e69b76fd1183f2246b6f5178af281bd15495cbc99766aba5d973",
+      "src/pagedcore/cli.py": "e36cb0cf9e342e76787b3d74e98b778c22b1b76b580bf76e556a5f03aa6c2c16",
+      "src/pagedcore/config.py": "9ad8fceb558dafef9274d6c83bfe9bcf904a97e3df3fa2cec4d08551e490dccb",
+      "src/pagedcore/decoder.py": "95254ffac22988f86a9071287874c05c4e38861b221594f91f68cfe0346ddf95",
+      "src/pagedcore/dense.py": "f323cc6bdbd7d6e6f4b69223db6460832f85707cc9b879dd0accec2fbf0ecf93",
+      "src/pagedcore/determinism.py": "2fdcba5697c59b4f68942fb7d3a14baff46cc4d0d70470c7f23e5c56a437afa2",
+      "src/pagedcore/engine_types.py": "db31cb04b5dd4e127d37f1b3a4b88bc20f2272520893a150428197713c6cae40",
+      "src/pagedcore/kv_cache.py": "b532677340b9f4bf82bbe59dfa615a24fe1351660e93200aa030f1f124d722ec",
+      "src/pagedcore/measurements.py": "760946d8dac98f4a9bfcc182a2426a5b92af62aa23fb859d239895d42ca5c3f0",
+      "src/pagedcore/oracle.py": "6fbc7fe7fdd01eb7cb23055ad3189fad00b733bc1dcd727e091306dcf34f9eb8",
+      "src/pagedcore/verification.py": "4e6b77ea1e88b81ae96047b59b4e5fa859c4237251d9e674a6ee27c2fbd75044",
+      "src/pagedcore/weights.py": "1a0b9f34003ab9ca99ccd00e2f193253071d45b480adce7ed809e65ffa72ec5b",
+      "tests/conftest.py": "abbae422dd7cb853f5f3aafeebf4173499671b7983f8250999bf1e91bb728408",
+      "tests/fixtures/reference_prompts.json": "143f89f62b0b85956ddd7ab94cd7b7ec559799725b947b5404409dcdf6365190",
+      "tests/fixtures/t4_value_reduction.json": "e72ec433ebf4c8d8639a4fbc398e3c303d946a218595fb0a0b083cc19f86cbff",
+      "tests/gpu/test_attention_cuda.py": "1fbfa2977a97f9945190b98bdd2a08a25dc19d6fe3f978b98bae4799ba772510",
+      "tests/gpu/test_decoder_parity.py": "743f0bb1eeb0b2a4b3b9e1c43b8d49863a0c6fc8f1f7f961814cbae239409a2b",
+      "tests/gpu/test_kv_pool_cuda.py": "ba3f57c802b5a722c4ea2ca43207599f727a53dceeadd3cc85727c34220c01ff",
+      "tests/gpu/test_oracle_reference.py": "6617aa0cc73197779f22c52441d85a34e1c3e38e9090fb08a9bd871510f53a78",
+      "tests/gpu/test_target_verification.py": "c40e8cf67d0b972f6737b71787a8d2c8ce4231538ca9b1503da6d65722c5e554",
+      "tests/unit/test_accuracy.py": "56efab2d37cd7819159a14fafc2d261a589223b2b3a416b8b2cfe177b7581855",
+      "tests/unit/test_attention.py": "9ceeca61997411a234d69c17f0cc04b7266dc1ceac352a24f59c624a5b65ec51",
+      "tests/unit/test_cli.py": "f1d72b629020a78f89f50b1b8ccdb01a69ac28fb2f2a4d80405f770bcb22b5f2",
+      "tests/unit/test_config.py": "9625b57c40407152e93bf39d4d518a2b735212efadd2a48804ed0abdefff9996",
+      "tests/unit/test_decode_diagnostic.py": "9f48f58acfd8d200cc2a5daa6b449c6943aa365820a06b50dbda7248223479ac",
+      "tests/unit/test_decoder.py": "435abde2485db9b1062741593fa1ea340b921dae6de403846b694bb266eddcb1",
+      "tests/unit/test_dense.py": "346107a33eae54cdfd5b9a8bfb38017e95379338e6574049521b060c814d3d92",
+      "tests/unit/test_dense_workspace.py": "b555081e6f11029c3dddd70c54804ec21af618f6465696d1058eca725a091dc8",
+      "tests/unit/test_determinism.py": "4da0279f676caced156a2db72ebc0c691ff787f22ac15c9635e85d723835eefa",
+      "tests/unit/test_engine_types.py": "ea9c52b46ac60f72c0dc95ade581b799e2b6746d627c9334c4ba7e8ab11193f3",
+      "tests/unit/test_kv_cache.py": "d939ca4764890edf53b4bd136f4d9aff366518dcfe0250a97f435b3f8e74d480",
+      "tests/unit/test_kv_cache_properties.py": "4803bdd58b04100f8d5e84cf8518d1dbd939c8cfc42b26e9454ab2be1d55fd5e",
+      "tests/unit/test_measurements.py": "469ae30346ef880b1bbfadc58af72320f7597d3a658a0fda017c9df8fbddd00a",
+      "tests/unit/test_numerical_evidence.py": "0fcbdd232a7d48b829b9820587b68d7eb9f36ab478223d18c1de382c74206f28",
+      "tests/unit/test_oracle.py": "b47f8f38a3988704da5bc5b2b11d9539728a0d86fba414f46cdfab4ef8f8166b",
+      "tests/unit/test_reference_fixtures.py": "13b2af5294380e4426f77f2955c217e4483418305360526cbbe22ea7984fe90d",
+      "tests/unit/test_t4_evidence.py": "4d6240ae2aab855c6c0bfb465f4dd8514b62bb531d7abaf6d70f294296629ae9",
+      "tests/unit/test_value_reduction_probe.py": "553e5ce224006ffabadfa32c6c1b24247ca1f513c7efb52ce3c6cb023518914d",
+      "tests/unit/test_verification.py": "75df0ea776fd91478db64e74b0861be1cb9e49a1cbb8464fbff1ceeb49cfb2b1",
+      "tests/unit/test_weights.py": "5555b55d797ddd5020887016ff19f9b7dfb54432f09a95b17ffe42ab58ea64ae",
+      "uv.lock": "46700b60b0a8d492fc673aec8a0e12c27ae43124dd8e194f8c754dbd6ca7ea48"
+    }
+  },
+  "notebook": {
+    "path": "notebooks/paged_decode_accuracy.ipynb",
+    "sha256": "18c950e3813c8b4c5756ffa4519449339067013aa902c38e13761d8bb955b0f8",
+    "snapshot_sha256": "16dbac4c8a10ccd14b8209732c12b62ed9aaaa622a9d517e4609cf0fed895a53",
+    "bundled_files_verified": 78,
+    "python_and_target_code_compile": "passed"
+  },
+  "checks": [
+    {
+      "command": "uv run --no-sync ruff check .",
+      "exitcode": 0
+    },
+    {
+      "command": "uv run --no-sync ruff format --check .",
+      "exitcode": 0,
+      "files": 71
+    },
+    {
+      "command": "uv run --no-sync mypy --strict src/pagedcore",
+      "exitcode": 0,
+      "source_files": 14
+    },
+    {
+      "command": "uv run --no-sync python -m pytest -m \"not gpu and not benchmark\" -ra --junitxml=results/local/fp32-accuracy-cpu.xml",
+      "exitcode": 0,
+      "environment_overrides": {
+        "OMP_NUM_THREADS": "1",
+        "MKL_NUM_THREADS": "1",
+        "HF_HUB_OFFLINE": "1"
+      },
+      "counts": {
+        "tests": 762,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      "gpu_deselected": 30,
+      "duration_seconds": 206.264,
+      "raw_report": "fp32-policy-cpu.xml",
+      "raw_sha256": "f0fb25662444208af6253f8ff7a2fed122d91f32870abc536e9d520bec613f16"
+    },
+    {
+      "command": "uv run --no-sync python -m pytest tests/unit/test_accuracy.py tests/unit/test_numerical_evidence.py tests/unit/test_t4_evidence.py -q",
+      "exitcode": 0,
+      "passed": 131
+    },
+    {
+      "command": "uv run --no-sync python -m pytest -m gpu -k \"not legacy and not paired_at_17 and not test_pinned_candidate_paged_decode_on_t4\" --collect-only -q",
+      "exitcode": 0,
+      "required_cases": [
+        "test_kv_allocator_storage_and_stream_ownership_on_t4",
+        "test_kv_pool_storage_on_t4",
+        "test_paged_attention_boundaries_on_t4",
+        "test_paged_attention_large_scores_on_t4",
+        "test_pinned_checkpoint_loads_and_runs_one_reference_forward_pass",
+        "test_pinned_decoder_greedy_parity_on_t4[boundary_15]",
+        "test_pinned_decoder_greedy_parity_on_t4[boundary_16]",
+        "test_pinned_decoder_greedy_parity_on_t4[boundary_17]",
+        "test_pinned_decoder_greedy_parity_on_t4[eos_enabled]",
+        "test_pinned_decoder_greedy_parity_on_t4[maximum_output]",
+        "test_pinned_decoder_greedy_parity_on_t4[multiple_full_blocks]",
+        "test_pinned_decoder_layer_parity_on_t4",
+        "test_pinned_paged_decode_accuracy_on_t4[fragmented]",
+        "test_pinned_paged_decode_accuracy_on_t4[held_out]",
+        "test_pinned_paged_decode_accuracy_on_t4[mixed]",
+        "test_pinned_paged_decode_accuracy_on_t4[single]",
+        "test_pinned_paged_prefill_on_t4",
+        "test_public_reference_capture_and_repeatability_on_t4",
+        "test_seed_everything_repeats_cuda_random_streams"
+      ],
+      "collected": 19,
+      "executed": 0
+    },
+    {
+      "command": "git diff --check",
+      "exitcode": 0
+    }
+  ],
+  "synthetic_orchestration_smoke": {
+    "scope": "Synthetic shared-weight 22-layer CPU orchestration, not pinned T4 evidence",
+    "cases": [
+      "single",
+      "fragmented"
+    ],
+    "comparisons": 18,
+    "max_owned_logit_tolerance_ratio": 0.24665981500513876,
+    "max_kv_tolerance_ratio": 0.9643201231956482,
+    "all_owned_greedy_matches": true
+  },
+  "unsuccessful_local_attempts": [
+    {
+      "command": "uv run --no-sync pytest -m \"not gpu and not benchmark\" -ra",
+      "exitcode": 1,
+      "result": "Four collection import errors: direct pytest executable omitted the repository root for the scripts namespace. The documented python -m pytest command passes.",
+      "raw_local_report": "results/local/fp32-accuracy-pytest-entrypoint-failure.xml"
+    },
+    {
+      "command": "Earlier full python -m pytest run during collector preparation",
+      "exitcode": 1,
+      "passed": 761,
+      "failed": 1,
+      "result": "The run collected a fixture before the checkpoint-verify command was added, then imported the revised exporter. Its retained fixture contained six command names instead of seven. A fresh unchanged-source full run passes all 762 tests.",
+      "raw_local_report": "results/local/fp32-accuracy-interim-cpu.xml"
+    }
+  ],
+  "remaining_gates": [
+    "Complete and review the new T4 accuracy/HF-fidelity archive",
+    "End-to-end paged generation and stopping fidelity",
+    "Maximum-active paged workspace and safe CUDA reuse",
+    "Worker lifecycle, HTTP service and later documented release gates"
+  ]
+}

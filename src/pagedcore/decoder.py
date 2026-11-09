@@ -12,6 +12,7 @@ from pagedcore.attention import paged_attention
 from pagedcore.dense import (
     apply_rope,
     dense_attention,
+    dense_attention_fp32,
     final_logits,
     output_projection,
     project_qkv,
@@ -136,12 +137,20 @@ def prefill_paged(
 
 @torch.inference_mode()
 def decode(
-    input_ids: Tensor, cache: ContiguousCache, weights: TinyLlamaWeights
+    input_ids: Tensor,
+    cache: ContiguousCache,
+    weights: TinyLlamaWeights,
+    *,
+    fp32_attention: bool = False,
 ) -> tuple[Tensor, ContiguousCache]:
-    """Consume the last emitted token as int64 [1, 1] at position cache.length."""
+    """Consume one token at cache.length; FP32 attention selects the paging reference.
+
+    The default preserves the original eager dense architectural comparison.
+    Neither path traverses pages or calls the online attention implementation.
+    """
     if input_ids.shape != (1, 1):
         raise ValueError("decode requires exactly one token with shape [1, 1]")
-    return _forward(input_ids, weights, cache)
+    return _forward(input_ids, weights, cache, fp32_attention=fp32_attention)
 
 
 @torch.inference_mode()
@@ -171,14 +180,13 @@ def decode_paged(
         for index, layer in enumerate(weights.layers):
             next_hidden = torch.empty_like(hidden)
             for row, request in enumerate(request_ids):
-                # Match the oracle's single-request operation shapes, including
-                # norms and activations; bmm projections alone are insufficient.
+                # Keep arithmetic shapes independent of active-batch membership.
                 residual = hidden[row : row + 1]
                 query, key, value = project_qkv(rms_norm(residual, layer.input_norm), layer)
                 query, key = apply_rope(query, key, positions[row : row + 1])
                 allocator.write_decode_layer(request, index, key[0, :, 0], value[0, :, 0])
                 attention = paged_attention(
-                    query, allocator, request, layer_index=index, eager_rounding=True
+                    query, allocator, request, layer_index=index, eager_rounding=False
                 )
                 residual = residual + output_projection(attention, layer)
                 next_hidden[row : row + 1] = residual + swiglu(
@@ -192,7 +200,11 @@ def decode_paged(
 
 
 def _forward(
-    input_ids: Tensor, weights: TinyLlamaWeights, cache: ContiguousCache | None
+    input_ids: Tensor,
+    weights: TinyLlamaWeights,
+    cache: ContiguousCache | None,
+    *,
+    fp32_attention: bool = False,
 ) -> tuple[Tensor, ContiguousCache]:
     if input_ids.dtype != torch.int64 or input_ids.ndim != 2 or input_ids.shape[0] != 1:
         raise ValueError("input_ids must be int64 [1, tokens]")
@@ -221,7 +233,8 @@ def _forward(
             key = torch.cat((previous_key, key), dim=2)
             value = torch.cat((previous_value, value), dim=2)
         layers.append((key, value))
-        attention = dense_attention(query, key, value, causal_mask)
+        attention_fn = dense_attention_fp32 if fp32_attention else dense_attention
+        attention = attention_fn(query, key, value, causal_mask)
         hidden = hidden + output_projection(attention, layer)
         hidden = hidden + swiglu(rms_norm(hidden, layer.post_attention_norm), layer)
     return final_logits(hidden, weights), ContiguousCache(tuple(layers))

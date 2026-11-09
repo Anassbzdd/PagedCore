@@ -61,7 +61,7 @@ Run these commands from the repository root in the frozen environment:
 | CPU service checks | `uv run --no-sync python -m pytest -m "service and not gpu and not benchmark" -ra` |
 | Extended CPU checks | `uv run --no-sync python -m pytest -m "slow and not gpu and not benchmark" -ra` |
 | CPU benchmark-harness checks | `uv run --no-sync python -m pytest -m "benchmark and not gpu" -ra` |
-| T4 checks | `uv run --no-sync python -m pytest -m gpu -ra` |
+| T4 checks | `uv run --no-sync python -m pytest -m gpu -k "not legacy and not paired_at_17 and not test_pinned_candidate_paged_decode_on_t4" -ra` |
 
 For T4 checks install the frozen `cuda`/`dev` extras and set
 `CUBLAS_WORKSPACE_CONFIG=:4096:8` before Python starts, as described in the

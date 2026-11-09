@@ -129,7 +129,7 @@ The final MVP acceptance criteria are:
 Planned implementation, test, and evidence ownership is tracked in the
 [MVP acceptance traceability table](TRACEABILITY.md).
 
-- For greedy decoding, the model should produce the same tokens as the pinned Hugging Face reference. Also compare some internal logits and make sure the differences stay within an allowed FP16 numerical tolerance.
+- Validate model architecture and dense prefill/decode against the pinned Hugging Face reference. Validate paged decode against an independent contiguous FP32-attention reference, with bounded tensor/logit error and exact greedy choices on the frozen suite. Retain HF logit-error and token-agreement measurements as fidelity evidence; the paged engine does not promise bitwise or universal token identity with HF eager. The required checks and limits are defined in [the numerical policy](NUMERICAL_POLICY.md).
 
 - Tests should prove that KV blocks are allocated and reused correctly, requests stay isolated from each other, and resources are freed when a request is cancelled. They should also check that queue limits and active-request limits work, and that a slow client cannot make output memory grow forever or prevent the stream from eventually ending.
 

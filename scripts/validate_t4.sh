@@ -69,7 +69,7 @@ uv run --no-sync python scripts/measure_dense_workspace.py "$evidence_dir"
 uv run --no-sync python scripts/measure_dense_workspace.py "$evidence_dir" --with-pool
 # Reducer experiments run separately from release checks.
 uv run --no-sync python -m pytest -m gpu \
-    -k 'not test_pinned_candidate_paged_decode_on_t4 and not paired_at_17' -v -ra \
+    -k 'not test_pinned_candidate_paged_decode_on_t4 and not paired_at_17 and not legacy' -v -ra \
     --junitxml="$evidence_dir/gpu-tests.xml"
 uv run --no-sync pagedcore oracle --case boundary_15 \
     --output "$evidence_dir/reference.pt" > "$evidence_dir/capture.json"
@@ -100,9 +100,10 @@ required = {
     "test_public_reference_capture_and_repeatability_on_t4",
     "test_pinned_decoder_layer_parity_on_t4",
     "test_pinned_paged_prefill_on_t4",
-    "test_pinned_paged_decode_on_t4[single]",
-    "test_pinned_paged_decode_on_t4[mixed]",
-    "test_pinned_paged_decode_on_t4[fragmented]",
+    "test_pinned_paged_decode_accuracy_on_t4[single]",
+    "test_pinned_paged_decode_accuracy_on_t4[mixed]",
+    "test_pinned_paged_decode_accuracy_on_t4[fragmented]",
+    "test_pinned_paged_decode_accuracy_on_t4[held_out]",
     "test_paged_attention_boundaries_on_t4",
     "test_paged_attention_large_scores_on_t4",
     "test_kv_pool_storage_on_t4",
@@ -117,6 +118,27 @@ if not required <= {case.attrib["name"] for case in cases} or any(
     case.find(tag) is not None for case in cases for tag in ("skipped", "failure", "error")
 ):
     raise SystemExit("GPU evidence rejected: required tests must execute and pass.")
+from pagedcore.accuracy import valid_accuracy_report
+
+accuracy_reports = {}
+for case_name, lengths in {
+    "single": (15,), "mixed": (1, 15, 16, 17, 49),
+    "fragmented": (1, 15, 16, 17, 49), "held_out": (37, 73, 111, 145),
+}.items():
+    testcase = next(case for case in cases if case.attrib["name"] == f"test_pinned_paged_decode_accuracy_on_t4[{case_name}]")
+    records = testcase.findall("./properties/property[@name='paged_decode_accuracy']")
+    if len(records) != 1:
+        raise SystemExit("GPU evidence rejected: versioned paged accuracy and HF fidelity reports required.")
+    try:
+        accuracy = json.loads(records[0].attrib["value"])
+    except (KeyError, ValueError) as error:
+        raise SystemExit("GPU evidence rejected: malformed paged accuracy report.") from error
+    if not valid_accuracy_report(accuracy, lengths):
+        raise SystemExit("GPU evidence rejected: incomplete or invalid paged accuracy/HF fidelity report.")
+    accuracy_reports[case_name] = accuracy
+(directory / "paged-decode-accuracy.json").write_text(
+    json.dumps(accuracy_reports, indent=2, allow_nan=False) + "\n", encoding="utf-8")
+
 properties = report.findall(".//testsuite/properties/property[@name='decoder_tolerance_envelope']")
 if len(properties) != 1:
     raise SystemExit("GPU evidence rejected: owned-decoder tolerance measurements are required.")

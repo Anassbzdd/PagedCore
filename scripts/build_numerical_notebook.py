@@ -15,6 +15,23 @@ from zipfile import ZIP_DEFLATED, ZipFile
 
 ROOT = Path(__file__).resolve().parents[1]
 
+ACCURACY_RUN = r"""
+    target_code = "import json,sys,torch; from pathlib import Path; from pagedcore.cli import collect_environment_diagnostics; assert torch.cuda.is_available() and torch.cuda.device_count()==1; assert 'T4' in torch.cuda.get_device_name(0); assert torch.__version__=='2.7.1+cu126'; p=torch.cuda.get_device_properties(0); Path(sys.argv[1]).write_text(json.dumps(dict(torch=torch.__version__,name=p.name,uuid=str(p.uuid),capability=[p.major,p.minor],visible_devices=torch.cuda.device_count(),total_memory=p.total_memory,environment=collect_environment_diagnostics()),indent=2))"
+    run("target", [str(python), "-c", target_code, str(evidence / "target.json")], required=True)
+    run("checkpoint-verify", [str(python), "-m", "pagedcore.cli", "verify",
+         "--manifest-path", str(evidence / "environment-manifest.json")], required=True)
+    run("lint", [str(python), "-m", "ruff", "check", "."], required=True)
+    run("format", [str(python), "-m", "ruff", "format", "--check", "."], required=True)
+    run("types", [str(python), "-m", "mypy", "--strict", "src/pagedcore"], required=True)
+    run("cpu-tests", [str(python), "-m", "pytest", "-m", "not gpu and not benchmark", "-ra",
+         "--junitxml=" + str(evidence / "cpu-tests.xml")])
+    environment["PAGEDCORE_ACCURACY_DIR"] = str(evidence / "raw-logits")
+    run("gpu-regressions", [str(python), "-m", "pytest", "-m", "gpu", "-v", "-ra",
+         "-k", "not legacy and not paired_at_17 and not test_pinned_candidate_paged_decode_on_t4",
+         "--junitxml=" + str(evidence / "gpu-tests.xml")])
+    run("accuracy-export", [str(python), "-m", "scripts.export_paged_accuracy", str(evidence)])
+"""
+
 BOOTSTRAP = r"""
 import base64
 import hashlib
@@ -100,7 +117,7 @@ try:
          "--device", "cuda:0", "--steps", "3", "--value-reduction", "striped",
          "--output", str(evidence / "existing-components.json")])
     run("gpu-regressions", [str(python), "-m", "pytest", "-v", "-ra", "tests/gpu",
-         "-k", "test_pinned_paged_decode_on_t4 or paired_at_17 or eager_value_sum_at_17_tokens",
+         "-k", "test_legacy_hf_paged_decode_on_t4 or paired_at_17 or eager_value_sum_at_17_tokens",
          "--junitxml=" + str(evidence / "gpu-regressions.xml")])
     (evidence / "source-after.json").write_text(json.dumps(verify_source(), indent=2))
 except BaseException:
@@ -142,7 +159,7 @@ finally:
 """
 
 
-def build(output: Path) -> None:
+def build(output: Path, *, accuracy: bool = False) -> None:
     paths = []
     for directory in ("src", "scripts", "tests", "docs"):
         paths.extend(
@@ -163,13 +180,15 @@ def build(output: Path) -> None:
             "LICENSE",
         )
     )
-    paths.extend(
-        ROOT / name
-        for name in (
-            "results/validation/2026-11-07/value-kernel-sweep-t4.zip",
-            "results/validation/2026-11-07/paired-at-17-console.txt",
+    if not accuracy:
+        paths.extend(
+            ROOT / name
+            for name in (
+                "results/validation/2026-11-07/value-kernel-sweep-t4.zip",
+                "results/validation/2026-11-07/paired-at-17-console.txt",
+            )
         )
-    )
+    paths = [path for path in paths if path.name != "AGENTS.md" or path.is_file()]
     contents = {path.relative_to(ROOT).as_posix(): path.read_bytes() for path in sorted(set(paths))}
     identity = {
         "base_revision": subprocess.check_output(
@@ -192,6 +211,22 @@ def build(output: Path) -> None:
         f"SNAPSHOT_SHA256 = {hashlib.sha256(payload).hexdigest()!r}\n"
     )
     code = textwrap.dedent(BOOTSTRAP).lstrip().replace("# SOURCE_CONSTANTS", constants)
+    if accuracy:
+        code = code.replace(
+            '"--python", "3.11"', '"--python", (source / ".python-version").read_text().strip()'
+        )
+        start = code.index('    with zipfile.ZipFile(source / "results/validation/')
+        end = code.index('    (evidence / "source-after.json")', start)
+        code = code[:start] + ACCURACY_RUN + code[end:]
+        start = code.index('    report = evidence / "gpu-regressions.xml"')
+        end = code.index('    (evidence / "notebook-run.json")', start)
+        code = code[:start] + code[end:]
+        code = code.replace("import xml.etree.ElementTree as ET\n", "")
+        code = code.replace('prefix="pagedcore-evidence-"', 'prefix="pagedcore-accuracy-"')
+        code = code.replace(
+            "Diagnostic collection, not decoder release acceptance",
+            "Paged-decoder accuracy validation, not full release acceptance",
+        )
     intro = """# PagedCore numerical evidence on T4
 
 Enable **Internet** and **GPU T4** in Kaggle, then **Run All**. The subprocess uses
@@ -226,6 +261,26 @@ dependencies, math policy, raw tensors and partial failures go into **one ZIP** 
 Failures are expected evidence; a completed collection is not a parity pass.
 No runtime reducer or score repair is selected by this notebook. The full T4
 collector, end-to-end generation, workspace and CUDA reuse gates remain separate.
+"""
+    if accuracy:
+        intro = """# PagedCore FP32 paging accuracy
+
+Enable **Internet** and **T4 GPU**, then **Run All**. No Input dataset, previous
+notebook session, Git push or manual patch is needed. Exact source is embedded.
+
+This runs CPU checks and the required T4 suite, including independent FP64
+attention, the unchanged dense HF architectural checks, and paged decode versus
+independent contiguous FP32 attention at the existing tolerances. Single, mixed,
+fragmented and held-out layouts are required. The decoder still uses FP16 weights
+and cache. HF logit error, top-one agreement and margins are retained as fidelity
+measurements rather than an exact-HF gate. No cuBLAS kernel profiling is needed.
+
+Download the final ZIP even when tests fail. `accuracy-summary.json` says passed
+only when CPU/GPU tests and all versioned reports are complete and valid. Setup
+logs, source hashes, target identity, raw logit tensors and failures are retained.
+This collector covers paged accuracy; end-to-end generation, maximum-active
+workspace, CUDA reuse and service gates remain separate. Read NUMERICAL_POLICY.md
+in the source snapshot for the owner-approved November 9 contract change.
 """
     notebook = {
         "nbformat": 4,
@@ -268,7 +323,12 @@ collector, end-to-end generation, workspace and CUDA reuse gates remain separate
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--output", type=Path)
     parser.add_argument(
-        "--output", type=Path, default=ROOT / "notebooks/p53_numerical_evidence.ipynb"
+        "--accuracy", action="store_true", help="build the revised accuracy collector"
     )
-    build(parser.parse_args().output)
+    args = parser.parse_args()
+    output = args.output or ROOT / "notebooks" / (
+        "paged_decode_accuracy.ipynb" if args.accuracy else "p53_numerical_evidence.ipynb"
+    )
+    build(output, accuracy=args.accuracy)

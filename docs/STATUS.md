@@ -1,15 +1,46 @@
 # Implementation and evidence status
 
-Snapshot: 2026-11-08. **Phase 4 GPU paged KV cache is complete at the allocator
+Snapshot: 2026-11-09. **Phase 4 GPU paged KV cache is complete at the allocator
 boundary. The current gate is Phase 5: block-table decode attention.**
 Standalone single-query paged attention has reviewed T4 evidence at `3401406`.
 The newer batched one-token paged decode and staged attention reads have
-synthetic CPU coverage. The first integrated T4 decode comparisons fail their
-numerical tolerances; see the [November 1 failure review](validation/2026-11-01-p53-t4-failure.md).
-T4 integrated paged-decoder acceptance, continuous
-batching and the service remain outstanding.
+synthetic CPU coverage. On November 9 the owner authorized independent paging
+accuracy in place of reproducing HF eager rounding. That revised implementation
+still needs its own integrated T4 run. Continuous batching and the service remain
+outstanding. Earlier HF comparisons failed their numerical tolerances; see the
+[November 1 failure review](validation/2026-11-01-p53-t4-failure.md).
 
 ## Current gate
+
+The [numerical policy](NUMERICAL_POLICY.md) defines the revised P5.3 contract.
+Serving decode now selects FP32 online attention uniformly across lengths;
+weights, cache and final attention outputs remain FP16. Its independent
+contiguous FP32 reference shares no page traversal or online-softmax code.
+Logit/KV tolerances are unchanged, and exact greedy checks against that reference
+remain required. Dense HF architectural tests remain required; integrated HF
+differences become mandatory fidelity measurements. The new
+[standalone Kaggle notebook](../notebooks/paged_decode_accuracy.ipynb) requires
+single, mixed, fragmented and new-length cases, complete versioned reports and
+19 passing GPU tests. It preserves raw logits, failures, environment and exact
+source in one archive, with no previous session or Input dataset needed.
+Local CPU checks pass; the [revision review](validation/2026-11-09-numerical-policy-revision.md)
+records their scope. **P5.3 remains open until this T4 evidence passes and is reviewed.**
+End-to-end generation, maximum-active workspace and safe CUDA reuse remain separate
+gates. Earlier reducer results below describe the historical HF investigation,
+not the newly selected serving policy.
+
+The November 9 [corrected value-candidate review](validation/2026-11-09-value-followup-review.md)
+verifies `value-followup-c9r490zr.zip`: 1,610 evidence hashes and 72 source hashes
+match, including the exact archived diagnostic override. The test-only combined
+reducer completes the prompt-15 trajectory through 16/17/18 attended tokens on T4
+with exact final logits and K/V. Some 18-token attention intermediates still
+differ. Other 18-token histories fail from score arithmetic with equal Q/K/V;
+later K/V drift is observed after the score/probability discrepancy. Each mixed
+candidate case records 7 passes and 3 failures before step 3 aborts on missing
+replay kernel identification. The fragmented run has the same completed numerical
+results; all cleanup records are zero. Full mixed/fragmented T4 acceptance,
+longer-family validation and the remaining gates stay open. No serving repair is
+selected. This supersedes the previous guard-abort limitation for the single case.
 
 The November 8 [value follow-up review](validation/2026-11-08-value-followup-review.md)
 verifies the returned T4 archive and successful candidate dispatch. The single

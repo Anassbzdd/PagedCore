@@ -13,6 +13,34 @@ pytestmark = pytest.mark.unit
 ROOT = Path(__file__).parents[2]
 
 
+def _accuracy_report(lengths):
+    metrics = {
+        "max_absolute_error": 0.0,
+        "rms_error": 0.0,
+        "normalized_rms_error": 0.0,
+        "max_tolerance_ratio": 0.0,
+        "reference_top1_margin_min": 1.0,
+        "greedy_matches": True,
+    }
+    return {
+        "policy": "fp32-paged-v1",
+        "lengths": list(lengths),
+        "steps": 3,
+        "comparisons": [
+            {
+                "step": step,
+                "request": request,
+                "attended_tokens": length + step,
+                "owned_reference": metrics.copy(),
+                "hf_fidelity": metrics.copy(),
+                "max_kv_tolerance_ratio": 0.0,
+            }
+            for step in range(1, 4)
+            for request, length in enumerate(lengths)
+        ],
+    }
+
+
 @pytest.fixture
 def gpu_report() -> ET.Element:
     root = ET.Element("testsuites")
@@ -23,9 +51,10 @@ def gpu_report() -> ET.Element:
         "test_public_reference_capture_and_repeatability_on_t4",
         "test_pinned_decoder_layer_parity_on_t4",
         "test_pinned_paged_prefill_on_t4",
-        "test_pinned_paged_decode_on_t4[single]",
-        "test_pinned_paged_decode_on_t4[mixed]",
-        "test_pinned_paged_decode_on_t4[fragmented]",
+        "test_pinned_paged_decode_accuracy_on_t4[single]",
+        "test_pinned_paged_decode_accuracy_on_t4[mixed]",
+        "test_pinned_paged_decode_accuracy_on_t4[fragmented]",
+        "test_pinned_paged_decode_accuracy_on_t4[held_out]",
         "test_paged_attention_boundaries_on_t4",
         "test_paged_attention_large_scores_on_t4",
         "test_kv_pool_storage_on_t4",
@@ -36,7 +65,22 @@ def gpu_report() -> ET.Element:
         f"test_pinned_decoder_greedy_parity_on_t4[{case['name']}]" for case in fixtures["prompts"]
     )
     for name in required:
-        ET.SubElement(suite, "testcase", name=name)
+        case = ET.SubElement(suite, "testcase", name=name)
+        if "test_pinned_paged_decode_accuracy_on_t4[" in name:
+            lengths = (
+                (15,)
+                if "[single]" in name
+                else (37, 73, 111, 145)
+                if "[held_out]" in name
+                else (1, 15, 16, 17, 49)
+            )
+            properties = ET.SubElement(case, "properties")
+            ET.SubElement(
+                properties,
+                "property",
+                name="paged_decode_accuracy",
+                value=json.dumps(_accuracy_report(lengths)),
+            )
     return root
 
 
@@ -60,9 +104,10 @@ def _run_collector(directory: Path) -> subprocess.CompletedProcess[str]:
         ("test_kv_allocator_storage_and_stream_ownership_on_t4",),
         ("test_kv_pool_storage_on_t4", "test_kv_allocator_storage_and_stream_ownership_on_t4"),
         ("test_pinned_paged_prefill_on_t4",),
-        ("test_pinned_paged_decode_on_t4[single]",),
-        ("test_pinned_paged_decode_on_t4[mixed]",),
-        ("test_pinned_paged_decode_on_t4[fragmented]",),
+        ("test_pinned_paged_decode_accuracy_on_t4[single]",),
+        ("test_pinned_paged_decode_accuracy_on_t4[mixed]",),
+        ("test_pinned_paged_decode_accuracy_on_t4[fragmented]",),
+        ("test_pinned_paged_decode_accuracy_on_t4[held_out]",),
         ("test_paged_attention_boundaries_on_t4",),
         ("test_paged_attention_large_scores_on_t4",),
     ],
@@ -74,6 +119,7 @@ def _run_collector(directory: Path) -> subprocess.CompletedProcess[str]:
         "missing_paged_decode_single",
         "missing_paged_decode_mixed",
         "missing_paged_decode_fragmented",
+        "missing_paged_decode_held_out",
         "missing_attention_boundaries",
         "missing_attention_large_scores",
     ],
@@ -100,9 +146,10 @@ def test_collector_rejects_missing_kv_tests(
         "test_kv_pool_storage_on_t4",
         "test_kv_allocator_storage_and_stream_ownership_on_t4",
         "test_pinned_paged_prefill_on_t4",
-        "test_pinned_paged_decode_on_t4[single]",
-        "test_pinned_paged_decode_on_t4[mixed]",
-        "test_pinned_paged_decode_on_t4[fragmented]",
+        "test_pinned_paged_decode_accuracy_on_t4[single]",
+        "test_pinned_paged_decode_accuracy_on_t4[mixed]",
+        "test_pinned_paged_decode_accuracy_on_t4[fragmented]",
+        "test_pinned_paged_decode_accuracy_on_t4[held_out]",
         "test_paged_attention_boundaries_on_t4",
         "test_paged_attention_large_scores_on_t4",
     ],
@@ -120,6 +167,100 @@ def test_collector_rejects_unsuccessful_kv_tests(
     assert result.returncode != 0
     assert "GPU evidence rejected: required tests must execute and pass." in result.stderr
     assert not tmp_path.with_suffix(".zip").exists()
+
+
+@pytest.mark.parametrize("fault", ["missing", "old_policy", "incomplete", "nan_hf"])
+def test_collector_requires_versioned_complete_paging_and_hf_evidence(tmp_path, gpu_report, fault):
+    case = next(
+        case
+        for case in gpu_report[0]
+        if case.get("name") == "test_pinned_paged_decode_accuracy_on_t4[single]"
+    )
+    prop = case.find("./properties/property[@name='paged_decode_accuracy']")
+    if fault == "missing":
+        case.remove(case.find("properties"))
+    else:
+        report = json.loads(prop.get("value"))
+        if fault == "old_policy":
+            report["policy"] = "hf-eager-only"
+        elif fault == "incomplete":
+            report["comparisons"].pop()
+        else:
+            report["comparisons"][0]["hf_fidelity"]["rms_error"] = float("nan")
+        prop.set("value", json.dumps(report))
+    ET.ElementTree(gpu_report).write(tmp_path / "gpu-tests.xml")
+    result = _run_collector(tmp_path)
+    assert result.returncode != 0 and "GPU evidence rejected" in result.stderr
+    assert not tmp_path.with_suffix(".zip").exists()
+
+
+@pytest.mark.parametrize(
+    "fault",
+    [
+        None,
+        "missing_cpu",
+        "skipped_cpu",
+        "missing_gpu",
+        "target",
+        "incomplete",
+        "nan_hf",
+        "interrupted",
+        "missing_command",
+    ],
+)
+def test_focused_accuracy_exporter_keeps_the_required_gates(tmp_path, gpu_report, fault):
+    from scripts.export_paged_accuracy import export
+
+    commands = [
+        {"name": name, "returncode": 0}
+        for name in (
+            "target",
+            "checkpoint-verify",
+            "lint",
+            "format",
+            "types",
+            "cpu-tests",
+            "gpu-regressions",
+        )
+    ]
+    if fault == "interrupted":
+        commands[-1].update(returncode=2, interrupted=True)
+    elif fault == "missing_command":
+        commands.pop()
+    (tmp_path / "commands.json").write_text(json.dumps(commands))
+    cpu = ET.Element("testsuite")
+    test = ET.SubElement(cpu, "testcase", name="synthetic_cpu_case")
+    if fault == "skipped_cpu":
+        ET.SubElement(test, "skipped")
+    if fault != "missing_cpu":
+        ET.ElementTree(cpu).write(tmp_path / "cpu-tests.xml")
+    if fault == "missing_gpu":
+        gpu_report[0].remove(gpu_report[0][0])
+    if fault in ("incomplete", "nan_hf"):
+        prop = gpu_report.find(".//testcase/properties/property[@name='paged_decode_accuracy']")
+        report = json.loads(prop.get("value"))
+        if fault == "incomplete":
+            report["comparisons"].pop()
+        else:
+            report["comparisons"][0]["hf_fidelity"]["rms_error"] = float("nan")
+        prop.set("value", json.dumps(report))
+    ET.ElementTree(gpu_report).write(tmp_path / "gpu-tests.xml")
+    (tmp_path / "target.json").write_text(
+        json.dumps(
+            {
+                "torch": "wrong" if fault == "target" else "2.7.1+cu126",
+                "name": "Tesla T4",
+                "visible_devices": 1,
+            }
+        )
+    )
+    if fault is not None:
+        with pytest.raises((ValueError, OSError)):
+            export(tmp_path)
+    else:
+        summary = export(tmp_path)
+        assert summary["status"] == "passed" and len(summary["cases"]) == 4
+        assert summary["hf_fidelity_summary"]["comparisons"] == 45
 
 
 @pytest.mark.parametrize("include_measurements", [False, True])

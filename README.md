@@ -2,7 +2,7 @@
 
 PagedCore is a learning-focused, single-GPU LLM inference engine for studying paged KV-cache management, continuous batching, and streaming generation on one NVIDIA T4.
 
-The v0.1.0 scope is intentionally narrow: a pinned TinyLlama checkpoint, a Llama-compatible FP16 decoder, greedy generation, a 2,048-token context, one model worker, and a local FastAPI/SSE interface. Hugging Face is the correctness oracle; the serving path will own its decoder forward pass and KV-cache behavior.
+The v0.1.0 scope is intentionally narrow: a pinned TinyLlama checkpoint, a Llama-compatible FP16 decoder, greedy generation, a 2,048-token context, one model worker, and a local FastAPI/SSE interface. Hugging Face is the architectural and fidelity reference. Paged decode is checked against independent FP64 attention and contiguous FP32-attention decode under [the numerical policy](docs/NUMERICAL_POLICY.md); the serving path owns its decoder and KV-cache behavior.
 
 ## Status
 
@@ -17,8 +17,9 @@ paged storage have retained T4 evidence. The
 [October 31 review](docs/validation/2026-10-31-p52-t4-review.md) closes standalone
 paged attention at clean `3401406`: two runs each pass 617 CPU and 15 GPU tests
 with zero skips. The newer batched one-token paged decode and staged attention
-reads have synthetic CPU coverage; T4 integrated paged-decoder parity remains
-pending. Continuous batching, the worker and HTTP/SSE service
+reads have synthetic CPU coverage; the revised independent-accuracy contract
+still requires a new T4 run. The [self-contained Kaggle notebook](notebooks/paged_decode_accuracy.ipynb)
+collects that run and separate HF fidelity measurements. Continuous batching, the worker and HTTP/SSE service
 remain planned. Pool/batched/service memory safety and performance
 comparisons are also pending. See [current status](docs/STATUS.md) for evidence
 boundaries and [the phase map](docs/VALIDATION_PLAN.md#build-order) for next steps.
@@ -72,6 +73,7 @@ the [evidence attribution contract](docs/VALIDATION_PLAN.md#evidence-attribution
 - [MVP specification](docs/SPEC.md)
 - [Technical design](docs/DESIGN.md)
 - [Validation plan](docs/VALIDATION_PLAN.md)
+- [Numerical acceptance policy](docs/NUMERICAL_POLICY.md)
 - [Resolved implementation constants](docs/CONSTANTS.md)
 - [MVP acceptance traceability](docs/TRACEABILITY.md)
 

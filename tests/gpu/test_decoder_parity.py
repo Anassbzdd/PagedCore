@@ -1,7 +1,9 @@
 import json
+import os
 from collections.abc import Callable
 from datetime import UTC, datetime
 from pathlib import Path
+from types import SimpleNamespace
 from typing import Any
 from unittest.mock import patch
 
@@ -13,6 +15,7 @@ from transformers import AutoModelForCausalLM
 
 import pagedcore.attention as attention_module
 import pagedcore.decoder as decoder_module
+from pagedcore.accuracy import ACCURACY_POLICY, compare_logits, valid_accuracy_report
 from pagedcore.config import MODEL_ID, MODEL_REVISION
 from pagedcore.decoder import GreedyResult, decode_paged, prefill_paged
 from pagedcore.engine_types import CapacityCounts, KVReservation, RequestId
@@ -161,10 +164,12 @@ def _assert_pinned_paged_decode(
     *,
     fragmented: bool = False,
     steps: int = 3,
+    accuracy: dict[str, Any] | None = None,
 ) -> None:
     model, weights = pinned_decoders
+    blocks = 32 if accuracy is not None else 16
     pool = torch.full(
-        (22, 2, 16, 16, 4, 64), torch.nan, dtype=torch.float16, device=weights.embedding.device
+        (22, 2, blocks, 16, 4, 64), torch.nan, dtype=torch.float16, device=weights.embedding.device
     )
     allocator = KVAllocator(pool)
     pointer = pool.untyped_storage().data_ptr()
@@ -172,121 +177,215 @@ def _assert_pinned_paged_decode(
     public_ids = next(
         case["input_ids"] for case in FIXTURES["prompts"] if case["name"] == "maximum_output"
     )
+    live_requests = []
     references = {}
+    dense_caches = {}
+    hf_references = {}
     blocker = RequestId("unrelated")
     blocker_table = ()
     boundary_request = requests[lengths.index(15)] if fragmented else None
-    with reference_math(), torch.inference_mode():
-        for request, length in zip(requests, lengths, strict=True):
-            allocator.create(KVReservation(request, (length + steps + 15) // 16))
-            inputs = torch.tensor([public_ids[:length]], device=pool.device)
-            references[request] = model(inputs, use_cache=True)
-            logits = prefill_paged(inputs, weights, allocator, request)
-            torch.testing.assert_close(logits, references[request].logits, atol=5e-3, rtol=5e-3)
-            if request == boundary_request:
-                allocator.create(KVReservation(blocker, 1))
-                sentinel = torch.full((22, 16, 4, 64), 100, dtype=pool.dtype, device=pool.device)
-                allocator.append(blocker, -sentinel, sentinel)
-                blocker_table = allocator.block_table(blocker)
-                assert blocker_table == (allocator.block_table(request)[0] + 1,)
-        reserved = allocator.capacity().reserved_blocks
-        for step in range(steps):
-            # Row order is independent of request identity and absolute position.
-            order = requests if step % 2 == 0 else requests[::-1]
-            tokens = torch.cat([references[request].logits[:, -1:].argmax(-1) for request in order])
-            before = pool.clone()
-            old_lengths = {request: allocator.cached_length(request) for request in order}
-            old_tables = {request: allocator.block_table(request) for request in order}
-            expected = {
-                request: model(
-                    tokens[row : row + 1],
-                    past_key_values=references[request].past_key_values,
-                    use_cache=True,
+    with reference_math() as math_settings, torch.inference_mode():
+        if accuracy is not None:
+            accuracy["math_settings"] = math_settings
+        try:
+            for request, length in zip(requests, lengths, strict=True):
+                allocator.create(KVReservation(request, (length + steps + 15) // 16))
+                live_requests.append(request)
+                inputs = torch.tensor([public_ids[:length]], device=pool.device)
+                references[request] = model(inputs, use_cache=True)
+                hf_references[request] = references[request]
+                if accuracy is not None:
+                    dense_logits, dense_caches[request] = decoder_module.prefill(inputs, weights)
+                    references[request] = SimpleNamespace(
+                        logits=dense_logits, past_key_values=dense_caches[request].layers
+                    )
+                logits = prefill_paged(inputs, weights, allocator, request)
+                torch.testing.assert_close(logits, references[request].logits, atol=5e-3, rtol=5e-3)
+                if request == boundary_request:
+                    allocator.create(KVReservation(blocker, 1))
+                    live_requests.append(blocker)
+                    sentinel = torch.full(
+                        (22, 16, 4, 64), 100, dtype=pool.dtype, device=pool.device
+                    )
+                    allocator.append(blocker, -sentinel, sentinel)
+                    blocker_table = allocator.block_table(blocker)
+                    assert blocker_table == (allocator.block_table(request)[0] + 1,)
+            reserved = allocator.capacity().reserved_blocks
+            for step in range(steps):
+                # Row order is independent of request identity and absolute position.
+                order = requests if step % 2 == 0 else requests[::-1]
+                tokens = torch.cat(
+                    [references[request].logits[:, -1:].argmax(-1) for request in order]
                 )
-                for row, request in enumerate(order)
-            }
-            if fragmented and step == 1:
-                counts = allocator.capacity()
-                # Final logits run after every layer has written its staged K/V.
-                with (
-                    patch.object(
-                        decoder_module, "final_logits", side_effect=RuntimeError("logit failure")
-                    ),
-                    forbid_dense_kv_history(pool),
-                    pytest.raises(RuntimeError, match="logit failure"),
-                ):
-                    decode_paged(tokens, weights, allocator, order)
-                assert allocator.capacity() == counts
-                assert allocator.block_table(blocker) == blocker_table
-                for request in order:
-                    assert allocator.cached_length(request) == old_lengths[request]
-                    assert allocator.block_table(request) == old_tables[request]
-                    for logical, physical in enumerate(old_tables[request]):
-                        valid = min(16, old_lengths[request] - logical * 16)
-                        torch.testing.assert_close(
-                            pool[:, :, physical, :valid],
-                            before[:, :, physical, :valid],
-                            atol=0,
-                            rtol=0,
+                before = pool.clone()
+                old_lengths = {request: allocator.cached_length(request) for request in order}
+                old_tables = {request: allocator.block_table(request) for request in order}
+                if accuracy is None:
+                    expected = {
+                        request: model(
+                            tokens[row : row + 1],
+                            past_key_values=references[request].past_key_values,
+                            use_cache=True,
                         )
-            with forbid_dense_kv_history(pool):
-                logits = decode_paged(tokens, weights, allocator, order)
-            assert logits.shape == (len(order), 1, model.config.vocab_size)
-            assert logits.dtype == torch.float16 and torch.isfinite(logits).all()
-            for row, request in enumerate(order):
-                reference = expected[request]
-                torch.testing.assert_close(
-                    logits[row : row + 1], reference.logits, atol=5e-3, rtol=5e-3
-                )
-                assert torch.equal(logits[row : row + 1].argmax(-1), reference.logits.argmax(-1))
-                assert allocator.cached_length(request) == old_lengths[request] + 1
-                table = allocator.block_table(request)
-                assert table[: len(old_tables[request])] == old_tables[request]
-                if fragmented:
-                    if request == boundary_request and step >= 1:
-                        assert len(table) == 2 and table[1] > table[0] + 1
-                    logical, slot = divmod(old_lengths[request], 16)
-                    physical = table[logical]
-                    before[:, :, physical, slot] = pool[:, :, physical, slot]
-                for logical, physical in enumerate(table):
-                    key, value = allocator.read_block(request, logical)
-                    start = logical * 16
-                    end = start + key.shape[1]
-                    for layer, pair in enumerate(reference.past_key_values):
-                        for kind, actual, target in (
-                            (0, key[layer], pair[0]),
-                            (1, value[layer], pair[1]),
-                        ):
+                        for row, request in enumerate(order)
+                    }
+                    hf_expected = expected
+                else:
+                    expected = {}
+                    hf_expected = {}
+                    for row, request in enumerate(order):
+                        dense_logits, dense_caches[request] = decoder_module.decode(
+                            tokens[row : row + 1],
+                            dense_caches[request],
+                            weights,
+                            fp32_attention=True,
+                        )
+                        expected[request] = SimpleNamespace(
+                            logits=dense_logits, past_key_values=dense_caches[request].layers
+                        )
+                        hf_expected[request] = model(
+                            tokens[row : row + 1],
+                            past_key_values=hf_references[request].past_key_values,
+                            use_cache=True,
+                        )
+                if fragmented and step == 1:
+                    counts = allocator.capacity()
+                    # Final logits run after every layer has written its staged K/V.
+                    with (
+                        patch.object(
+                            decoder_module,
+                            "final_logits",
+                            side_effect=RuntimeError("logit failure"),
+                        ),
+                        forbid_dense_kv_history(pool),
+                        pytest.raises(RuntimeError, match="logit failure"),
+                    ):
+                        decode_paged(tokens, weights, allocator, order)
+                    assert allocator.capacity() == counts
+                    assert allocator.block_table(blocker) == blocker_table
+                    for request in order:
+                        assert allocator.cached_length(request) == old_lengths[request]
+                        assert allocator.block_table(request) == old_tables[request]
+                        for logical, physical in enumerate(old_tables[request]):
+                            valid = min(16, old_lengths[request] - logical * 16)
                             torch.testing.assert_close(
-                                actual,
-                                target[0, :, start:end].transpose(0, 1),
-                                atol=2e-3,
-                                rtol=2e-3,
-                            )
-                            old_slots = max(0, min(end, old_lengths[request]) - start)
-                            torch.testing.assert_close(
-                                actual[:old_slots],
-                                before[layer, kind, physical, :old_slots],
+                                pool[:, :, physical, :valid],
+                                before[:, :, physical, :valid],
                                 atol=0,
                                 rtol=0,
                             )
-                references[request] = reference
-            counts = allocator.capacity()
-            assert counts.live_cached_token_slots == (
-                sum(lengths) + len(order) * (step + 1) + 16 * len(blocker_table)
-            )
-            assert counts.reserved_blocks == reserved
-            assert counts.active_slots == len(order) + len(blocker_table)
-            assert pool.untyped_storage().data_ptr() == pointer
-            if fragmented:
-                assert allocator.block_table(blocker) == blocker_table
-                torch.testing.assert_close(pool, before, atol=0, rtol=0, equal_nan=True)
-        torch.cuda.synchronize(pool.device)
-        for request in requests:
-            allocator.release_all(request)
-        if fragmented:
-            allocator.release_all(blocker)
-        assert allocator.capacity() == CapacityCounts(16, 16, 0, 0, 0, 0)
+                with forbid_dense_kv_history(pool):
+                    logits = decode_paged(tokens, weights, allocator, order)
+                assert logits.shape == (len(order), 1, model.config.vocab_size)
+                assert logits.dtype == torch.float16 and torch.isfinite(logits).all()
+                for row, request in enumerate(order):
+                    reference = expected[request]
+                    comparison = None
+                    if accuracy is not None:
+                        raw_directory = os.environ.get("PAGEDCORE_ACCURACY_DIR")
+                        if raw_directory is not None:
+                            destination = Path(raw_directory) / accuracy["case"]
+                            destination.mkdir(parents=True, exist_ok=True)
+                            torch.save(
+                                {
+                                    "paged": logits[row : row + 1].detach().cpu(),
+                                    "owned_reference": reference.logits.detach().cpu(),
+                                    "hf": hf_expected[request].logits.detach().cpu(),
+                                },
+                                destination / f"step-{step + 1}-request-{request}.pt",
+                            )
+                        comparison = {
+                            "step": step + 1,
+                            "request": int(request),
+                            "attended_tokens": old_lengths[request] + 1,
+                            "owned_reference": compare_logits(
+                                logits[row : row + 1], reference.logits
+                            ),
+                            "hf_fidelity": compare_logits(
+                                logits[row : row + 1], hf_expected[request].logits
+                            ),
+                            "max_kv_tolerance_ratio": 0.0,
+                        }
+                        accuracy["comparisons"].append(comparison)
+                    torch.testing.assert_close(
+                        logits[row : row + 1], reference.logits, atol=5e-3, rtol=5e-3
+                    )
+                    assert torch.equal(
+                        logits[row : row + 1].argmax(-1), reference.logits.argmax(-1)
+                    )
+                    assert allocator.cached_length(request) == old_lengths[request] + 1
+                    table = allocator.block_table(request)
+                    assert table[: len(old_tables[request])] == old_tables[request]
+                    if fragmented:
+                        if request == boundary_request and step >= 1:
+                            assert len(table) == 2 and table[1] > table[0] + 1
+                        logical, slot = divmod(old_lengths[request], 16)
+                        physical = table[logical]
+                        before[:, :, physical, slot] = pool[:, :, physical, slot]
+                    for logical, physical in enumerate(table):
+                        key, value = allocator.read_block(request, logical)
+                        start = logical * 16
+                        end = start + key.shape[1]
+                        for layer, pair in enumerate(reference.past_key_values):
+                            for kind, actual, target in (
+                                (0, key[layer], pair[0]),
+                                (1, value[layer], pair[1]),
+                            ):
+                                if comparison is not None:
+                                    ratio = (
+                                        (
+                                            (
+                                                actual.float()
+                                                - target[0, :, start:end].transpose(0, 1).float()
+                                            ).abs()
+                                            / (
+                                                2e-3
+                                                * (
+                                                    1
+                                                    + target[0, :, start:end]
+                                                    .transpose(0, 1)
+                                                    .float()
+                                                    .abs()
+                                                )
+                                            )
+                                        )
+                                        .max()
+                                        .item()
+                                    )
+                                    comparison["max_kv_tolerance_ratio"] = max(
+                                        comparison["max_kv_tolerance_ratio"], ratio
+                                    )
+                                torch.testing.assert_close(
+                                    actual,
+                                    target[0, :, start:end].transpose(0, 1),
+                                    atol=2e-3,
+                                    rtol=2e-3,
+                                )
+                                old_slots = max(0, min(end, old_lengths[request]) - start)
+                                torch.testing.assert_close(
+                                    actual[:old_slots],
+                                    before[layer, kind, physical, :old_slots],
+                                    atol=0,
+                                    rtol=0,
+                                )
+                    references[request] = reference
+                    hf_references[request] = hf_expected[request]
+                counts = allocator.capacity()
+                assert counts.live_cached_token_slots == (
+                    sum(lengths) + len(order) * (step + 1) + 16 * len(blocker_table)
+                )
+                assert counts.reserved_blocks == reserved
+                assert counts.active_slots == len(order) + len(blocker_table)
+                assert pool.untyped_storage().data_ptr() == pointer
+                if fragmented:
+                    assert allocator.block_table(blocker) == blocker_table
+                    torch.testing.assert_close(pool, before, atol=0, rtol=0, equal_nan=True)
+        finally:
+            if pool.is_cuda:
+                torch.cuda.synchronize(pool.device)
+            for request in live_requests:
+                allocator.release_all(request)
+            assert allocator.capacity() == CapacityCounts(blocks, blocks, 0, 0, 0, 0)
 
 
 @pytest.mark.parametrize(
@@ -294,7 +393,8 @@ def _assert_pinned_paged_decode(
     [((15,), False), ((1, 15, 16, 17, 49), False), ((1, 15, 16, 17, 49), True)],
     ids=["single", "mixed", "fragmented"],
 )
-def test_pinned_paged_decode_on_t4(
+@pytest.mark.usefixtures("legacy_eager_decode")
+def test_legacy_hf_paged_decode_on_t4(
     pinned_decoders: tuple[Any, TinyLlamaWeights],
     lengths: tuple[int, ...],
     fragmented: bool,
@@ -306,6 +406,7 @@ def test_pinned_paged_decode_on_t4(
 
 
 @pytest.mark.parametrize("lengths", [(15,), (1, 15, 16, 17, 49)], ids=["single", "mixed"])
+@pytest.mark.usefixtures("legacy_eager_decode")
 def test_pinned_candidate_paged_decode_on_t4(
     pinned_decoders: tuple[Any, TinyLlamaWeights],
     lengths: tuple[int, ...],
@@ -318,7 +419,7 @@ def test_pinned_candidate_paged_decode_on_t4(
     _assert_pinned_paged_decode(pinned_decoders, lengths, forbid_dense_kv_history)
 
 
-@pytest.mark.usefixtures("paired_at_17")
+@pytest.mark.usefixtures("paired_at_17", "legacy_eager_decode")
 @pytest.mark.parametrize(
     ("lengths", "fragmented", "steps"),
     [
@@ -355,3 +456,46 @@ def test_pinned_decoder_greedy_parity_on_t4(
         case["max_new_tokens"],
         case["ignore_eos"],
     )
+
+
+@pytest.mark.parametrize(
+    ("lengths", "fragmented"),
+    [
+        ((15,), False),
+        ((1, 15, 16, 17, 49), False),
+        ((1, 15, 16, 17, 49), True),
+        ((37, 73, 111, 145), False),
+    ],
+    ids=["single", "mixed", "fragmented", "held_out"],
+)
+def test_pinned_paged_decode_accuracy_on_t4(
+    pinned_decoders, lengths, fragmented, forbid_dense_kv_history, record_property
+):
+    report = {
+        "policy": ACCURACY_POLICY,
+        "model_id": MODEL_ID,
+        "model_revision": MODEL_REVISION,
+        "lengths": list(lengths),
+        "steps": 3,
+        "comparisons": [],
+    }
+    report["case"] = (
+        "fragmented"
+        if fragmented
+        else "single"
+        if len(lengths) == 1
+        else "held_out"
+        if lengths == (37, 73, 111, 145)
+        else "mixed"
+    )
+    try:
+        _assert_pinned_paged_decode(
+            pinned_decoders,
+            lengths,
+            forbid_dense_kv_history,
+            fragmented=fragmented,
+            accuracy=report,
+        )
+        assert valid_accuracy_report(report, lengths)
+    finally:
+        record_property("paged_decode_accuracy", json.dumps(report, allow_nan=False))

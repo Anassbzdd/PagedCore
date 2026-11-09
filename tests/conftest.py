@@ -86,6 +86,17 @@ def paired_at_17(monkeypatch: pytest.MonkeyPatch) -> None:
 
 
 @pytest.fixture
+def legacy_eager_decode(monkeypatch: pytest.MonkeyPatch) -> None:
+    original = decoder_module.paged_attention
+
+    def eager(*args: Any, **kwargs: Any) -> Tensor:
+        kwargs["eager_rounding"] = True
+        return original(*args, **kwargs)
+
+    monkeypatch.setattr(decoder_module, "paged_attention", eager)
+
+
+@pytest.fixture
 def assert_decoder_greedy_parity() -> Callable[..., decoder_module.GreedyResult]:
     def compare(
         model: Any,

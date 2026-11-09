@@ -40,6 +40,11 @@ ROOT = Path(__file__).resolve().parents[1]
 VALUE_REDUCTIONS = ("striped", "paged", "paired", "fp64", "native_same_v")
 
 
+def legacy_paged_attention(*args: Any, **kwargs: Any) -> Tensor:
+    kwargs["eager_rounding"] = True
+    return paged_attention(*args, **kwargs)
+
+
 class AttentionScores(TorchDispatchMode):
     def __init__(self, forced_probabilities: Tensor | None = None) -> None:
         super().__init__()
@@ -279,6 +284,9 @@ def run(
     records: list[dict[str, Any]] = []
     value_trace: list[dict[str, Any]] = []
     with ExitStack() as cleanup, reference_math() as policy, torch.inference_mode():
+        cleanup.enter_context(
+            patch.object(decoder_module, "paged_attention", legacy_paged_attention)
+        )
         reducer = {
             "paged": attention_module._paged_value_sum,
             "paired": attention_module._paired_value_sum,

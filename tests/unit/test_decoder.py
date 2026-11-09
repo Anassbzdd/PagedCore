@@ -145,7 +145,7 @@ def test_paged_decode_batches_distinct_positions_and_appends_each_layer(
         order = requests if step == 0 else requests[::-1]
         tokens = torch.tensor([[2 + step + int(request)] for request in order])
         expected = [
-            decode(tokens[row : row + 1], caches[request], paged_weights)
+            decode(tokens[row : row + 1], caches[request], paged_weights, fp32_attention=True)
             for row, request in enumerate(order)
         ]
         before = pool.clone()
@@ -348,7 +348,7 @@ def test_paged_decode_failure_preserves_entire_batch_and_allows_retry(
         )
     logits = decode_paged(tokens, paged_weights, allocator, requests)
     for row, cache in enumerate(caches):
-        expected, _ = decode(tokens[row : row + 1], cache, paged_weights)
+        expected, _ = decode(tokens[row : row + 1], cache, paged_weights, fp32_attention=True)
         torch.testing.assert_close(logits[row : row + 1], expected, atol=5e-3, rtol=5e-3)
     for request in requests:
         allocator.release_all(request)

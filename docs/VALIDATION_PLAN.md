@@ -5,6 +5,19 @@ Purpose: Turn the design into an ordered build, test, benchmark, and publication
 
 This is the public evidence contract and phase map. [STATUS.md](STATUS.md) records current implementation/evidence limits. Planned tests, commands, and artifact paths below are requirements, not assertions that those surfaces exist.
 
+## Current numerical acceptance contract
+
+The owner-approved November 9 [numerical policy](NUMERICAL_POLICY.md) supersedes
+integrated HF-eager reproduction requirements in earlier dated investigations
+below. Required paging checks use independent contiguous FP32 attention and the
+existing logit/KV thresholds. Standalone attention retains its independent FP64
+oracle. Exact greedy choices are required against the owned reference on the
+frozen suite; HF-eager differences are mandatory fidelity measurements. Legacy
+dense HF architecture/prefill/generation checks remain required and unchanged.
+The revised T4 accuracy suite adds a held-out 37/73/111/145-token prefix case.
+Missing accuracy reports or non-finite HF measurements reject collection.
+No earlier archive satisfies this new evidence contract automatically.
+
 ## Build order
 
 Complete each runtime gate before starting the next substantial runtime feature. Preserve dense parity -> allocator correctness -> paged attention -> lifecycle correctness -> HTTP. CI, evidence tooling, and synthetic benchmark analysis can support these gates earlier; they do not bypass them. The task IDs below define public ownership even when the detailed local checklist is not distributed.
@@ -17,7 +30,7 @@ Complete each runtime gate before starting the next substantial runtime feature.
 | P2.1-P2.5: types/reference | Minimal interfaces, lifecycle/accounting validators, timing schema, fixtures and frozen oracle | CPU rejection of illegal transitions and invalid capacity snapshots; deterministic reference IDs/tensors; documented special-token, attention, and numerical settings |
 | P3.1-P3.7: dense parity | Owned TinyLlama forward without paging | Layer/logit/greedy T4 parity and dense-prefill workspace record |
 | P4.1-P4.6: allocator | One pool, free list, tables and capacity ledger | Boundary, rollback, isolation, reuse and independent property-model tests |
-| P5.1-P5.7: paged attention | Block-table traversal, standalone FP32 online softmax and eager-rounding decode | Poisoned fragmentation, no-full-gather traces, T4 parity and batched workspace record |
+| P5.1-P5.7: paged attention | Block-table traversal, standalone and integrated FP32 online-softmax decode | Poisoned fragmentation, no-full-gather traces, T4 parity and batched workspace record |
 | P6.1-P6.10: lifecycle | Credits, FIFO, active limits, bounded thread bridge, cleanup, measurements and cooperative stop | Fake-model scheduling/fault/race tests, release-once assertions and safe CUDA reuse |
 | P7.1-P7.8: HTTP | Bounded preprocessing, strict validation, SSE/transport supervision and operational endpoints | CPU fake-model plus T4 black-box tests, delivery ordering and shutdown escalation |
 | P8.1-P8.8: hardening | Verify existing instrumentation/shutdown; final memory/fault/soak checks | Bounded retention, privacy, worst-case T4 memory and graceful/forced-stop reports |
@@ -194,21 +207,26 @@ head mapping, large scores, autocast and read-only accounting. Both execute and
 pass in each [October 31 archive](validation/2026-10-31-p52-t4-review.md) at
 `3401406`; the October 30 archive predates these tests. The newer staged-layer
 iterator and integrated batched decode still need their own T4 evidence.
-The collector also requires `test_pinned_paged_decode_on_t4[single]`,
-`test_pinned_paged_decode_on_t4[mixed]`, and
-`test_pinned_paged_decode_on_t4[fragmented]`. They compare one request and a
-five-request batch at prompt lengths 1/15/16/17/49 against separate eager HF
-cached forwards for three decode steps, reversing row order between steps.
-Checks include logits (`atol=rtol=5e-3`), every layer's K/V
-(`atol=rtol=2e-3`), exact next-token argmax, unchanged historical slots,
-cache lengths, reservations, stable pool storage and final release accounting.
-The fragmented case inserts a sentinel-filled page between the 15-token
-request's first and second blocks and injects a synchronous failure after the
-staged writes. It verifies rollback, retries the same step and checks that only
-the newly committed slots changed. Run the rejected page-product candidate tests
-separately when reproducing the historical experiment.
-Only the owned decode call runs under the no-dense-history guard; permitted
-prefill and full-history reference calculations remain outside it.
+The collector requires `test_pinned_paged_decode_accuracy_on_t4[single]`,
+`[mixed]`, `[fragmented]` and `[held_out]`. These compare one request, a
+five-request 1/15/16/17/49-token group and new 37/73/111/145-token prefix layouts
+against independent contiguous FP32-attention forwards for three cached steps.
+They reverse request order between steps, compare logits at `atol=rtol=5e-3`
+and every layer's K/V at `2e-3`, and require exact next-token argmax against
+that owned reference. HF eager receives the same selected inputs and contributes
+mandatory finite fidelity metrics, not an exact paged-output acceptance check.
+Each JUnit case must retain a complete `paged_decode_accuracy` report with policy
+`fp32-paged-v1`; the exporter rejects missing, duplicate or invalid comparisons.
+
+Checks retain unchanged historical slots, reservations, committed lengths,
+stable pool storage, poisoned unrelated blocks and zero final ownership.
+The fragmented case inserts a sentinel page, injects a synchronous logit failure
+after staged writes, verifies rollback and retries the same step. Only the owned
+paged decode runs under the storage guard. Prefill and independent full-history
+reference calculations remain outside it. Legacy HF-rounding tests and rejected
+value candidates are separate forensic experiments, excluded from release
+collection. The exporter retains `paged-decode-accuracy.json` alongside the
+unchanged dense HF tolerance envelope and required workspace evidence.
 These focused decode comparisons do not close the later end-to-end generation,
 maximum-active workspace or page-reuse ordering gates.
 The [October 26 review](validation/2026-10-26-p42-t4-review.md#findings-and-remaining-work)
@@ -589,7 +607,7 @@ pinned checkpoint's math, streaming, timestamps or T4 parity.
 
 ### Numerical comparisons
 
-Apply [CONSTANTS.md](CONSTANTS.md#numerical-parity-thresholds) tolerances, report maximum observed discrepancies and exact greedy equality. Diagnose deviations layer by layer. Changing a backend or tolerance requires new measured evidence, not merely updated expectations.
+Apply [NUMERICAL_POLICY.md](NUMERICAL_POLICY.md): compare paged decode with independent contiguous FP32 attention at the unchanged thresholds, and report HF fidelity separately. Diagnose deviations layer by layer. Any arithmetic-policy or tolerance change needs explicit documentation and new measured evidence.
 
 ## Test strategy
 
@@ -614,7 +632,15 @@ this is not evidence of recovery from an actual CUDA device failure.
 
 Use an independent CPU ownership/accounting model for randomized operations. Cover partial failures/rollback and per-request ownership as well as aggregate counts. Test bounded mailbox publication while the event loop is stalled, coalesced wakeups/lost-wakeup races, closed-loop publication, final-token/terminal races and duplicate cleanup signals. Complete lifecycle correctness with the fake model before adding HTTP.
 
-**GPU correctness tests:** On the pinned checkpoint, compare PagedCore with Hugging Face using the same token IDs and FP16 weights. Cover one and multiple sequences, short and long prompts, block boundaries, EOS, maximum output length, and reused physical blocks. Force a multi-block sequence onto shuffled physical block IDs and poison unrelated blocks so an implementation that ignores the block table fails. Compare intermediate outputs and logits with explicit absolute/relative tolerances; also check greedy token equality on deterministic fixtures. Investigate mismatches rather than widening tolerances until a failing case passes.
+**GPU correctness tests:** On the pinned checkpoint, retain dense HF architectural
+checks and compare paged decode with independent contiguous FP32 attention under
+[the numerical policy](NUMERICAL_POLICY.md). HF fidelity uses the same input-token
+history and FP16 weights. Cover one and multiple sequences, short and long prompts,
+block boundaries, EOS, maximum output length and reused physical blocks. Force a
+multi-block sequence onto shuffled physical block IDs and poison unrelated blocks
+so an implementation that ignores the block table fails. Keep bounded
+intermediate/logit errors and exact paged-versus-owned-reference greedy choices
+on deterministic fixtures. Investigate failures without widening tolerances.
 
 **Service tests:** Verify `POST /v1/generate`, `GET /healthz`, `GET /readyz`, and `GET /metrics`, including status codes, the default 64-request pending bound, the `262144`-byte body limit, and stable error codes. Verify SSE framing, one token event per emitted token, incremental decoding with incomplete byte sequences, final text flushing, first-step EOS, queue overload, the default 32-sequence active limit, simultaneous clients, disconnect during pending/prefill/decode, and readiness after an injected worker failure. Fill a token queue deliberately and prove the out-of-band terminal signal closes the stream. Confirm cancellation eventually returns all blocks, credits, and active slots.
 
@@ -634,7 +660,7 @@ python -m ruff format --check .
 python -m mypy --strict src/pagedcore
 python -m pytest -m "not gpu and not benchmark"
 export CUBLAS_WORKSPACE_CONFIG=:4096:8
-python -m pytest -m gpu -ra
+python -m pytest -m gpu -k "not legacy and not paired_at_17 and not test_pinned_candidate_paged_decode_on_t4" -ra
 ```
 
 The last command requires an actual T4 and an inspected test report. The six

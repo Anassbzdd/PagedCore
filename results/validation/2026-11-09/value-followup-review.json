@@ -1,0 +1,2521 @@
+{
+  "reviewed_on": "2026-11-09",
+  "archive": "results/zip/value-followup-c9r490zr.zip",
+  "archive_sha256": "88d990dcd75a101903000ddddf7fc90deccafc9f91c4f70d11ce1bac6ffbd7b6",
+  "scope": "T4 diagnostic evidence; no production acceptance",
+  "cases": [
+    {
+      "arm": "baseline",
+      "case": "single",
+      "returncode": 0,
+      "completed_rows": 3,
+      "expected_rows": 3,
+      "failed_rows": 2,
+      "all_completed_greedy_equal": true,
+      "max_logit_tolerance_ratio": 2.363210678100586,
+      "dispatch": {
+        "baseline": 66
+      },
+      "cleanup": {
+        "total_blocks": 16,
+        "free_blocks": 16,
+        "owned_blocks": 0,
+        "reserved_blocks": 0,
+        "active_slots": 0,
+        "live_cached_token_slots": 0
+      },
+      "rows": [
+        {
+          "step": 1,
+          "request": "0",
+          "attended_tokens": 16,
+          "passed": true,
+          "logits_unequal": 0,
+          "logit_tolerance_ratio": 0.0,
+          "kv_unequal": 0,
+          "first_difference": null,
+          "operation_unequal_counts": {
+            "q": 0,
+            "k": 0,
+            "v": 0,
+            "scores": 0,
+            "probabilities_fp32": 0,
+            "probabilities": 0,
+            "weighted_value": 0
+          }
+        },
+        {
+          "step": 2,
+          "request": "0",
+          "attended_tokens": 17,
+          "passed": false,
+          "logits_unequal": 25521,
+          "logit_tolerance_ratio": 1.977457046508789,
+          "kv_unequal": 7436,
+          "first_difference": {
+            "layer": 1,
+            "operation": "weighted_value",
+            "measurement": {
+              "shape": [
+                1,
+                32,
+                1,
+                64
+              ],
+              "actual_stride": [
+                2048,
+                64,
+                64,
+                1
+              ],
+              "expected_stride": [
+                2048,
+                64,
+                64,
+                1
+              ],
+              "first_unequal_index": [
+                0,
+                2,
+                0,
+                41
+              ],
+              "actual_at_first": -6.0677528381347656e-05,
+              "expected_at_first": -6.073713302612305e-05,
+              "unequal": 1,
+              "max_absolute_error": 5.960464477539063e-08,
+              "max_tolerance_ratio": 2.980051067424938e-05
+            }
+          },
+          "operation_unequal_counts": {
+            "q": 27154,
+            "k": 3324,
+            "v": 4112,
+            "scores": 5822,
+            "probabilities_fp32": 10489,
+            "probabilities": 6873,
+            "weighted_value": 32387
+          }
+        },
+        {
+          "step": 3,
+          "request": "0",
+          "attended_tokens": 18,
+          "passed": false,
+          "logits_unequal": 22878,
+          "logit_tolerance_ratio": 2.363210678100586,
+          "kv_unequal": 14641,
+          "first_difference": {
+            "layer": 1,
+            "operation": "weighted_value",
+            "measurement": {
+              "shape": [
+                1,
+                32,
+                1,
+                64
+              ],
+              "actual_stride": [
+                2048,
+                64,
+                64,
+                1
+              ],
+              "expected_stride": [
+                2048,
+                64,
+                64,
+                1
+              ],
+              "first_unequal_index": [
+                0,
+                5,
+                0,
+                13
+              ],
+              "actual_at_first": -7.033348083496094e-05,
+              "expected_at_first": -7.027387619018555e-05,
+              "unequal": 2,
+              "max_absolute_error": 4.76837158203125e-07,
+              "max_tolerance_ratio": 0.0002382017410127446
+            }
+          },
+          "operation_unequal_counts": {
+            "q": 27478,
+            "k": 6484,
+            "v": 8157,
+            "scores": 5857,
+            "probabilities_fp32": 11286,
+            "probabilities": 7328,
+            "weighted_value": 33480
+          }
+        }
+      ]
+    },
+    {
+      "arm": "baseline",
+      "case": "mixed",
+      "returncode": 0,
+      "completed_rows": 15,
+      "expected_rows": 15,
+      "failed_rows": 11,
+      "all_completed_greedy_equal": true,
+      "max_logit_tolerance_ratio": 3.502408742904663,
+      "dispatch": {
+        "baseline": 330
+      },
+      "cleanup": {
+        "total_blocks": 16,
+        "free_blocks": 16,
+        "owned_blocks": 0,
+        "reserved_blocks": 0,
+        "active_slots": 0,
+        "live_cached_token_slots": 0
+      },
+      "rows": [
+        {
+          "step": 1,
+          "request": "0",
+          "attended_tokens": 2,
+          "passed": true,
+          "logits_unequal": 0,
+          "logit_tolerance_ratio": 0.0,
+          "kv_unequal": 0,
+          "first_difference": null,
+          "operation_unequal_counts": {
+            "q": 0,
+            "k": 0,
+            "v": 0,
+            "scores": 0,
+            "probabilities_fp32": 0,
+            "probabilities": 0,
+            "weighted_value": 0
+          }
+        },
+        {
+          "step": 1,
+          "request": "1",
+          "attended_tokens": 16,
+          "passed": true,
+          "logits_unequal": 0,
+          "logit_tolerance_ratio": 0.0,
+          "kv_unequal": 0,
+          "first_difference": null,
+          "operation_unequal_counts": {
+            "q": 0,
+            "k": 0,
+            "v": 0,
+            "scores": 0,
+            "probabilities_fp32": 0,
+            "probabilities": 0,
+            "weighted_value": 0
+          }
+        },
+        {
+          "step": 1,
+          "request": "2",
+          "attended_tokens": 17,
+          "passed": false,
+          "logits_unequal": 21513,
+          "logit_tolerance_ratio": 1.422794222831726,
+          "kv_unequal": 6376,
+          "first_difference": {
+            "layer": 4,
+            "operation": "weighted_value",
+            "measurement": {
+              "shape": [
+                1,
+                32,
+                1,
+                64
+              ],
+              "actual_stride": [
+                2048,
+                64,
+                64,
+                1
+              ],
+              "expected_stride": [
+                2048,
+                64,
+                64,
+                1
+              ],
+              "first_unequal_index": [
+                0,
+                1,
+                0,
+                15
+              ],
+              "actual_at_first": -0.002307891845703125,
+              "expected_at_first": -0.0023097991943359375,
+              "unequal": 2,
+              "max_absolute_error": 1.9073486328125e-06,
+              "max_tolerance_ratio": 0.0009514765697531402
+            }
+          },
+          "operation_unequal_counts": {
+            "q": 23233,
+            "k": 2884,
+            "v": 3492,
+            "scores": 4848,
+            "probabilities_fp32": 8904,
+            "probabilities": 5828,
+            "weighted_value": 26847
+          }
+        },
+        {
+          "step": 1,
+          "request": "3",
+          "attended_tokens": 18,
+          "passed": false,
+          "logits_unequal": 25754,
+          "logit_tolerance_ratio": 2.375192642211914,
+          "kv_unequal": 4750,
+          "first_difference": {
+            "layer": 2,
+            "operation": "scores",
+            "measurement": {
+              "shape": [
+                1,
+                32,
+                1,
+                18
+              ],
+              "actual_stride": [
+                576,
+                18,
+                18,
+                1
+              ],
+              "expected_stride": [
+                576,
+                18,
+                18,
+                1
+              ],
+              "first_unequal_index": [
+                0,
+                24,
+                0,
+                15
+              ],
+              "actual_at_first": -0.0103912353515625,
+              "expected_at_first": -0.01039886474609375,
+              "unequal": 1,
+              "max_absolute_error": 7.62939453125e-06,
+              "max_tolerance_ratio": 0.0037754366640001535
+            }
+          },
+          "operation_unequal_counts": {
+            "q": 18194,
+            "k": 2144,
+            "v": 2606,
+            "scores": 4076,
+            "probabilities_fp32": 7434,
+            "probabilities": 4959,
+            "weighted_value": 20974
+          }
+        },
+        {
+          "step": 1,
+          "request": "4",
+          "attended_tokens": 50,
+          "passed": false,
+          "logits_unequal": 20498,
+          "logit_tolerance_ratio": 1.6803102493286133,
+          "kv_unequal": 5630,
+          "first_difference": {
+            "layer": 0,
+            "operation": "scores",
+            "measurement": {
+              "shape": [
+                1,
+                32,
+                1,
+                50
+              ],
+              "actual_stride": [
+                1600,
+                50,
+                50,
+                1
+              ],
+              "expected_stride": [
+                1600,
+                50,
+                50,
+                1
+              ],
+              "first_unequal_index": [
+                0,
+                24,
+                0,
+                13
+              ],
+              "actual_at_first": -0.003353118896484375,
+              "expected_at_first": -0.0033512115478515625,
+              "unequal": 2,
+              "max_absolute_error": 7.62939453125e-06,
+              "max_tolerance_ratio": 0.003772502765059471
+            }
+          },
+          "operation_unequal_counts": {
+            "q": 22406,
+            "k": 2383,
+            "v": 3247,
+            "scores": 10485,
+            "probabilities_fp32": 27044,
+            "probabilities": 14696,
+            "weighted_value": 26152
+          }
+        },
+        {
+          "step": 2,
+          "request": "4",
+          "attended_tokens": 51,
+          "passed": false,
+          "logits_unequal": 29613,
+          "logit_tolerance_ratio": 3.502408742904663,
+          "kv_unequal": 11361,
+          "first_difference": {
+            "layer": 1,
+            "operation": "weighted_value",
+            "measurement": {
+              "shape": [
+                1,
+                32,
+                1,
+                64
+              ],
+              "actual_stride": [
+                2048,
+                64,
+                64,
+                1
+              ],
+              "expected_stride": [
+                2048,
+                64,
+                64,
+                1
+              ],
+              "first_unequal_index": [
+                0,
+                27,
+                0,
+                37
+              ],
+              "actual_at_first": 1.3947486877441406e-05,
+              "expected_at_first": 1.4007091522216797e-05,
+              "unequal": 1,
+              "max_absolute_error": 5.960464477539063e-08,
+              "max_tolerance_ratio": 2.980190038215369e-05
+            }
+          },
+          "operation_unequal_counts": {
+            "q": 22441,
+            "k": 4833,
+            "v": 6528,
+            "scores": 9583,
+            "probabilities_fp32": 27546,
+            "probabilities": 13281,
+            "weighted_value": 26551
+          }
+        },
+        {
+          "step": 2,
+          "request": "3",
+          "attended_tokens": 19,
+          "passed": false,
+          "logits_unequal": 18912,
+          "logit_tolerance_ratio": 1.3920609951019287,
+          "kv_unequal": 12605,
+          "first_difference": {
+            "layer": 0,
+            "operation": "weighted_value",
+            "measurement": {
+              "shape": [
+                1,
+                32,
+                1,
+                64
+              ],
+              "actual_stride": [
+                2048,
+                64,
+                64,
+                1
+              ],
+              "expected_stride": [
+                2048,
+                64,
+                64,
+                1
+              ],
+              "first_unequal_index": [
+                0,
+                24,
+                0,
+                22
+              ],
+              "actual_at_first": -0.0028705596923828125,
+              "expected_at_first": -0.002872467041015625,
+              "unequal": 1,
+              "max_absolute_error": 1.9073486328125e-06,
+              "max_tolerance_ratio": 0.0009509427472949028
+            }
+          },
+          "operation_unequal_counts": {
+            "q": 29904,
+            "k": 5639,
+            "v": 6966,
+            "scores": 7410,
+            "probabilities_fp32": 12615,
+            "probabilities": 8814,
+            "weighted_value": 35059
+          }
+        },
+        {
+          "step": 2,
+          "request": "2",
+          "attended_tokens": 18,
+          "passed": false,
+          "logits_unequal": 23992,
+          "logit_tolerance_ratio": 2.459556818008423,
+          "kv_unequal": 12301,
+          "first_difference": {
+            "layer": 2,
+            "operation": "scores",
+            "measurement": {
+              "shape": [
+                1,
+                32,
+                1,
+                18
+              ],
+              "actual_stride": [
+                576,
+                18,
+                18,
+                1
+              ],
+              "expected_stride": [
+                576,
+                18,
+                18,
+                1
+              ],
+              "first_unequal_index": [
+                0,
+                0,
+                0,
+                10
+              ],
+              "actual_at_first": -0.003070831298828125,
+              "expected_at_first": -0.0030727386474609375,
+              "unequal": 2,
+              "max_absolute_error": 7.62939453125e-06,
+              "max_tolerance_ratio": 0.003777176607400179
+            }
+          },
+          "operation_unequal_counts": {
+            "q": 23000,
+            "k": 5526,
+            "v": 6775,
+            "scores": 5072,
+            "probabilities_fp32": 9289,
+            "probabilities": 6358,
+            "weighted_value": 28058
+          }
+        },
+        {
+          "step": 2,
+          "request": "1",
+          "attended_tokens": 17,
+          "passed": false,
+          "logits_unequal": 25521,
+          "logit_tolerance_ratio": 1.977457046508789,
+          "kv_unequal": 7436,
+          "first_difference": {
+            "layer": 1,
+            "operation": "weighted_value",
+            "measurement": {
+              "shape": [
+                1,
+                32,
+                1,
+                64
+              ],
+              "actual_stride": [
+                2048,
+                64,
+                64,
+                1
+              ],
+              "expected_stride": [
+                2048,
+                64,
+                64,
+                1
+              ],
+              "first_unequal_index": [
+                0,
+                2,
+                0,
+                41
+              ],
+              "actual_at_first": -6.0677528381347656e-05,
+              "expected_at_first": -6.073713302612305e-05,
+              "unequal": 1,
+              "max_absolute_error": 5.960464477539063e-08,
+              "max_tolerance_ratio": 2.980051067424938e-05
+            }
+          },
+          "operation_unequal_counts": {
+            "q": 27154,
+            "k": 3324,
+            "v": 4112,
+            "scores": 5822,
+            "probabilities_fp32": 10489,
+            "probabilities": 6873,
+            "weighted_value": 32387
+          }
+        },
+        {
+          "step": 2,
+          "request": "0",
+          "attended_tokens": 3,
+          "passed": true,
+          "logits_unequal": 0,
+          "logit_tolerance_ratio": 0.0,
+          "kv_unequal": 0,
+          "first_difference": null,
+          "operation_unequal_counts": {
+            "q": 0,
+            "k": 0,
+            "v": 0,
+            "scores": 0,
+            "probabilities_fp32": 0,
+            "probabilities": 0,
+            "weighted_value": 0
+          }
+        },
+        {
+          "step": 3,
+          "request": "0",
+          "attended_tokens": 4,
+          "passed": true,
+          "logits_unequal": 0,
+          "logit_tolerance_ratio": 0.0,
+          "kv_unequal": 0,
+          "first_difference": null,
+          "operation_unequal_counts": {
+            "q": 0,
+            "k": 0,
+            "v": 0,
+            "scores": 0,
+            "probabilities_fp32": 0,
+            "probabilities": 0,
+            "weighted_value": 0
+          }
+        },
+        {
+          "step": 3,
+          "request": "1",
+          "attended_tokens": 18,
+          "passed": false,
+          "logits_unequal": 22878,
+          "logit_tolerance_ratio": 2.363210678100586,
+          "kv_unequal": 14641,
+          "first_difference": {
+            "layer": 1,
+            "operation": "weighted_value",
+            "measurement": {
+              "shape": [
+                1,
+                32,
+                1,
+                64
+              ],
+              "actual_stride": [
+                2048,
+                64,
+                64,
+                1
+              ],
+              "expected_stride": [
+                2048,
+                64,
+                64,
+                1
+              ],
+              "first_unequal_index": [
+                0,
+                5,
+                0,
+                13
+              ],
+              "actual_at_first": -7.033348083496094e-05,
+              "expected_at_first": -7.027387619018555e-05,
+              "unequal": 2,
+              "max_absolute_error": 4.76837158203125e-07,
+              "max_tolerance_ratio": 0.0002382017410127446
+            }
+          },
+          "operation_unequal_counts": {
+            "q": 27478,
+            "k": 6484,
+            "v": 8157,
+            "scores": 5857,
+            "probabilities_fp32": 11286,
+            "probabilities": 7328,
+            "weighted_value": 33480
+          }
+        },
+        {
+          "step": 3,
+          "request": "2",
+          "attended_tokens": 19,
+          "passed": false,
+          "logits_unequal": 19634,
+          "logit_tolerance_ratio": 1.4883944988250732,
+          "kv_unequal": 20142,
+          "first_difference": {
+            "layer": 0,
+            "operation": "weighted_value",
+            "measurement": {
+              "shape": [
+                1,
+                32,
+                1,
+                64
+              ],
+              "actual_stride": [
+                2048,
+                64,
+                64,
+                1
+              ],
+              "expected_stride": [
+                2048,
+                64,
+                64,
+                1
+              ],
+              "first_unequal_index": [
+                0,
+                24,
+                0,
+                22
+              ],
+              "actual_at_first": -0.0028705596923828125,
+              "expected_at_first": -0.002872467041015625,
+              "unequal": 1,
+              "max_absolute_error": 1.9073486328125e-06,
+              "max_tolerance_ratio": 0.0009509427472949028
+            }
+          },
+          "operation_unequal_counts": {
+            "q": 29300,
+            "k": 9036,
+            "v": 11106,
+            "scores": 6996,
+            "probabilities_fp32": 12673,
+            "probabilities": 8775,
+            "weighted_value": 34882
+          }
+        },
+        {
+          "step": 3,
+          "request": "3",
+          "attended_tokens": 20,
+          "passed": false,
+          "logits_unequal": 22126,
+          "logit_tolerance_ratio": 1.696252465248108,
+          "kv_unequal": 19920,
+          "first_difference": {
+            "layer": 1,
+            "operation": "k",
+            "measurement": {
+              "unequal": 12,
+              "pages": [
+                {
+                  "shape": [
+                    16,
+                    4,
+                    64
+                  ],
+                  "actual_stride": [
+                    256,
+                    64,
+                    1
+                  ],
+                  "expected_stride": [
+                    64,
+                    1280,
+                    1
+                  ],
+                  "first_unequal_index": null,
+                  "actual_at_first": null,
+                  "expected_at_first": null,
+                  "unequal": 0,
+                  "max_absolute_error": 0.0,
+                  "max_tolerance_ratio": 0.0
+                },
+                {
+                  "shape": [
+                    4,
+                    4,
+                    64
+                  ],
+                  "actual_stride": [
+                    256,
+                    64,
+                    1
+                  ],
+                  "expected_stride": [
+                    64,
+                    1280,
+                    1
+                  ],
+                  "first_unequal_index": [
+                    2,
+                    0,
+                    48
+                  ],
+                  "actual_at_first": -0.39208984375,
+                  "expected_at_first": -0.3916015625,
+                  "unequal": 12,
+                  "max_absolute_error": 0.00390625,
+                  "max_tolerance_ratio": 0.32320618629455566
+                }
+              ]
+            }
+          },
+          "operation_unequal_counts": {
+            "q": 28656,
+            "k": 8880,
+            "v": 11040,
+            "scores": 6637,
+            "probabilities_fp32": 12882,
+            "probabilities": 8286,
+            "weighted_value": 33887
+          }
+        },
+        {
+          "step": 3,
+          "request": "4",
+          "attended_tokens": 52,
+          "passed": false,
+          "logits_unequal": 21482,
+          "logit_tolerance_ratio": 1.8014371395111084,
+          "kv_unequal": 17943,
+          "first_difference": {
+            "layer": 0,
+            "operation": "weighted_value",
+            "measurement": {
+              "shape": [
+                1,
+                32,
+                1,
+                64
+              ],
+              "actual_stride": [
+                2048,
+                64,
+                64,
+                1
+              ],
+              "expected_stride": [
+                2048,
+                64,
+                64,
+                1
+              ],
+              "first_unequal_index": [
+                0,
+                22,
+                0,
+                23
+              ],
+              "actual_at_first": 0.00019299983978271484,
+              "expected_at_first": 0.00019311904907226562,
+              "unequal": 1,
+              "max_absolute_error": 1.1920928955078125e-07,
+              "max_tolerance_ratio": 5.959313421044499e-05
+            }
+          },
+          "operation_unequal_counts": {
+            "q": 25073,
+            "k": 7703,
+            "v": 10240,
+            "scores": 10811,
+            "probabilities_fp32": 31301,
+            "probabilities": 15804,
+            "weighted_value": 29758
+          }
+        }
+      ]
+    },
+    {
+      "arm": "baseline",
+      "case": "fragmented",
+      "returncode": 0,
+      "completed_rows": 15,
+      "expected_rows": 15,
+      "failed_rows": 11,
+      "all_completed_greedy_equal": true,
+      "max_logit_tolerance_ratio": 3.502408742904663,
+      "dispatch": {
+        "baseline": 330
+      },
+      "cleanup": {
+        "total_blocks": 16,
+        "free_blocks": 16,
+        "owned_blocks": 0,
+        "reserved_blocks": 0,
+        "active_slots": 0,
+        "live_cached_token_slots": 0
+      },
+      "rows": [
+        {
+          "step": 1,
+          "request": "0",
+          "attended_tokens": 2,
+          "passed": true,
+          "logits_unequal": 0,
+          "logit_tolerance_ratio": 0.0,
+          "kv_unequal": 0,
+          "first_difference": null,
+          "operation_unequal_counts": {
+            "q": 0,
+            "k": 0,
+            "v": 0,
+            "scores": 0,
+            "probabilities_fp32": 0,
+            "probabilities": 0,
+            "weighted_value": 0
+          }
+        },
+        {
+          "step": 1,
+          "request": "1",
+          "attended_tokens": 16,
+          "passed": true,
+          "logits_unequal": 0,
+          "logit_tolerance_ratio": 0.0,
+          "kv_unequal": 0,
+          "first_difference": null,
+          "operation_unequal_counts": {
+            "q": 0,
+            "k": 0,
+            "v": 0,
+            "scores": 0,
+            "probabilities_fp32": 0,
+            "probabilities": 0,
+            "weighted_value": 0
+          }
+        },
+        {
+          "step": 1,
+          "request": "2",
+          "attended_tokens": 17,
+          "passed": false,
+          "logits_unequal": 21513,
+          "logit_tolerance_ratio": 1.422794222831726,
+          "kv_unequal": 6376,
+          "first_difference": {
+            "layer": 4,
+            "operation": "weighted_value",
+            "measurement": {
+              "shape": [
+                1,
+                32,
+                1,
+                64
+              ],
+              "actual_stride": [
+                2048,
+                64,
+                64,
+                1
+              ],
+              "expected_stride": [
+                2048,
+                64,
+                64,
+                1
+              ],
+              "first_unequal_index": [
+                0,
+                1,
+                0,
+                15
+              ],
+              "actual_at_first": -0.002307891845703125,
+              "expected_at_first": -0.0023097991943359375,
+              "unequal": 2,
+              "max_absolute_error": 1.9073486328125e-06,
+              "max_tolerance_ratio": 0.0009514765697531402
+            }
+          },
+          "operation_unequal_counts": {
+            "q": 23233,
+            "k": 2884,
+            "v": 3492,
+            "scores": 4848,
+            "probabilities_fp32": 8904,
+            "probabilities": 5828,
+            "weighted_value": 26847
+          }
+        },
+        {
+          "step": 1,
+          "request": "3",
+          "attended_tokens": 18,
+          "passed": false,
+          "logits_unequal": 25754,
+          "logit_tolerance_ratio": 2.375192642211914,
+          "kv_unequal": 4750,
+          "first_difference": {
+            "layer": 2,
+            "operation": "scores",
+            "measurement": {
+              "shape": [
+                1,
+                32,
+                1,
+                18
+              ],
+              "actual_stride": [
+                576,
+                18,
+                18,
+                1
+              ],
+              "expected_stride": [
+                576,
+                18,
+                18,
+                1
+              ],
+              "first_unequal_index": [
+                0,
+                24,
+                0,
+                15
+              ],
+              "actual_at_first": -0.0103912353515625,
+              "expected_at_first": -0.01039886474609375,
+              "unequal": 1,
+              "max_absolute_error": 7.62939453125e-06,
+              "max_tolerance_ratio": 0.0037754366640001535
+            }
+          },
+          "operation_unequal_counts": {
+            "q": 18194,
+            "k": 2144,
+            "v": 2606,
+            "scores": 4076,
+            "probabilities_fp32": 7434,
+            "probabilities": 4959,
+            "weighted_value": 20974
+          }
+        },
+        {
+          "step": 1,
+          "request": "4",
+          "attended_tokens": 50,
+          "passed": false,
+          "logits_unequal": 20498,
+          "logit_tolerance_ratio": 1.6803102493286133,
+          "kv_unequal": 5630,
+          "first_difference": {
+            "layer": 0,
+            "operation": "scores",
+            "measurement": {
+              "shape": [
+                1,
+                32,
+                1,
+                50
+              ],
+              "actual_stride": [
+                1600,
+                50,
+                50,
+                1
+              ],
+              "expected_stride": [
+                1600,
+                50,
+                50,
+                1
+              ],
+              "first_unequal_index": [
+                0,
+                24,
+                0,
+                13
+              ],
+              "actual_at_first": -0.003353118896484375,
+              "expected_at_first": -0.0033512115478515625,
+              "unequal": 2,
+              "max_absolute_error": 7.62939453125e-06,
+              "max_tolerance_ratio": 0.003772502765059471
+            }
+          },
+          "operation_unequal_counts": {
+            "q": 22406,
+            "k": 2383,
+            "v": 3247,
+            "scores": 10485,
+            "probabilities_fp32": 27044,
+            "probabilities": 14696,
+            "weighted_value": 26152
+          }
+        },
+        {
+          "step": 2,
+          "request": "4",
+          "attended_tokens": 51,
+          "passed": false,
+          "logits_unequal": 29613,
+          "logit_tolerance_ratio": 3.502408742904663,
+          "kv_unequal": 11361,
+          "first_difference": {
+            "layer": 1,
+            "operation": "weighted_value",
+            "measurement": {
+              "shape": [
+                1,
+                32,
+                1,
+                64
+              ],
+              "actual_stride": [
+                2048,
+                64,
+                64,
+                1
+              ],
+              "expected_stride": [
+                2048,
+                64,
+                64,
+                1
+              ],
+              "first_unequal_index": [
+                0,
+                27,
+                0,
+                37
+              ],
+              "actual_at_first": 1.3947486877441406e-05,
+              "expected_at_first": 1.4007091522216797e-05,
+              "unequal": 1,
+              "max_absolute_error": 5.960464477539063e-08,
+              "max_tolerance_ratio": 2.980190038215369e-05
+            }
+          },
+          "operation_unequal_counts": {
+            "q": 22441,
+            "k": 4833,
+            "v": 6528,
+            "scores": 9583,
+            "probabilities_fp32": 27546,
+            "probabilities": 13281,
+            "weighted_value": 26551
+          }
+        },
+        {
+          "step": 2,
+          "request": "3",
+          "attended_tokens": 19,
+          "passed": false,
+          "logits_unequal": 18912,
+          "logit_tolerance_ratio": 1.3920609951019287,
+          "kv_unequal": 12605,
+          "first_difference": {
+            "layer": 0,
+            "operation": "weighted_value",
+            "measurement": {
+              "shape": [
+                1,
+                32,
+                1,
+                64
+              ],
+              "actual_stride": [
+                2048,
+                64,
+                64,
+                1
+              ],
+              "expected_stride": [
+                2048,
+                64,
+                64,
+                1
+              ],
+              "first_unequal_index": [
+                0,
+                24,
+                0,
+                22
+              ],
+              "actual_at_first": -0.0028705596923828125,
+              "expected_at_first": -0.002872467041015625,
+              "unequal": 1,
+              "max_absolute_error": 1.9073486328125e-06,
+              "max_tolerance_ratio": 0.0009509427472949028
+            }
+          },
+          "operation_unequal_counts": {
+            "q": 29904,
+            "k": 5639,
+            "v": 6966,
+            "scores": 7410,
+            "probabilities_fp32": 12615,
+            "probabilities": 8814,
+            "weighted_value": 35059
+          }
+        },
+        {
+          "step": 2,
+          "request": "2",
+          "attended_tokens": 18,
+          "passed": false,
+          "logits_unequal": 23992,
+          "logit_tolerance_ratio": 2.459556818008423,
+          "kv_unequal": 12301,
+          "first_difference": {
+            "layer": 2,
+            "operation": "scores",
+            "measurement": {
+              "shape": [
+                1,
+                32,
+                1,
+                18
+              ],
+              "actual_stride": [
+                576,
+                18,
+                18,
+                1
+              ],
+              "expected_stride": [
+                576,
+                18,
+                18,
+                1
+              ],
+              "first_unequal_index": [
+                0,
+                0,
+                0,
+                10
+              ],
+              "actual_at_first": -0.003070831298828125,
+              "expected_at_first": -0.0030727386474609375,
+              "unequal": 2,
+              "max_absolute_error": 7.62939453125e-06,
+              "max_tolerance_ratio": 0.003777176607400179
+            }
+          },
+          "operation_unequal_counts": {
+            "q": 23000,
+            "k": 5526,
+            "v": 6775,
+            "scores": 5072,
+            "probabilities_fp32": 9289,
+            "probabilities": 6358,
+            "weighted_value": 28058
+          }
+        },
+        {
+          "step": 2,
+          "request": "1",
+          "attended_tokens": 17,
+          "passed": false,
+          "logits_unequal": 25521,
+          "logit_tolerance_ratio": 1.977457046508789,
+          "kv_unequal": 7436,
+          "first_difference": {
+            "layer": 1,
+            "operation": "weighted_value",
+            "measurement": {
+              "shape": [
+                1,
+                32,
+                1,
+                64
+              ],
+              "actual_stride": [
+                2048,
+                64,
+                64,
+                1
+              ],
+              "expected_stride": [
+                2048,
+                64,
+                64,
+                1
+              ],
+              "first_unequal_index": [
+                0,
+                2,
+                0,
+                41
+              ],
+              "actual_at_first": -6.0677528381347656e-05,
+              "expected_at_first": -6.073713302612305e-05,
+              "unequal": 1,
+              "max_absolute_error": 5.960464477539063e-08,
+              "max_tolerance_ratio": 2.980051067424938e-05
+            }
+          },
+          "operation_unequal_counts": {
+            "q": 27154,
+            "k": 3324,
+            "v": 4112,
+            "scores": 5822,
+            "probabilities_fp32": 10489,
+            "probabilities": 6873,
+            "weighted_value": 32387
+          }
+        },
+        {
+          "step": 2,
+          "request": "0",
+          "attended_tokens": 3,
+          "passed": true,
+          "logits_unequal": 0,
+          "logit_tolerance_ratio": 0.0,
+          "kv_unequal": 0,
+          "first_difference": null,
+          "operation_unequal_counts": {
+            "q": 0,
+            "k": 0,
+            "v": 0,
+            "scores": 0,
+            "probabilities_fp32": 0,
+            "probabilities": 0,
+            "weighted_value": 0
+          }
+        },
+        {
+          "step": 3,
+          "request": "0",
+          "attended_tokens": 4,
+          "passed": true,
+          "logits_unequal": 0,
+          "logit_tolerance_ratio": 0.0,
+          "kv_unequal": 0,
+          "first_difference": null,
+          "operation_unequal_counts": {
+            "q": 0,
+            "k": 0,
+            "v": 0,
+            "scores": 0,
+            "probabilities_fp32": 0,
+            "probabilities": 0,
+            "weighted_value": 0
+          }
+        },
+        {
+          "step": 3,
+          "request": "1",
+          "attended_tokens": 18,
+          "passed": false,
+          "logits_unequal": 22878,
+          "logit_tolerance_ratio": 2.363210678100586,
+          "kv_unequal": 14641,
+          "first_difference": {
+            "layer": 1,
+            "operation": "weighted_value",
+            "measurement": {
+              "shape": [
+                1,
+                32,
+                1,
+                64
+              ],
+              "actual_stride": [
+                2048,
+                64,
+                64,
+                1
+              ],
+              "expected_stride": [
+                2048,
+                64,
+                64,
+                1
+              ],
+              "first_unequal_index": [
+                0,
+                5,
+                0,
+                13
+              ],
+              "actual_at_first": -7.033348083496094e-05,
+              "expected_at_first": -7.027387619018555e-05,
+              "unequal": 2,
+              "max_absolute_error": 4.76837158203125e-07,
+              "max_tolerance_ratio": 0.0002382017410127446
+            }
+          },
+          "operation_unequal_counts": {
+            "q": 27478,
+            "k": 6484,
+            "v": 8157,
+            "scores": 5857,
+            "probabilities_fp32": 11286,
+            "probabilities": 7328,
+            "weighted_value": 33480
+          }
+        },
+        {
+          "step": 3,
+          "request": "2",
+          "attended_tokens": 19,
+          "passed": false,
+          "logits_unequal": 19634,
+          "logit_tolerance_ratio": 1.4883944988250732,
+          "kv_unequal": 20142,
+          "first_difference": {
+            "layer": 0,
+            "operation": "weighted_value",
+            "measurement": {
+              "shape": [
+                1,
+                32,
+                1,
+                64
+              ],
+              "actual_stride": [
+                2048,
+                64,
+                64,
+                1
+              ],
+              "expected_stride": [
+                2048,
+                64,
+                64,
+                1
+              ],
+              "first_unequal_index": [
+                0,
+                24,
+                0,
+                22
+              ],
+              "actual_at_first": -0.0028705596923828125,
+              "expected_at_first": -0.002872467041015625,
+              "unequal": 1,
+              "max_absolute_error": 1.9073486328125e-06,
+              "max_tolerance_ratio": 0.0009509427472949028
+            }
+          },
+          "operation_unequal_counts": {
+            "q": 29300,
+            "k": 9036,
+            "v": 11106,
+            "scores": 6996,
+            "probabilities_fp32": 12673,
+            "probabilities": 8775,
+            "weighted_value": 34882
+          }
+        },
+        {
+          "step": 3,
+          "request": "3",
+          "attended_tokens": 20,
+          "passed": false,
+          "logits_unequal": 22126,
+          "logit_tolerance_ratio": 1.696252465248108,
+          "kv_unequal": 19920,
+          "first_difference": {
+            "layer": 1,
+            "operation": "k",
+            "measurement": {
+              "unequal": 12,
+              "pages": [
+                {
+                  "shape": [
+                    16,
+                    4,
+                    64
+                  ],
+                  "actual_stride": [
+                    256,
+                    64,
+                    1
+                  ],
+                  "expected_stride": [
+                    64,
+                    1280,
+                    1
+                  ],
+                  "first_unequal_index": null,
+                  "actual_at_first": null,
+                  "expected_at_first": null,
+                  "unequal": 0,
+                  "max_absolute_error": 0.0,
+                  "max_tolerance_ratio": 0.0
+                },
+                {
+                  "shape": [
+                    4,
+                    4,
+                    64
+                  ],
+                  "actual_stride": [
+                    256,
+                    64,
+                    1
+                  ],
+                  "expected_stride": [
+                    64,
+                    1280,
+                    1
+                  ],
+                  "first_unequal_index": [
+                    2,
+                    0,
+                    48
+                  ],
+                  "actual_at_first": -0.39208984375,
+                  "expected_at_first": -0.3916015625,
+                  "unequal": 12,
+                  "max_absolute_error": 0.00390625,
+                  "max_tolerance_ratio": 0.32320618629455566
+                }
+              ]
+            }
+          },
+          "operation_unequal_counts": {
+            "q": 28656,
+            "k": 8880,
+            "v": 11040,
+            "scores": 6637,
+            "probabilities_fp32": 12882,
+            "probabilities": 8286,
+            "weighted_value": 33887
+          }
+        },
+        {
+          "step": 3,
+          "request": "4",
+          "attended_tokens": 52,
+          "passed": false,
+          "logits_unequal": 21482,
+          "logit_tolerance_ratio": 1.8014371395111084,
+          "kv_unequal": 17943,
+          "first_difference": {
+            "layer": 0,
+            "operation": "weighted_value",
+            "measurement": {
+              "shape": [
+                1,
+                32,
+                1,
+                64
+              ],
+              "actual_stride": [
+                2048,
+                64,
+                64,
+                1
+              ],
+              "expected_stride": [
+                2048,
+                64,
+                64,
+                1
+              ],
+              "first_unequal_index": [
+                0,
+                22,
+                0,
+                23
+              ],
+              "actual_at_first": 0.00019299983978271484,
+              "expected_at_first": 0.00019311904907226562,
+              "unequal": 1,
+              "max_absolute_error": 1.1920928955078125e-07,
+              "max_tolerance_ratio": 5.959313421044499e-05
+            }
+          },
+          "operation_unequal_counts": {
+            "q": 25073,
+            "k": 7703,
+            "v": 10240,
+            "scores": 10811,
+            "probabilities_fp32": 31301,
+            "probabilities": 15804,
+            "weighted_value": 29758
+          }
+        }
+      ]
+    },
+    {
+      "arm": "family_hypothesis",
+      "case": "single",
+      "returncode": 0,
+      "completed_rows": 3,
+      "expected_rows": 3,
+      "failed_rows": 0,
+      "all_completed_greedy_equal": true,
+      "max_logit_tolerance_ratio": 0.0,
+      "dispatch": {
+        "baseline": 22,
+        "alternating": 22,
+        "halves": 22
+      },
+      "cleanup": {
+        "total_blocks": 16,
+        "free_blocks": 16,
+        "owned_blocks": 0,
+        "reserved_blocks": 0,
+        "active_slots": 0,
+        "live_cached_token_slots": 0
+      },
+      "rows": [
+        {
+          "step": 1,
+          "request": "0",
+          "attended_tokens": 16,
+          "passed": true,
+          "logits_unequal": 0,
+          "logit_tolerance_ratio": 0.0,
+          "kv_unequal": 0,
+          "first_difference": null,
+          "operation_unequal_counts": {
+            "q": 0,
+            "k": 0,
+            "v": 0,
+            "scores": 0,
+            "probabilities_fp32": 0,
+            "probabilities": 0,
+            "weighted_value": 0
+          }
+        },
+        {
+          "step": 2,
+          "request": "0",
+          "attended_tokens": 17,
+          "passed": true,
+          "logits_unequal": 0,
+          "logit_tolerance_ratio": 0.0,
+          "kv_unequal": 0,
+          "first_difference": null,
+          "operation_unequal_counts": {
+            "q": 0,
+            "k": 0,
+            "v": 0,
+            "scores": 0,
+            "probabilities_fp32": 0,
+            "probabilities": 0,
+            "weighted_value": 0
+          }
+        },
+        {
+          "step": 3,
+          "request": "0",
+          "attended_tokens": 18,
+          "passed": true,
+          "logits_unequal": 0,
+          "logit_tolerance_ratio": 0.0,
+          "kv_unequal": 0,
+          "first_difference": {
+            "layer": 2,
+            "operation": "scores",
+            "measurement": {
+              "shape": [
+                1,
+                32,
+                1,
+                18
+              ],
+              "actual_stride": [
+                576,
+                18,
+                18,
+                1
+              ],
+              "expected_stride": [
+                576,
+                18,
+                18,
+                1
+              ],
+              "first_unequal_index": [
+                0,
+                18,
+                0,
+                17
+              ],
+              "actual_at_first": -0.1248779296875,
+              "expected_at_first": -0.12481689453125,
+              "unequal": 1,
+              "max_absolute_error": 6.103515625e-05,
+              "max_tolerance_ratio": 0.027131151407957077
+            }
+          },
+          "operation_unequal_counts": {
+            "q": 0,
+            "k": 0,
+            "v": 0,
+            "scores": 3,
+            "probabilities_fp32": 37,
+            "probabilities": 1,
+            "weighted_value": 1
+          }
+        }
+      ]
+    },
+    {
+      "arm": "family_hypothesis",
+      "case": "mixed",
+      "returncode": 1,
+      "completed_rows": 10,
+      "expected_rows": 15,
+      "failed_rows": 3,
+      "all_completed_greedy_equal": true,
+      "max_logit_tolerance_ratio": 2.4656922817230225,
+      "dispatch": {
+        "baseline": 67,
+        "alternating": 88,
+        "halves": 66
+      },
+      "cleanup": {
+        "total_blocks": 16,
+        "free_blocks": 16,
+        "owned_blocks": 0,
+        "reserved_blocks": 0,
+        "active_slots": 0,
+        "live_cached_token_slots": 0
+      },
+      "rows": [
+        {
+          "step": 1,
+          "request": "0",
+          "attended_tokens": 2,
+          "passed": true,
+          "logits_unequal": 0,
+          "logit_tolerance_ratio": 0.0,
+          "kv_unequal": 0,
+          "first_difference": null,
+          "operation_unequal_counts": {
+            "q": 0,
+            "k": 0,
+            "v": 0,
+            "scores": 0,
+            "probabilities_fp32": 0,
+            "probabilities": 0,
+            "weighted_value": 0
+          }
+        },
+        {
+          "step": 1,
+          "request": "1",
+          "attended_tokens": 16,
+          "passed": true,
+          "logits_unequal": 0,
+          "logit_tolerance_ratio": 0.0,
+          "kv_unequal": 0,
+          "first_difference": null,
+          "operation_unequal_counts": {
+            "q": 0,
+            "k": 0,
+            "v": 0,
+            "scores": 0,
+            "probabilities_fp32": 0,
+            "probabilities": 0,
+            "weighted_value": 0
+          }
+        },
+        {
+          "step": 1,
+          "request": "2",
+          "attended_tokens": 17,
+          "passed": true,
+          "logits_unequal": 0,
+          "logit_tolerance_ratio": 0.0,
+          "kv_unequal": 0,
+          "first_difference": null,
+          "operation_unequal_counts": {
+            "q": 0,
+            "k": 0,
+            "v": 0,
+            "scores": 0,
+            "probabilities_fp32": 0,
+            "probabilities": 0,
+            "weighted_value": 0
+          }
+        },
+        {
+          "step": 1,
+          "request": "3",
+          "attended_tokens": 18,
+          "passed": false,
+          "logits_unequal": 23802,
+          "logit_tolerance_ratio": 2.3421473503112793,
+          "kv_unequal": 4596,
+          "first_difference": {
+            "layer": 2,
+            "operation": "scores",
+            "measurement": {
+              "shape": [
+                1,
+                32,
+                1,
+                18
+              ],
+              "actual_stride": [
+                576,
+                18,
+                18,
+                1
+              ],
+              "expected_stride": [
+                576,
+                18,
+                18,
+                1
+              ],
+              "first_unequal_index": [
+                0,
+                24,
+                0,
+                15
+              ],
+              "actual_at_first": -0.0103912353515625,
+              "expected_at_first": -0.01039886474609375,
+              "unequal": 1,
+              "max_absolute_error": 7.62939453125e-06,
+              "max_tolerance_ratio": 0.0037754366640001535
+            }
+          },
+          "operation_unequal_counts": {
+            "q": 17836,
+            "k": 2036,
+            "v": 2560,
+            "scores": 3848,
+            "probabilities_fp32": 7433,
+            "probabilities": 4749,
+            "weighted_value": 20462
+          }
+        },
+        {
+          "step": 1,
+          "request": "4",
+          "attended_tokens": 50,
+          "passed": true,
+          "logits_unequal": 0,
+          "logit_tolerance_ratio": 0.0,
+          "kv_unequal": 0,
+          "first_difference": {
+            "layer": 0,
+            "operation": "scores",
+            "measurement": {
+              "shape": [
+                1,
+                32,
+                1,
+                50
+              ],
+              "actual_stride": [
+                1600,
+                50,
+                50,
+                1
+              ],
+              "expected_stride": [
+                1600,
+                50,
+                50,
+                1
+              ],
+              "first_unequal_index": [
+                0,
+                24,
+                0,
+                13
+              ],
+              "actual_at_first": -0.003353118896484375,
+              "expected_at_first": -0.0033512115478515625,
+              "unequal": 2,
+              "max_absolute_error": 7.62939453125e-06,
+              "max_tolerance_ratio": 0.003772502765059471
+            }
+          },
+          "operation_unequal_counts": {
+            "q": 0,
+            "k": 0,
+            "v": 0,
+            "scores": 4,
+            "probabilities_fp32": 102,
+            "probabilities": 0,
+            "weighted_value": 0
+          }
+        },
+        {
+          "step": 2,
+          "request": "4",
+          "attended_tokens": 51,
+          "passed": true,
+          "logits_unequal": 0,
+          "logit_tolerance_ratio": 0.0,
+          "kv_unequal": 0,
+          "first_difference": null,
+          "operation_unequal_counts": {
+            "q": 0,
+            "k": 0,
+            "v": 0,
+            "scores": 0,
+            "probabilities_fp32": 0,
+            "probabilities": 0,
+            "weighted_value": 0
+          }
+        },
+        {
+          "step": 2,
+          "request": "3",
+          "attended_tokens": 19,
+          "passed": false,
+          "logits_unequal": 17699,
+          "logit_tolerance_ratio": 1.6635860204696655,
+          "kv_unequal": 9007,
+          "first_difference": {
+            "layer": 9,
+            "operation": "k",
+            "measurement": {
+              "unequal": 42,
+              "pages": [
+                {
+                  "shape": [
+                    16,
+                    4,
+                    64
+                  ],
+                  "actual_stride": [
+                    256,
+                    64,
+                    1
+                  ],
+                  "expected_stride": [
+                    64,
+                    1216,
+                    1
+                  ],
+                  "first_unequal_index": null,
+                  "actual_at_first": null,
+                  "expected_at_first": null,
+                  "unequal": 0,
+                  "max_absolute_error": 0.0,
+                  "max_tolerance_ratio": 0.0
+                },
+                {
+                  "shape": [
+                    3,
+                    4,
+                    64
+                  ],
+                  "actual_stride": [
+                    256,
+                    64,
+                    1
+                  ],
+                  "expected_stride": [
+                    64,
+                    1216,
+                    1
+                  ],
+                  "first_unequal_index": [
+                    1,
+                    0,
+                    0
+                  ],
+                  "actual_at_first": 0.9873046875,
+                  "expected_at_first": 0.98779296875,
+                  "unequal": 42,
+                  "max_absolute_error": 0.001953125,
+                  "max_tolerance_ratio": 0.29154518246650696
+                }
+              ]
+            }
+          },
+          "operation_unequal_counts": {
+            "q": 16577,
+            "k": 3997,
+            "v": 5010,
+            "scores": 4061,
+            "probabilities_fp32": 7359,
+            "probabilities": 4878,
+            "weighted_value": 19820
+          }
+        },
+        {
+          "step": 2,
+          "request": "2",
+          "attended_tokens": 18,
+          "passed": false,
+          "logits_unequal": 20969,
+          "logit_tolerance_ratio": 2.4656922817230225,
+          "kv_unequal": 2714,
+          "first_difference": {
+            "layer": 2,
+            "operation": "scores",
+            "measurement": {
+              "shape": [
+                1,
+                32,
+                1,
+                18
+              ],
+              "actual_stride": [
+                576,
+                18,
+                18,
+                1
+              ],
+              "expected_stride": [
+                576,
+                18,
+                18,
+                1
+              ],
+              "first_unequal_index": [
+                0,
+                0,
+                0,
+                10
+              ],
+              "actual_at_first": -0.003070831298828125,
+              "expected_at_first": -0.0030727386474609375,
+              "unequal": 2,
+              "max_absolute_error": 7.62939453125e-06,
+              "max_tolerance_ratio": 0.003777176607400179
+            }
+          },
+          "operation_unequal_counts": {
+            "q": 10528,
+            "k": 1189,
+            "v": 1525,
+            "scores": 2449,
+            "probabilities_fp32": 4608,
+            "probabilities": 2990,
+            "weighted_value": 12558
+          }
+        },
+        {
+          "step": 2,
+          "request": "1",
+          "attended_tokens": 17,
+          "passed": true,
+          "logits_unequal": 0,
+          "logit_tolerance_ratio": 0.0,
+          "kv_unequal": 0,
+          "first_difference": null,
+          "operation_unequal_counts": {
+            "q": 0,
+            "k": 0,
+            "v": 0,
+            "scores": 0,
+            "probabilities_fp32": 0,
+            "probabilities": 0,
+            "weighted_value": 0
+          }
+        },
+        {
+          "step": 2,
+          "request": "0",
+          "attended_tokens": 3,
+          "passed": true,
+          "logits_unequal": 0,
+          "logit_tolerance_ratio": 0.0,
+          "kv_unequal": 0,
+          "first_difference": null,
+          "operation_unequal_counts": {
+            "q": 0,
+            "k": 0,
+            "v": 0,
+            "scores": 0,
+            "probabilities_fp32": 0,
+            "probabilities": 0,
+            "weighted_value": 0
+          }
+        }
+      ],
+      "failure": "Traceback (most recent call last):\n  File \"<string>\", line 42, in <module>\n  File \"/kaggle/working/pagedcore-evidence-restored/source/scripts/collect_numerical_evidence.py\", line 574, in integrated\n    actual, traced = trace_decode(\n                     ^^^^^^^^^^^^^\n  File \"/kaggle/working/pagedcore-evidence-restored/source/scripts/collect_numerical_evidence.py\", line 485, in trace_decode\n    output = decoder.decode_paged(tokens, weights, allocator, requests)\n             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/kaggle/working/pagedcore-evidence-restored/source/.venv/lib/python3.11/site-packages/torch/utils/_contextlib.py\", line 116, in decorate_context\n    return func(*args, **kwargs)\n           ^^^^^^^^^^^^^^^^^^^^^\n  File \"/kaggle/working/pagedcore-evidence-restored/source/src/pagedcore/decoder.py\", line 180, in decode_paged\n    attention = paged_attention(\n                ^^^^^^^^^^^^^^^^\n  File \"/kaggle/working/pagedcore-evidence-restored/source/scripts/collect_numerical_evidence.py\", line 455, in observe\n    name, reducer = choose_reducer(arm, hf[\"probabilities\"].shape[-1], kernel_family)\n                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"<string>\", line 20, in checked\nRuntimeError: Candidate NOT exercised: length=18, family=unknown\n"
+    },
+    {
+      "arm": "family_hypothesis",
+      "case": "fragmented",
+      "returncode": 1,
+      "completed_rows": 10,
+      "expected_rows": 15,
+      "failed_rows": 3,
+      "all_completed_greedy_equal": true,
+      "max_logit_tolerance_ratio": 2.4656922817230225,
+      "dispatch": {
+        "baseline": 67,
+        "alternating": 88,
+        "halves": 66
+      },
+      "cleanup": {
+        "total_blocks": 16,
+        "free_blocks": 16,
+        "owned_blocks": 0,
+        "reserved_blocks": 0,
+        "active_slots": 0,
+        "live_cached_token_slots": 0
+      },
+      "rows": [
+        {
+          "step": 1,
+          "request": "0",
+          "attended_tokens": 2,
+          "passed": true,
+          "logits_unequal": 0,
+          "logit_tolerance_ratio": 0.0,
+          "kv_unequal": 0,
+          "first_difference": null,
+          "operation_unequal_counts": {
+            "q": 0,
+            "k": 0,
+            "v": 0,
+            "scores": 0,
+            "probabilities_fp32": 0,
+            "probabilities": 0,
+            "weighted_value": 0
+          }
+        },
+        {
+          "step": 1,
+          "request": "1",
+          "attended_tokens": 16,
+          "passed": true,
+          "logits_unequal": 0,
+          "logit_tolerance_ratio": 0.0,
+          "kv_unequal": 0,
+          "first_difference": null,
+          "operation_unequal_counts": {
+            "q": 0,
+            "k": 0,
+            "v": 0,
+            "scores": 0,
+            "probabilities_fp32": 0,
+            "probabilities": 0,
+            "weighted_value": 0
+          }
+        },
+        {
+          "step": 1,
+          "request": "2",
+          "attended_tokens": 17,
+          "passed": true,
+          "logits_unequal": 0,
+          "logit_tolerance_ratio": 0.0,
+          "kv_unequal": 0,
+          "first_difference": null,
+          "operation_unequal_counts": {
+            "q": 0,
+            "k": 0,
+            "v": 0,
+            "scores": 0,
+            "probabilities_fp32": 0,
+            "probabilities": 0,
+            "weighted_value": 0
+          }
+        },
+        {
+          "step": 1,
+          "request": "3",
+          "attended_tokens": 18,
+          "passed": false,
+          "logits_unequal": 23802,
+          "logit_tolerance_ratio": 2.3421473503112793,
+          "kv_unequal": 4596,
+          "first_difference": {
+            "layer": 2,
+            "operation": "scores",
+            "measurement": {
+              "shape": [
+                1,
+                32,
+                1,
+                18
+              ],
+              "actual_stride": [
+                576,
+                18,
+                18,
+                1
+              ],
+              "expected_stride": [
+                576,
+                18,
+                18,
+                1
+              ],
+              "first_unequal_index": [
+                0,
+                24,
+                0,
+                15
+              ],
+              "actual_at_first": -0.0103912353515625,
+              "expected_at_first": -0.01039886474609375,
+              "unequal": 1,
+              "max_absolute_error": 7.62939453125e-06,
+              "max_tolerance_ratio": 0.0037754366640001535
+            }
+          },
+          "operation_unequal_counts": {
+            "q": 17836,
+            "k": 2036,
+            "v": 2560,
+            "scores": 3848,
+            "probabilities_fp32": 7433,
+            "probabilities": 4749,
+            "weighted_value": 20462
+          }
+        },
+        {
+          "step": 1,
+          "request": "4",
+          "attended_tokens": 50,
+          "passed": true,
+          "logits_unequal": 0,
+          "logit_tolerance_ratio": 0.0,
+          "kv_unequal": 0,
+          "first_difference": {
+            "layer": 0,
+            "operation": "scores",
+            "measurement": {
+              "shape": [
+                1,
+                32,
+                1,
+                50
+              ],
+              "actual_stride": [
+                1600,
+                50,
+                50,
+                1
+              ],
+              "expected_stride": [
+                1600,
+                50,
+                50,
+                1
+              ],
+              "first_unequal_index": [
+                0,
+                24,
+                0,
+                13
+              ],
+              "actual_at_first": -0.003353118896484375,
+              "expected_at_first": -0.0033512115478515625,
+              "unequal": 2,
+              "max_absolute_error": 7.62939453125e-06,
+              "max_tolerance_ratio": 0.003772502765059471
+            }
+          },
+          "operation_unequal_counts": {
+            "q": 0,
+            "k": 0,
+            "v": 0,
+            "scores": 4,
+            "probabilities_fp32": 102,
+            "probabilities": 0,
+            "weighted_value": 0
+          }
+        },
+        {
+          "step": 2,
+          "request": "4",
+          "attended_tokens": 51,
+          "passed": true,
+          "logits_unequal": 0,
+          "logit_tolerance_ratio": 0.0,
+          "kv_unequal": 0,
+          "first_difference": null,
+          "operation_unequal_counts": {
+            "q": 0,
+            "k": 0,
+            "v": 0,
+            "scores": 0,
+            "probabilities_fp32": 0,
+            "probabilities": 0,
+            "weighted_value": 0
+          }
+        },
+        {
+          "step": 2,
+          "request": "3",
+          "attended_tokens": 19,
+          "passed": false,
+          "logits_unequal": 17699,
+          "logit_tolerance_ratio": 1.6635860204696655,
+          "kv_unequal": 9007,
+          "first_difference": {
+            "layer": 9,
+            "operation": "k",
+            "measurement": {
+              "unequal": 42,
+              "pages": [
+                {
+                  "shape": [
+                    16,
+                    4,
+                    64
+                  ],
+                  "actual_stride": [
+                    256,
+                    64,
+                    1
+                  ],
+                  "expected_stride": [
+                    64,
+                    1216,
+                    1
+                  ],
+                  "first_unequal_index": null,
+                  "actual_at_first": null,
+                  "expected_at_first": null,
+                  "unequal": 0,
+                  "max_absolute_error": 0.0,
+                  "max_tolerance_ratio": 0.0
+                },
+                {
+                  "shape": [
+                    3,
+                    4,
+                    64
+                  ],
+                  "actual_stride": [
+                    256,
+                    64,
+                    1
+                  ],
+                  "expected_stride": [
+                    64,
+                    1216,
+                    1
+                  ],
+                  "first_unequal_index": [
+                    1,
+                    0,
+                    0
+                  ],
+                  "actual_at_first": 0.9873046875,
+                  "expected_at_first": 0.98779296875,
+                  "unequal": 42,
+                  "max_absolute_error": 0.001953125,
+                  "max_tolerance_ratio": 0.29154518246650696
+                }
+              ]
+            }
+          },
+          "operation_unequal_counts": {
+            "q": 16577,
+            "k": 3997,
+            "v": 5010,
+            "scores": 4061,
+            "probabilities_fp32": 7359,
+            "probabilities": 4878,
+            "weighted_value": 19820
+          }
+        },
+        {
+          "step": 2,
+          "request": "2",
+          "attended_tokens": 18,
+          "passed": false,
+          "logits_unequal": 20969,
+          "logit_tolerance_ratio": 2.4656922817230225,
+          "kv_unequal": 2714,
+          "first_difference": {
+            "layer": 2,
+            "operation": "scores",
+            "measurement": {
+              "shape": [
+                1,
+                32,
+                1,
+                18
+              ],
+              "actual_stride": [
+                576,
+                18,
+                18,
+                1
+              ],
+              "expected_stride": [
+                576,
+                18,
+                18,
+                1
+              ],
+              "first_unequal_index": [
+                0,
+                0,
+                0,
+                10
+              ],
+              "actual_at_first": -0.003070831298828125,
+              "expected_at_first": -0.0030727386474609375,
+              "unequal": 2,
+              "max_absolute_error": 7.62939453125e-06,
+              "max_tolerance_ratio": 0.003777176607400179
+            }
+          },
+          "operation_unequal_counts": {
+            "q": 10528,
+            "k": 1189,
+            "v": 1525,
+            "scores": 2449,
+            "probabilities_fp32": 4608,
+            "probabilities": 2990,
+            "weighted_value": 12558
+          }
+        },
+        {
+          "step": 2,
+          "request": "1",
+          "attended_tokens": 17,
+          "passed": true,
+          "logits_unequal": 0,
+          "logit_tolerance_ratio": 0.0,
+          "kv_unequal": 0,
+          "first_difference": null,
+          "operation_unequal_counts": {
+            "q": 0,
+            "k": 0,
+            "v": 0,
+            "scores": 0,
+            "probabilities_fp32": 0,
+            "probabilities": 0,
+            "weighted_value": 0
+          }
+        },
+        {
+          "step": 2,
+          "request": "0",
+          "attended_tokens": 3,
+          "passed": true,
+          "logits_unequal": 0,
+          "logit_tolerance_ratio": 0.0,
+          "kv_unequal": 0,
+          "first_difference": null,
+          "operation_unequal_counts": {
+            "q": 0,
+            "k": 0,
+            "v": 0,
+            "scores": 0,
+            "probabilities_fp32": 0,
+            "probabilities": 0,
+            "weighted_value": 0
+          }
+        }
+      ],
+      "failure": "Traceback (most recent call last):\n  File \"<string>\", line 42, in <module>\n  File \"/kaggle/working/pagedcore-evidence-restored/source/scripts/collect_numerical_evidence.py\", line 574, in integrated\n    actual, traced = trace_decode(\n                     ^^^^^^^^^^^^^\n  File \"/kaggle/working/pagedcore-evidence-restored/source/scripts/collect_numerical_evidence.py\", line 485, in trace_decode\n    output = decoder.decode_paged(tokens, weights, allocator, requests)\n             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/kaggle/working/pagedcore-evidence-restored/source/.venv/lib/python3.11/site-packages/torch/utils/_contextlib.py\", line 116, in decorate_context\n    return func(*args, **kwargs)\n           ^^^^^^^^^^^^^^^^^^^^^\n  File \"/kaggle/working/pagedcore-evidence-restored/source/src/pagedcore/decoder.py\", line 180, in decode_paged\n    attention = paged_attention(\n                ^^^^^^^^^^^^^^^^\n  File \"/kaggle/working/pagedcore-evidence-restored/source/scripts/collect_numerical_evidence.py\", line 455, in observe\n    name, reducer = choose_reducer(arm, hf[\"probabilities\"].shape[-1], kernel_family)\n                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"<string>\", line 20, in checked\nRuntimeError: Candidate NOT exercised: length=18, family=unknown\n"
+    }
+  ],
+  "evidence_files_verified": 1610,
+  "source_files_verified": 72,
+  "base_revision": "7d9ea61ed81b6028980373860f9a2967935a9683",
+  "unavailable_input_archives": {
+    "results/validation/2026-11-07/value-kernel-sweep-t4.zip": "39379b6c874ad9f25ec2bff798a85788016763f834a9fbc79fb411fb4664bf6e"
+  },
+  "runner_sha256": "9264beea0c80902e935003aa73783d6a10c361c864bf1e9d459e54289322f46a",
+  "override_sha256": "0c3bad6b02cd27dbd4b4d64b5e271bfd0c2fff92cc3cbd78425735affa75f886",
+  "override_matches_current_local_helper": true,
+  "environment": {
+    "environment": {
+      "python": "3.11.15",
+      "package": {
+        "name": "pagedcore",
+        "version": "0.1.0"
+      },
+      "dependencies": {
+        "torch": "2.7.1+cu126",
+        "transformers": "4.52.4"
+      },
+      "cuda": {
+        "available": true,
+        "runtime": "12.6"
+      },
+      "driver": "580.178.04",
+      "gpu": [
+        {
+          "name": "Tesla T4",
+          "memory_mib": 15360
+        },
+        {
+          "name": "Tesla T4",
+          "memory_mib": 15360
+        }
+      ],
+      "model": {
+        "id": "TinyLlama/TinyLlama-1.1B-Chat-v1.0",
+        "revision": "af8e934848d8dd00074cc2cd8a40a9b05c3b011e"
+      },
+      "settings": {
+        "model_id": "TinyLlama/TinyLlama-1.1B-Chat-v1.0",
+        "model_revision": "af8e934848d8dd00074cc2cd8a40a9b05c3b011e",
+        "context_limit": 2048,
+        "min_new_tokens": 1,
+        "default_max_new_tokens": 128,
+        "max_new_tokens": 256,
+        "block_tokens": 16,
+        "kv_pool_mib": 8192,
+        "workspace_margin_mib": 1536,
+        "max_pending_requests": 64,
+        "max_active_sequences": 32,
+        "token_queue_size": 32,
+        "bind_address": "localhost",
+        "log_level": "INFO"
+      }
+    },
+    "policy": {
+      "matmul_allow_tf32": false,
+      "fp16_reduced_precision_reduction": false,
+      "bf16_reduced_precision_reduction": false,
+      "cudnn_allow_tf32": false,
+      "cudnn_benchmark": false,
+      "cudnn_deterministic": true,
+      "float32_matmul_precision": "highest",
+      "deterministic_algorithms": true,
+      "deterministic_warn_only": false,
+      "cublas_workspace_config": ":4096:8"
+    },
+    "model_revision": "af8e934848d8dd00074cc2cd8a40a9b05c3b011e",
+    "arm": "family_hypothesis",
+    "case": "single",
+    "gpu_uuid": "270c2d0d-4065-aa64-e6f1-52fb597e2858"
+  },
+  "mixed_fragmented_same_completed_numerical_results": true,
+  "equal_input_value_checks": {
+    "native_one_page": 154,
+    "alternating": 172,
+    "halves": 107,
+    "weighted_output_mismatches": 0,
+    "scope": "completed candidate layers with identical Q/K/V and FP16 probabilities"
+  },
+  "candidate_completed_greedy_comparisons": {
+    "count": 23,
+    "mismatches": 0
+  }
+}

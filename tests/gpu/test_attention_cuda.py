@@ -23,7 +23,7 @@ def t4_device() -> torch.device:
     return torch.device("cuda:0")
 
 
-def test_eager_value_sum_at_17_tokens_on_t4(
+def test_legacy_eager_value_sum_at_17_tokens_on_t4(
     t4_device: torch.device,
     forbid_dense_kv_history: Callable[[Tensor], TorchDispatchMode],
 ) -> None:

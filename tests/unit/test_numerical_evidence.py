@@ -187,7 +187,10 @@ def test_hypothesis_dispatch_requires_a_measured_supported_family(length, family
     assert evidence.choose_reducer("baseline", length, family)[0] == "baseline"
 
 
-def test_notebook_source_identity_and_archive_survive_setup_failure(tmp_path, monkeypatch):
+@pytest.mark.parametrize("accuracy", [False, True])
+def test_notebook_source_identity_and_archive_survive_setup_failure(
+    tmp_path, monkeypatch, accuracy
+):
     source_root = tmp_path / "input"
     source_root.mkdir()
     for name in (
@@ -210,9 +213,12 @@ def test_notebook_source_identity_and_archive_survive_setup_failure(tmp_path, mo
         lambda command, **kw: "base-commit" if "rev-parse" in command else " M source\n",
     )
     path = tmp_path / "evidence.ipynb"
-    notebook.build(path)
+    notebook.build(path, accuracy=accuracy)
     cells = json.loads(path.read_text())["cells"]
     code = "".join(cells[-1]["source"])
+    if accuracy:
+        assert "scripts.export_paged_accuracy" in code
+        assert "synthetic-controls" not in code
     compile(code, str(path), "exec")
 
     # Only the setup subprocess is simulated; all extraction, hashes and archive writes execute.
@@ -232,7 +238,8 @@ def test_notebook_source_identity_and_archive_survive_setup_failure(tmp_path, mo
     monkeypatch.setattr(subprocess, "Popen", FailedSetup)
     monkeypatch.chdir(tmp_path)
     exec(code, {})
-    archive_path = next(tmp_path.glob("pagedcore-evidence-*.zip"))
+    prefix = "pagedcore-accuracy" if accuracy else "pagedcore-evidence"
+    archive_path = next(tmp_path.glob(f"{prefix}-*.zip"))
     with ZipFile(archive_path) as archive:
         assert "evidence/notebook-failure.txt" in archive.namelist()
         assert json.loads(archive.read("evidence/commands.json"))[0]["returncode"] == 1
