@@ -1,6 +1,6 @@
 # Implementation and evidence status
 
-Snapshot: 2026-11-06. **Phase 4 GPU paged KV cache is complete at the allocator
+Snapshot: 2026-11-08. **Phase 4 GPU paged KV cache is complete at the allocator
 boundary. The current gate is Phase 5: block-table decode attention.**
 Standalone single-query paged attention has reviewed T4 evidence at `3401406`.
 The newer batched one-token paged decode and staged attention reads have
@@ -10,6 +10,31 @@ T4 integrated paged-decoder acceptance, continuous
 batching and the service remain outstanding.
 
 ## Current gate
+
+The November 8 [value follow-up review](validation/2026-11-08-value-followup-review.md)
+verifies the returned T4 archive and successful candidate dispatch. The single
+candidate passes through 17 attended tokens, but all three combined candidate
+cases stop in the storage guard after the first half-split attention call, before
+complete logit comparisons. A CPU regression reproduces hidden-state tracking
+into the MLP. The diagnostic half-split helper now uses rank-one products like
+the existing striped reducer; guard rules and serving math are unchanged.
+The corrected helper still requires an integrated T4 rerun. This supersedes the
+earlier baseline-fallback problem without establishing a numerical repair.
+The diagnostic correction passes 725 non-GPU tests (26 deselected), Ruff and
+strict mypy. CPU replay of all 22 saved 18-token T4 layer operands is exact;
+this is not a new integrated T4 pass. Commands and retained evidence are in
+the linked review.
+
+On November 8, the [numerical evidence collection plan](validation/2026-11-08-numerical-evidence-plan.md)
+adds a self-contained Kaggle notebook with exact bundled source, raw real-model
+operands across kernel families, isolated score controls and guarded
+single/mixed/fragmented diagnostic arms. This is validation preparation; it has
+no new T4 result and does not select a serving repair. The source gate remains
+P5.3, and full integrated T4 acceptance plus the remaining documented Phase 5
+requirements remain unsatisfied. Local preparation passes 724 non-GPU tests
+(26 deselected, zero skipped), Ruff lint/format and strict mypy; a synthetic
+22-layer CPU smoke exercises the collector's fragmented rollback/retry path.
+The plan records commands and evidence limits. No new TinyLlama T4 parity is claimed.
 
 The [November 4 T4 review](validation/2026-11-04-p53-t4-value-reduction-review.md)
 verifies the supplied [diagnostic ZIP](../results/validation/2026-11-04/p53-diagnostics.zip)
@@ -95,8 +120,22 @@ while the four-lane model differs in 1,232. The
 November 6 at clean `30dd435`; its script and fixture hashes match the revision.
 This identifies a candidate addition order for the sampled 17-token shape.
 The [test-only candidate](VALIDATION_PLAN.md) selects two lanes only at 17
-tokens. Its captured-value, fragmented-boundary and broader decoder cases
-still need T4 execution. A serving replacement and T4 acceptance are pending.
+tokens. The user-supplied [T4 console output](../results/validation/2026-11-07/paired-at-17-console.txt),
+reviewed November 7, reports two passes and three failures from the checkout
+named `7d9ea61`. The captured scalar and fragmented two-step boundary case
+pass, including logits, K/V, greedy tokens, rollback/retry and accounting at
+16 and 17 attended tokens. The single, mixed and fragmented three-step cases
+fail logit comparison at the frozen tolerances. The traceback omits the failing
+step and request row; trace those before assigning the remaining cause. The
+console alone does not establish clean source provenance. A serving replacement
+and T4 acceptance remain pending.
+
+The [November 7 sweep review](validation/2026-11-07-value-kernel-sweep.md)
+records 54 synthetic dense T4 lengths and five GEMV kernel families. An offline
+candidate that sums two contiguous halves matches all 131,088 recorded
+cancellation outputs for the 13 variant-6 lengths, including 18, and their 78
+sampled random outputs. The actual TinyLlama and integrated decoder validation
+of this candidate are pending. The remaining families still need investigation.
 
 The owned dense decoder, reservation-aware KV allocator and paged prefill exist.
 The [October 31 review](validation/2026-10-31-p52-t4-review.md) verifies

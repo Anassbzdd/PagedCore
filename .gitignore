@@ -6,6 +6,10 @@ __pycache__/
 .ruff_cache/
 .coverage
 htmlcov/
+zip/
+/results/zip/
+.ipynb_checkpoints/
+*.crdownload
 
 # Virtual environments and local configuration
 .venv/

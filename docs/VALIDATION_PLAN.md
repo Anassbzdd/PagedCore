@@ -157,7 +157,21 @@ drift. Reference operands are prepared outside the guarded owned forward.
 Only consider changing the serving reducer after reviewing attributable T4
 parity results. The diagnostic archive does not replace the collector.
 
+The [November 8 collection plan](validation/2026-11-08-numerical-evidence-plan.md)
+provides one self-contained [Kaggle notebook](../notebooks/p53_numerical_evidence.ipynb)
+for the remaining kernel-family investigation. It captures real operands at
+34 lengths, isolates page-local score arithmetic, runs guarded integrated
+single/mixed/fragmented diagnostic arms and retains raw results, failures and
+exact bundled source in one downloadable archive. It is diagnostic collection,
+not a replacement for the required T4 collector or remaining Phase 5 gates.
+
 ## Evidence attribution
+
+The [November 8 value follow-up](validation/2026-11-08-value-followup-review.md)
+records successful reducer dispatch but incomplete candidate forwards due to
+diagnostic V tracking reaching MLP hidden states. Revalidate the corrected
+rank-one half-split helper with the guard enabled; the prior candidate aborts
+cannot count as completed numerical comparisons or a passing T4 gate.
 
 For each completed gate retain a reviewed artifact under `results/validation/` identifying the gate, UTC capture time, implementation revision, source identity, lock SHA-256, actual sanitized arguments, setup record, resolved configuration, seeds, installed dependency versions, device identity and test report. Capture GPU name/UUID, selected CUDA device, compute capability, driver/runtime and relevant memory totals; distinguish CUDA-visible devices from physical inventory.
 
