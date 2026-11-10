@@ -1,0 +1,165 @@
+{
+  "review_date": "2026-11-10",
+  "archive": "results/zip/pagedcore-two-token-irzdb020.zip",
+  "archive_sha256": "2126ee3f20aca98f418a70f11d711a289b9dd91eeb28862be91431f0a8cb87d1",
+  "snapshot_sha256": "946d9fc5a8e726b736578ee31356fb4f28429cc6d1516c403a7b8a6a7308cf87",
+  "base_revision": "33f2ffca21bbd66b54c0e624c01c17d376e07f71",
+  "source_identity": "Bundled working source, not a clean-commit claim",
+  "verified_evidence_files": 17,
+  "verified_source_files": 82,
+  "source_after_exact": true,
+  "local_source_exact_at_review": true,
+  "commands": [
+    {
+      "name": "setup-uv",
+      "returncode": 0
+    },
+    {
+      "name": "setup-frozen",
+      "returncode": 0
+    },
+    {
+      "name": "resolved-dependencies",
+      "returncode": 0
+    },
+    {
+      "name": "gpu-inventory",
+      "returncode": 0
+    },
+    {
+      "name": "target",
+      "returncode": 0
+    },
+    {
+      "name": "checkpoint-verify",
+      "returncode": 0
+    },
+    {
+      "name": "two-token-probe",
+      "returncode": 0
+    }
+  ],
+  "target": {
+    "torch": "2.7.1+cu126",
+    "name": "Tesla T4",
+    "uuid": "3c033d44-bd2c-5b43-35e5-81c260a08f72",
+    "capability": [
+      7,
+      5
+    ],
+    "visible_devices": 1,
+    "total_memory": 15636037632,
+    "environment": {
+      "python": "3.11.15",
+      "package": {
+        "name": "pagedcore",
+        "version": "0.1.0"
+      },
+      "dependencies": {
+        "torch": "2.7.1+cu126",
+        "transformers": "4.52.4"
+      },
+      "cuda": {
+        "available": true,
+        "runtime": "12.6"
+      },
+      "driver": "580.178.04",
+      "gpu": [
+        {
+          "name": "Tesla T4",
+          "memory_mib": 15360
+        },
+        {
+          "name": "Tesla T4",
+          "memory_mib": 15360
+        }
+      ],
+      "model": {
+        "id": "TinyLlama/TinyLlama-1.1B-Chat-v1.0",
+        "revision": "af8e934848d8dd00074cc2cd8a40a9b05c3b011e"
+      },
+      "settings": {
+        "model_id": "TinyLlama/TinyLlama-1.1B-Chat-v1.0",
+        "model_revision": "af8e934848d8dd00074cc2cd8a40a9b05c3b011e",
+        "context_limit": 2048,
+        "min_new_tokens": 1,
+        "default_max_new_tokens": 128,
+        "max_new_tokens": 256,
+        "block_tokens": 16,
+        "kv_pool_mib": 8192,
+        "workspace_margin_mib": 1536,
+        "max_pending_requests": 64,
+        "max_active_sequences": 32,
+        "token_queue_size": 32,
+        "bind_address": "localhost",
+        "log_level": "INFO"
+      }
+    }
+  },
+  "raw_paired_tensors_exact": {
+    "prompt_ids": true,
+    "decode_input": true,
+    "prefill_logits": true,
+    "paged": true,
+    "owned_reference": true
+  },
+  "case_verification": {
+    "single": {
+      "metrics_recomputed": {
+        "max_absolute_error": 0.015625,
+        "rms_error": 0.003628686508969759,
+        "normalized_rms_error": 0.0008965526315802772,
+        "max_tolerance_ratio": 2.1704749959099088,
+        "greedy_matches": true,
+        "reference_top1_margin_min": 8.32421875
+      },
+      "decode_input_matches_prefill_argmax": true,
+      "prompt_matches_fixture_prefix": true,
+      "raw_hash_matches": true
+    },
+    "mixed": {
+      "metrics_recomputed": {
+        "max_absolute_error": 0.015625,
+        "rms_error": 0.003628686508969759,
+        "normalized_rms_error": 0.0008965526315802772,
+        "max_tolerance_ratio": 2.1704749959099088,
+        "greedy_matches": true,
+        "reference_top1_margin_min": 8.32421875
+      },
+      "decode_input_matches_prefill_argmax": true,
+      "prompt_matches_fixture_prefix": true,
+      "raw_hash_matches": true
+    }
+  },
+  "original_failed_mixed_raw_logits_exact": {
+    "paged": true,
+    "owned_reference": true
+  },
+  "reported_max_kv_tolerance_ratio": {
+    "single": 1.9796380090497736,
+    "mixed": 1.9796380090497736
+  },
+  "kv_evidence_limit": "Reported measured maxima from the hash-verified diagnostic; raw KV tensors were not archived for independent recomputation.",
+  "cleanup": {
+    "single": {
+      "total_blocks": 32,
+      "free_blocks": 32,
+      "owned_blocks": 0,
+      "reserved_blocks": 0,
+      "active_slots": 0,
+      "live_cached_token_slots": 0
+    },
+    "mixed": {
+      "total_blocks": 32,
+      "free_blocks": 32,
+      "owned_blocks": 0,
+      "reserved_blocks": 0,
+      "active_slots": 0,
+      "live_cached_token_slots": 0
+    }
+  },
+  "same_discrepancy": true,
+  "batch_membership_changes_target_logits": false,
+  "conclusion": "The same two-token T4 numerical failure reproduces alone and mixed, with exact raw logits matching the prior failed mixed case. Batch membership and a page boundary are not required for this fixture.",
+  "gate": "P5.3 remains open; no repair or acceptance-suite rerun was performed."
+}

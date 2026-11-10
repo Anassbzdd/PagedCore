@@ -4,6 +4,8 @@ import io
 import json
 import subprocess
 import sys
+import tempfile
+from pathlib import Path
 from types import ModuleType, SimpleNamespace
 from zipfile import ZipFile
 
@@ -187,9 +189,18 @@ def test_hypothesis_dispatch_requires_a_measured_supported_family(length, family
     assert evidence.choose_reducer("baseline", length, family)[0] == "baseline"
 
 
-@pytest.mark.parametrize("accuracy", [False, True])
+@pytest.mark.parametrize(
+    "accuracy,two_token,layer_trace",
+    [
+        (False, False, False),
+        (True, False, False),
+        (False, True, False),
+        (False, False, True),
+    ],
+)
+@pytest.mark.parametrize("kaggle_available", [False, True])
 def test_notebook_source_identity_and_archive_survive_setup_failure(
-    tmp_path, monkeypatch, accuracy
+    tmp_path, monkeypatch, accuracy, two_token, layer_trace, kaggle_available
 ):
     source_root = tmp_path / "input"
     source_root.mkdir()
@@ -213,11 +224,22 @@ def test_notebook_source_identity_and_archive_survive_setup_failure(
         lambda command, **kw: "base-commit" if "rev-parse" in command else " M source\n",
     )
     path = tmp_path / "evidence.ipynb"
-    notebook.build(path, accuracy=accuracy)
+    notebook.build(path, accuracy=accuracy, two_token=two_token, layer_trace=layer_trace)
     cells = json.loads(path.read_text())["cells"]
     code = "".join(cells[-1]["source"])
     if accuracy:
         assert "scripts.export_paged_accuracy" in code
+        assert "synthetic-controls" not in code
+    if two_token:
+        assert "scripts.probe_two_token_decode" in code
+        assert "gpu-regressions" not in code
+        assert "scripts.export_paged_accuracy" not in code
+        assert "synthetic-controls" not in code
+    if layer_trace:
+        assert "scripts.trace_two_token_decode" in code
+        assert "scripts.probe_two_token_decode" not in code
+        assert "gpu-regressions" not in code
+        assert "scripts.export_paged_accuracy" not in code
         assert "synthetic-controls" not in code
     compile(code, str(path), "exec")
 
@@ -236,10 +258,31 @@ def test_notebook_source_identity_and_archive_survive_setup_failure(
     display_module.display = lambda value: None
     monkeypatch.setitem(sys.modules, "IPython.display", display_module)
     monkeypatch.setattr(subprocess, "Popen", FailedSetup)
+    output = tmp_path / "output"
+    monkeypatch.setenv("PAGEDCORE_EVIDENCE_WORKDIR", str(output))
+    original_exists = Path.exists
+    monkeypatch.setattr(
+        Path,
+        "exists",
+        lambda path: kaggle_available if path == Path("/kaggle/working") else original_exists(path),
+    )
+    original_mkdtemp = tempfile.mkdtemp
+
+    def isolated_mkdtemp(*args, **kwargs):
+        assert Path(kwargs["dir"]) == output
+        return original_mkdtemp(*args, **kwargs)
+
+    monkeypatch.setattr(tempfile, "mkdtemp", isolated_mkdtemp)
     monkeypatch.chdir(tmp_path)
     exec(code, {})
-    prefix = "pagedcore-accuracy" if accuracy else "pagedcore-evidence"
-    archive_path = next(tmp_path.glob(f"{prefix}-*.zip"))
+    prefix = (
+        "pagedcore-layer-trace"
+        if layer_trace
+        else "pagedcore-two-token"
+        if two_token
+        else ("pagedcore-accuracy" if accuracy else "pagedcore-evidence")
+    )
+    archive_path = next(output.glob(f"{prefix}-*.zip"))
     with ZipFile(archive_path) as archive:
         assert "evidence/notebook-failure.txt" in archive.namelist()
         assert json.loads(archive.read("evidence/commands.json"))[0]["returncode"] == 1

@@ -49,7 +49,13 @@ from IPython.display import FileLink, display
 
 # SOURCE_CONSTANTS
 
-working = Path("/kaggle/working") if Path("/kaggle/working").exists() else Path.cwd()
+output_override = os.environ.get("PAGEDCORE_EVIDENCE_WORKDIR")
+working = (
+    Path(output_override).expanduser().resolve()
+    if output_override
+    else Path("/kaggle/working") if Path("/kaggle/working").exists() else Path.cwd()
+)
+working.mkdir(parents=True, exist_ok=True)
 run_root = Path(tempfile.mkdtemp(prefix="pagedcore-evidence-", dir=working))
 source = run_root / "source"
 evidence = run_root / "evidence"
@@ -159,7 +165,12 @@ finally:
 """
 
 
-def build(output: Path, *, accuracy: bool = False) -> None:
+def build(
+    output: Path, *, accuracy: bool = False, two_token: bool = False, layer_trace: bool = False
+) -> None:
+    two_token = two_token or layer_trace
+    if accuracy and two_token:
+        raise ValueError("choose one notebook mode")
     paths = []
     for directory in ("src", "scripts", "tests", "docs"):
         paths.extend(
@@ -180,7 +191,7 @@ def build(output: Path, *, accuracy: bool = False) -> None:
             "LICENSE",
         )
     )
-    if not accuracy:
+    if not (accuracy or two_token):
         paths.extend(
             ROOT / name
             for name in (
@@ -211,13 +222,25 @@ def build(output: Path, *, accuracy: bool = False) -> None:
         f"SNAPSHOT_SHA256 = {hashlib.sha256(payload).hexdigest()!r}\n"
     )
     code = textwrap.dedent(BOOTSTRAP).lstrip().replace("# SOURCE_CONSTANTS", constants)
-    if accuracy:
+    if accuracy or two_token:
         code = code.replace(
             '"--python", "3.11"', '"--python", (source / ".python-version").read_text().strip()'
         )
         start = code.index('    with zipfile.ZipFile(source / "results/validation/')
         end = code.index('    (evidence / "source-after.json")', start)
-        code = code[:start] + ACCURACY_RUN + code[end:]
+        commands = ACCURACY_RUN
+        if two_token:
+            commands = commands[: commands.index('    run("lint"')]
+            module = (
+                "scripts.trace_two_token_decode"
+                if layer_trace
+                else "scripts.probe_two_token_decode"
+            )
+            folder = "layer-trace" if layer_trace else "two-token"
+            commands += f'''    run("{folder}", [str(python), "-m", "{module}",
+         "--output-dir", str(evidence / "{folder}")], required=True)
+'''
+        code = code[:start] + commands + code[end:]
         start = code.index('    report = evidence / "gpu-regressions.xml"')
         end = code.index('    (evidence / "notebook-run.json")', start)
         code = code[:start] + code[end:]
@@ -227,12 +250,22 @@ def build(output: Path, *, accuracy: bool = False) -> None:
             "Diagnostic collection, not decoder release acceptance",
             "Paged-decoder accuracy validation, not full release acceptance",
         )
+        if two_token:
+            code = code.replace("pagedcore-accuracy-", "pagedcore-two-token-")
+            code = code.replace(
+                "Paged-decoder accuracy validation, not full release acceptance",
+                "Two-token diagnostic, not decoder release acceptance",
+            )
+            if layer_trace:
+                code = code.replace("pagedcore-two-token-", "pagedcore-layer-trace-")
     intro = """# PagedCore numerical evidence on T4
 
 Enable **Internet** and **GPU T4** in Kaggle, then **Run All**. The subprocess uses
 one T4 even if Kaggle assigns two. No GitHub push, manual patch, or login is needed.
 Use a fresh session with enough working-disk space for raw tensors and their archive.
 This notebook contains the exact source snapshot; do not replace it with latest main.
+Set `PAGEDCORE_EVIDENCE_WORKDIR` to override the output folder; otherwise Kaggle
+uses `/kaggle/working` and other environments use the current folder.
 
 1. **Real operands:** At 34 representative attended lengths from 4 to 2,048,
    capture all 22 layers, native score/value kernel names, Q/K/V, raw dots,
@@ -267,6 +300,8 @@ collector, end-to-end generation, workspace and CUDA reuse gates remain separate
 
 Enable **Internet** and **T4 GPU**, then **Run All**. No Input dataset, previous
 notebook session, Git push or manual patch is needed. Exact source is embedded.
+Set `PAGEDCORE_EVIDENCE_WORKDIR` to override the output folder; otherwise Kaggle
+uses `/kaggle/working` and other environments use the current folder.
 
 This runs CPU checks and the required T4 suite, including independent FP64
 attention, the unchanged dense HF architectural checks, and paged decode versus
@@ -281,6 +316,62 @@ logs, source hashes, target identity, raw logit tensors and failures are retaine
 This collector covers paged accuracy; end-to-end generation, maximum-active
 workspace, CUDA reuse and service gates remain separate. Read NUMERICAL_POLICY.md
 in the source snapshot for the owner-approved November 9 contract change.
+"""
+    if two_token:
+        intro = """# PagedCore two-token reproduction on T4
+
+Enable **Internet** and **T4 GPU**, then **Run All**. Exact working source is
+embedded; no Git push or Input dataset is required. Setup uses the frozen lock.
+Set `PAGEDCORE_EVIDENCE_WORKDIR` to override `/kaggle/working`.
+
+This runs one cached decode step after the `maximum_output` fixture's first token:
+first alone, then as row 0 of the original 1/15/16/17/49-token mixed batch.
+The original 32-block pool, three-step reservation sizes, FP16 weights/cache,
+FP32 attention policy, deterministic settings and no-full-history guard remain.
+The target attends to exactly two tokens in both arms. The owned contiguous
+prefill selects the decode input; cached reference decode uses FP32 attention.
+The probe verifies identical input tokens, prefill logits and reference logits.
+
+The ZIP retains raw target logits, both unchanged tolerance comparisons,
+measured K/V error, cleanup, math settings, source hashes and environment.
+`evidence/two-token/summary.json` reports whether both failures reproduce and
+their signed logit errors are identical. Check `controls` and both case reports;
+an error means the comparison is incomplete. Numerical failures are retained
+without aborting the other arm. Download the ZIP even when collection fails.
+This diagnostic leaves serving arithmetic and the acceptance suite unchanged.
+"""
+    if layer_trace:
+        intro = """# PagedCore two-token layer trace on T4
+
+Enable **Internet** and **T4 GPU**, then **Run All**. Exact working source and
+frozen setup are embedded. No Git push or Input dataset is required.
+Set `PAGEDCORE_EVIDENCE_WORKDIR` to override `/kaggle/working`.
+
+This traces the standalone one-token prompt plus one decode step through all
+22 layers. It records hidden input, normalization, projected Q/K/V, rotated Q/K
+(V stays unrotated), actual pool K/V reads including both token slots, attention,
+output projection, both residuals, post-attention normalization and MLP output.
+Each comparison reports exact value equality, maximum error, tolerance ratio,
+first differing coordinate, shapes, original strides, offset, dtype and storage
+size. Layers are numbered 0 through 21. Layout differences are reported separately
+from value differences. Raw tensors and observed FP32 attention operation inputs
+and outputs are saved for every layer, including differences within tolerance.
+
+An uninstrumented baseline must match the traced final logits exactly. The first
+exact mismatch is selected in layer/operation order; attention substeps compare
+the actual QK product, scaled scores and FP32 output before its FP16 cast.
+If the first difference is the QK product, it replays the recorded operands with
+their original shapes/strides/offsets, compares packed operands, and tests dense
+geometry using the same paged operand values. These controls run outside serving.
+K/V history and the appended slot are measured separately. An incomplete K/V
+trace is marked not_measured or partial with counts and a nullable maximum;
+the initialized zero in an older failed acceptance report is not a measurement.
+
+Download the final ZIP even on failure. Inspect `evidence/layer-trace/trace.json`
+and `raw/layer-00.pt` through `layer-21.pt`. `first_difference` identifies the
+earliest observed value difference; `complete` and `instrumentation_controls`
+must pass before interpreting it. All arithmetic, tolerances, ownership checks
+and GPU acceptance tests remain unchanged. This is diagnostic evidence only.
 """
     notebook = {
         "nbformat": 4,
@@ -324,11 +415,22 @@ in the source snapshot for the owner-approved November 9 contract change.
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--output", type=Path)
-    parser.add_argument(
+    modes = parser.add_mutually_exclusive_group()
+    modes.add_argument(
         "--accuracy", action="store_true", help="build the revised accuracy collector"
+    )
+    modes.add_argument("--two-token", action="store_true", help="build the minimal decode probe")
+    modes.add_argument(
+        "--layer-trace", action="store_true", help="trace all two-token decoder layers"
     )
     args = parser.parse_args()
     output = args.output or ROOT / "notebooks" / (
-        "paged_decode_accuracy.ipynb" if args.accuracy else "p53_numerical_evidence.ipynb"
+        "two_token_layer_trace.ipynb"
+        if args.layer_trace
+        else "two_token_decode.ipynb"
+        if args.two_token
+        else "paged_decode_accuracy.ipynb"
+        if args.accuracy
+        else "p53_numerical_evidence.ipynb"
     )
-    build(output, accuracy=args.accuracy)
+    build(output, accuracy=args.accuracy, two_token=args.two_token, layer_trace=args.layer_trace)

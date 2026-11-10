@@ -1,16 +1,46 @@
 # Implementation and evidence status
 
-Snapshot: 2026-11-09. **Phase 4 GPU paged KV cache is complete at the allocator
+Snapshot: 2026-11-10. **Phase 4 GPU paged KV cache is complete at the allocator
 boundary. The current gate is Phase 5: block-table decode attention.**
 Standalone single-query paged attention has reviewed T4 evidence at `3401406`.
 The newer batched one-token paged decode and staged attention reads have
 synthetic CPU coverage. On November 9 the owner authorized independent paging
 accuracy in place of reproducing HF eager rounding. That revised implementation
-still needs its own integrated T4 run. Continuous batching and the service remain
+failed its first revised integrated T4 run. Continuous batching and the service remain
 outstanding. Earlier HF comparisons failed their numerical tolerances; see the
 [November 1 failure review](validation/2026-11-01-p53-t4-failure.md).
 
 ## Current gate
+
+The November 10 [archive review and notebook correction](validation/2026-11-10-notebook-output-directory.md)
+records the returned `pagedcore-accuracy-kavvwb5q.zip`: 15 GPU passes and four
+integrated logit failures, including a two-token case, plus 760 non-GPU passes
+and two notebook-test failures. The notebook output-directory mismatch is
+corrected with four CPU regression cases; attention arithmetic is unchanged.
+P5.3 remains open. The paired minimal reproduction is now confirmed below;
+the first differing T4 intermediate still needs tracing.
+
+The [two-token T4 reproduction review](validation/2026-11-10-two-token-reproduction.md#returned-t4-evidence)
+verifies `pagedcore-two-token-irzdb020.zip`: all 17 evidence and 82 source hashes
+match. One prompt token plus one decode step fails alone and as row 0 of the
+original mixed batch, with identical full signed logit errors (maximum ratio
+2.1705). Both raw paged/reference logits also match the prior failed mixed
+case exactly. Greedy choices match; the measured K/V ratio is 1.9796 and cleanup
+returns ownership to zero in both arms. For this fixture, neither batch membership
+nor a page boundary is needed to trigger the failure. The earlier CPU result
+is separate (ratio 2.7363). Serving math and GPU acceptance tests are unchanged;
+next trace the first differing intermediate in the standalone two-token case.
+
+The [22-layer trace and CPU investigation](validation/2026-11-10-two-token-layer-trace.md)
+now records all 418 comparison points through the actual forwards, original tensor
+layouts, live staged K/V reads and attention suboperations. On the pinned CPU
+checkpoint, the first exact difference is layer 0's FP32 QK product (maximum
+error 4.7684e-6), with all preceding inputs and pool values equal. Native operand
+replays are exact; shape/layout controls change the product. Instrumented final
+logits match the baseline. This localizes the CPU discrepancy only: the first
+T4 difference still requires the bundled `two_token_layer_trace.ipynb` run.
+K/V coverage is now explicit; earlier acceptance-report zeros before the failed
+logit assertion remain unmeasured, not passing evidence. No serving repair is selected.
 
 The [numerical policy](NUMERICAL_POLICY.md) defines the revised P5.3 contract.
 Serving decode now selects FP32 online attention uniformly across lengths;
