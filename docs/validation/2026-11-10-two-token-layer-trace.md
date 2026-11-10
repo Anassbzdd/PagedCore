@@ -99,7 +99,9 @@ The first differing FP16 component output is also layer 0, attention output,
 with maximum error `3.814697265625e-6`. Later K/V drift reaches ratio
 `2.8939886271324125` with all 44 read pairs actually measured. Cleanup returns
 all ownership to zero. These observations use Torch 2.7.1+cpu and cannot establish
-the first T4 difference. The T4 trace remains pending.
+the first T4 difference. The subsequently returned T4 trace is reviewed in the
+[T4 evidence review](2026-11-10-layer-trace-t4-review.md); it starts at the
+precast attention result, with exact QK products.
 
 ## Kaggle execution and local checks
 

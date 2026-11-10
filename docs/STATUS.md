@@ -17,8 +17,8 @@ records the returned `pagedcore-accuracy-kavvwb5q.zip`: 15 GPU passes and four
 integrated logit failures, including a two-token case, plus 760 non-GPU passes
 and two notebook-test failures. The notebook output-directory mismatch is
 corrected with four CPU regression cases; attention arithmetic is unchanged.
-P5.3 remains open. The paired minimal reproduction is now confirmed below;
-the first differing T4 intermediate still needs tracing.
+P5.3 remains open. The paired reproduction and first differing T4 intermediate
+are now confirmed below; no serving repair is selected.
 
 The [two-token T4 reproduction review](validation/2026-11-10-two-token-reproduction.md#returned-t4-evidence)
 verifies `pagedcore-two-token-irzdb020.zip`: all 17 evidence and 82 source hashes
@@ -29,18 +29,27 @@ case exactly. Greedy choices match; the measured K/V ratio is 1.9796 and cleanup
 returns ownership to zero in both arms. For this fixture, neither batch membership
 nor a page boundary is needed to trigger the failure. The earlier CPU result
 is separate (ratio 2.7363). Serving math and GPU acceptance tests are unchanged;
-next trace the first differing intermediate in the standalone two-token case.
+the standalone trace below now localizes its first differing intermediate.
 
-The [22-layer trace and CPU investigation](validation/2026-11-10-two-token-layer-trace.md)
-now records all 418 comparison points through the actual forwards, original tensor
-layouts, live staged K/V reads and attention suboperations. On the pinned CPU
-checkpoint, the first exact difference is layer 0's FP32 QK product (maximum
-error 4.7684e-6), with all preceding inputs and pool values equal. Native operand
-replays are exact; shape/layout controls change the product. Instrumented final
-logits match the baseline. This localizes the CPU discrepancy only: the first
-T4 difference still requires the bundled `two_token_layer_trace.ipynb` run.
-K/V coverage is now explicit; earlier acceptance-report zeros before the failed
-logit assertion remain unmeasured, not passing evidence. No serving repair is selected.
+The [T4 layer-trace review](validation/2026-11-10-layer-trace-t4-review.md) verifies
+`pagedcore-layer-trace-1__el9f9.zip`: 38 evidence hashes, 85 source hashes and all
+418 raw comparisons match. On T4, layer-0 inputs, pool reads, QK products and
+scaled scores are exact; the first difference is the FP32 attention result before
+casting (maximum 7.45e-9). The first FP16 difference appears at layer 5, head 0,
+channel 3, across a rounding midpoint; hidden/Q/K/V drift begins at layer 6.
+All old cache slots remain exact, and all new slots match their own projections.
+The measured K/V ratio is 1.9796; final logit ratio stays 2.1705, greedy choices
+match, instrumented logits equal baseline and cleanup returns ownership to zero.
+An isolated FP64 replay from shared Q/K/V rounds to the paged value at the first
+FP16 coordinate; this is not integrated accuracy evidence. Next isolate
+normalization/PV/final-division rounding on fixed T4 operands before choosing a
+repair. The earlier [CPU QK finding](validation/2026-11-10-two-token-layer-trace.md)
+does not transfer to T4. Earlier initialized K/V zeros remain unmeasured.
+
+The [saved layer-5 replay](validation/2026-11-10-layer5-replay.md) now prepares
+normalization-before/after-PV and FP64 controls using only the retained operands,
+with exact native T4 replay required. CPU smoke completes; T4 results are pending.
+It requires no checkpoint reload and does not select a serving repair.
 
 The [numerical policy](NUMERICAL_POLICY.md) defines the revised P5.3 contract.
 Serving decode now selects FP32 online attention uniformly across lengths;

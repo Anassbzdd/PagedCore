@@ -1,0 +1,372 @@
+{
+  "review_date": "2026-11-10",
+  "archive": "results/zip/pagedcore-layer-trace-1__el9f9.zip",
+  "archive_sha256": "b4da637efd0d120a563c836eddc7d55b71a50b5be6eebf87b9877910f6cc2792",
+  "snapshot_sha256": "5e54d25d6ab5419b3ddc19c9cf0b3720335ad62746a130112e0e94d6ea39daec",
+  "snapshot_base_revision": "33f2ffca21bbd66b54c0e624c01c17d376e07f71",
+  "snapshot_identity": "Bundled working source; all 85 file contents matched the local checkout at review time before documentation updates. Not a clean-base-commit claim.",
+  "verified_evidence_files": 38,
+  "verified_source_files": 85,
+  "source_after_exact": true,
+  "target": {
+    "torch": "2.7.1+cu126",
+    "name": "Tesla T4",
+    "uuid": "9b152e3f-d78d-29ac-3ccc-0a3aa18b2af0",
+    "capability": [
+      7,
+      5
+    ],
+    "visible_devices": 1,
+    "total_memory": 15636037632,
+    "environment": {
+      "python": "3.11.15",
+      "package": {
+        "name": "pagedcore",
+        "version": "0.1.0"
+      },
+      "dependencies": {
+        "torch": "2.7.1+cu126",
+        "transformers": "4.52.4"
+      },
+      "cuda": {
+        "available": true,
+        "runtime": "12.6"
+      },
+      "driver": "580.178.04",
+      "gpu": [
+        {
+          "name": "Tesla T4",
+          "memory_mib": 15360
+        },
+        {
+          "name": "Tesla T4",
+          "memory_mib": 15360
+        }
+      ],
+      "model": {
+        "id": "TinyLlama/TinyLlama-1.1B-Chat-v1.0",
+        "revision": "af8e934848d8dd00074cc2cd8a40a9b05c3b011e"
+      },
+      "settings": {
+        "model_id": "TinyLlama/TinyLlama-1.1B-Chat-v1.0",
+        "model_revision": "af8e934848d8dd00074cc2cd8a40a9b05c3b011e",
+        "context_limit": 2048,
+        "min_new_tokens": 1,
+        "default_max_new_tokens": 128,
+        "max_new_tokens": 256,
+        "block_tokens": 16,
+        "kv_pool_mib": 8192,
+        "workspace_margin_mib": 1536,
+        "max_pending_requests": 64,
+        "max_active_sequences": 32,
+        "token_queue_size": 32,
+        "bind_address": "localhost",
+        "log_level": "INFO"
+      }
+    }
+  },
+  "commands": [
+    {
+      "name": "setup-uv",
+      "returncode": 0
+    },
+    {
+      "name": "setup-frozen",
+      "returncode": 0
+    },
+    {
+      "name": "resolved-dependencies",
+      "returncode": 0
+    },
+    {
+      "name": "gpu-inventory",
+      "returncode": 0
+    },
+    {
+      "name": "target",
+      "returncode": 0
+    },
+    {
+      "name": "checkpoint-verify",
+      "returncode": 0
+    },
+    {
+      "name": "layer-trace",
+      "returncode": 0
+    }
+  ],
+  "complete": true,
+  "recomputed_comparisons": 418,
+  "all_raw_comparisons_match_report": true,
+  "instrumentation_controls": {
+    "reference_logits_exact": true,
+    "paged_logits_exact": true
+  },
+  "prior_two_token_baseline_exact": {
+    "prompt_ids": true,
+    "decode_input": true,
+    "prefill_logits": true,
+    "paged": true,
+    "owned_reference": true
+  },
+  "first_difference": {
+    "layer": 0,
+    "operation": "precast_attention",
+    "exact": false,
+    "unequal_elements": 1013,
+    "max_absolute_error": 7.450580596923828e-09,
+    "max_tolerance_ratio": 3.480121130488116e-06,
+    "first_unequal_index": [
+      0,
+      0,
+      0,
+      0
+    ],
+    "actual_at_first": -0.0012318509398028255,
+    "reference_at_first": -0.0012318510562181473,
+    "comparison_shape": [
+      1,
+      32,
+      1,
+      64
+    ],
+    "paged_layout": {
+      "shape": [
+        4,
+        8,
+        64
+      ],
+      "stride": [
+        512,
+        64,
+        1
+      ],
+      "storage_offset": 0,
+      "dtype": "torch.float32",
+      "device": "cuda:0",
+      "contiguous": true,
+      "storage_nbytes": 8192
+    },
+    "reference_layout": {
+      "shape": [
+        1,
+        32,
+        1,
+        64
+      ],
+      "stride": [
+        2048,
+        64,
+        64,
+        1
+      ],
+      "storage_offset": 0,
+      "dtype": "torch.float32",
+      "device": "cuda:0",
+      "contiguous": true,
+      "storage_nbytes": 8192
+    },
+    "layout_equal": false
+  },
+  "first_fp16_component_difference": {
+    "layer": 5,
+    "operation": "attention_output",
+    "exact": false,
+    "unequal_elements": 1,
+    "max_absolute_error": 1.9073486328125e-06,
+    "max_tolerance_ratio": 0.0009508559605356742,
+    "first_unequal_index": [
+      0,
+      0,
+      0,
+      3
+    ],
+    "actual_at_first": -0.0029621124267578125,
+    "reference_at_first": -0.002964019775390625,
+    "comparison_shape": [
+      1,
+      32,
+      1,
+      64
+    ],
+    "paged_layout": {
+      "shape": [
+        1,
+        32,
+        1,
+        64
+      ],
+      "stride": [
+        2048,
+        64,
+        64,
+        1
+      ],
+      "storage_offset": 0,
+      "dtype": "torch.float16",
+      "device": "cuda:0",
+      "contiguous": true,
+      "storage_nbytes": 4096
+    },
+    "reference_layout": {
+      "shape": [
+        1,
+        32,
+        1,
+        64
+      ],
+      "stride": [
+        2048,
+        64,
+        64,
+        1
+      ],
+      "storage_offset": 0,
+      "dtype": "torch.float16",
+      "device": "cuda:0",
+      "contiguous": true,
+      "storage_nbytes": 4096
+    },
+    "layout_equal": true
+  },
+  "first_kv_difference": {
+    "layer": 6,
+    "operation": "k_read",
+    "exact": false,
+    "unequal_elements": 31,
+    "max_absolute_error": 0.001953125,
+    "max_tolerance_ratio": 0.3205128205128205,
+    "first_unequal_index": [
+      0,
+      0,
+      1,
+      12
+    ],
+    "actual_at_first": -1.8701171875,
+    "reference_at_first": -1.87109375,
+    "comparison_shape": [
+      1,
+      4,
+      2,
+      64
+    ],
+    "paged_layout": {
+      "shape": [
+        2,
+        4,
+        64
+      ],
+      "stride": [
+        256,
+        64,
+        1
+      ],
+      "storage_offset": 1572864,
+      "dtype": "torch.float16",
+      "device": "cuda:0",
+      "contiguous": true,
+      "storage_nbytes": 11534336
+    },
+    "reference_layout": {
+      "shape": [
+        1,
+        4,
+        2,
+        64
+      ],
+      "stride": [
+        512,
+        128,
+        64,
+        1
+      ],
+      "storage_offset": 0,
+      "dtype": "torch.float16",
+      "device": "cuda:0",
+      "contiguous": true,
+      "storage_nbytes": 1024
+    },
+    "layout_equal": false,
+    "pool_read": {
+      "logical_block": 0,
+      "physical_block": 0,
+      "shares_pool_storage": true,
+      "history_positions": [
+        0
+      ],
+      "appended_position": 1
+    },
+    "history": {
+      "exact": true,
+      "unequal_elements": 0,
+      "max_absolute_error": 0.0,
+      "max_tolerance_ratio": 0.0,
+      "first_unequal_index": null,
+      "actual_at_first": null,
+      "reference_at_first": null
+    },
+    "appended": {
+      "exact": false,
+      "unequal_elements": 31,
+      "max_absolute_error": 0.001953125,
+      "max_tolerance_ratio": 0.3205128205128205,
+      "first_unequal_index": [
+        0,
+        0,
+        0,
+        12
+      ],
+      "actual_at_first": -1.8701171875,
+      "reference_at_first": -1.87109375
+    },
+    "appended_matches_local_projection": true
+  },
+  "all_prefill_history_exact": true,
+  "all_appended_slots_match_local_projection": true,
+  "kv_measurement": {
+    "status": "complete",
+    "measured_pairs": 44,
+    "expected_pairs": 44,
+    "max_kv_tolerance_ratio": 1.9796380090497736
+  },
+  "logits": {
+    "max_absolute_error": 0.015625,
+    "rms_error": 0.003628686508969759,
+    "normalized_rms_error": 0.0008965526315802772,
+    "max_tolerance_ratio": 2.1704749959099088,
+    "greedy_matches": true,
+    "reference_top1_margin_min": 8.32421875
+  },
+  "cleanup": {
+    "total_blocks": 32,
+    "free_blocks": 32,
+    "owned_blocks": 0,
+    "reserved_blocks": 0,
+    "active_slots": 0,
+    "live_cached_token_slots": 0
+  },
+  "rounding_investigation": {
+    "layer": 5,
+    "coordinate": [
+      0,
+      0,
+      0,
+      3
+    ],
+    "fp16_midpoint": -0.0029630661010742188,
+    "paged_fp16": -0.0029621124267578125,
+    "reference_fp16": -0.002964019775390625,
+    "paged_fp32_precast": -0.002963065868243575,
+    "reference_fp32_precast": -0.0029630661010742188,
+    "fp64_from_saved_fp16_qkv": -0.002963065840592333,
+    "fp64_from_saved_fp16_qkv_rounded": -0.0029621124267578125,
+    "fp64_with_fixed_fp32_scores": -0.0029630662002208363,
+    "fp64_with_fixed_fp32_scores_rounded": -0.002964019775390625,
+    "scope": "Isolated CPU FP64 replays of saved T4 operands; not a new GPU execution or an integrated FP64 decoder check."
+  },
+  "automated_qk_replay": {
+    "status": "not_applicable",
+    "reason": "First difference is not a QK product"
+  },
+  "gate": "P5.3 remains open; no serving arithmetic, acceptance-suite or tolerance change."
+}
