@@ -48,7 +48,6 @@ def report():
                 "request": 0,
                 "attended_tokens": 15 + step,
                 "owned_reference": metrics.copy(),
-                "hf_fidelity": metrics.copy(),
                 "max_kv_tolerance_ratio": 0.0,
             }
             for step in range(1, 4)
@@ -56,13 +55,12 @@ def report():
     }
 
 
-def test_hf_fidelity_is_reported_while_owned_accuracy_remains_a_hard_gate():
+def test_hf_is_unnecessary_while_owned_accuracy_remains_a_hard_gate():
     data = report()
-    data["comparisons"][0]["hf_fidelity"] = compare_logits(
-        torch.tensor([[2.0, 0.0]]), torch.tensor([[0.0, 1.0]])
-    )
     assert valid_accuracy_report(data, (15,))
-    data["comparisons"][0]["owned_reference"] = deepcopy(data["comparisons"][0]["hf_fidelity"])
+    mismatch = compare_logits(torch.tensor([[2.0, 0.0]]), torch.tensor([[0.0, 1.0]]))
+    assert valid_accuracy_report(data, (15,))
+    data["comparisons"][0]["owned_reference"] = mismatch
     assert not valid_accuracy_report(data, (15,))
 
 
@@ -73,8 +71,6 @@ def test_hf_fidelity_is_reported_while_owned_accuracy_remains_a_hard_gate():
         "lengths",
         "missing_row",
         "duplicate",
-        "missing_hf",
-        "nan_hf",
         "infinite_reference",
         "own_greedy",
         "kv",
@@ -92,10 +88,6 @@ def test_accuracy_report_rejects_incomplete_or_invalid_evidence(fault):
         data["comparisons"].pop()
     elif fault == "duplicate":
         data["comparisons"][-1] = deepcopy(first)
-    elif fault == "missing_hf":
-        del first["hf_fidelity"]
-    elif fault == "nan_hf":
-        first["hf_fidelity"]["rms_error"] = float("nan")
     elif fault == "infinite_reference":
         first["owned_reference"]["max_absolute_error"] = float("inf")
     elif fault == "own_greedy":

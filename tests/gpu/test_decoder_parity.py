@@ -31,13 +31,22 @@ FIXTURES = json.loads(
 
 
 @pytest.fixture(scope="module")
-def pinned_decoders() -> tuple[Any, TinyLlamaWeights]:
+def pinned_weights() -> TinyLlamaWeights:
+    if not torch.cuda.is_available():
+        pytest.skip("requires CUDA")
+    assert "t4" in torch.cuda.get_device_name(0).casefold(), "requires an NVIDIA T4"
+    with reference_math():
+        return load_weights(device="cuda:0")
+
+
+@pytest.fixture(scope="module")
+def pinned_decoders(pinned_weights: TinyLlamaWeights) -> tuple[Any, TinyLlamaWeights]:
     if not torch.cuda.is_available():
         pytest.skip("requires CUDA")
     assert "t4" in torch.cuda.get_device_name(0).casefold(), "requires an NVIDIA T4"
     # Enforce the reference math policy before loading or running either decoder.
     with reference_math():
-        weights = load_weights(device="cuda:0")
+        weights = pinned_weights
         model = (
             AutoModelForCausalLM.from_pretrained(
                 MODEL_ID,
@@ -52,6 +61,7 @@ def pinned_decoders() -> tuple[Any, TinyLlamaWeights]:
     return model, weights
 
 
+@pytest.mark.hf_diagnostic
 def test_pinned_decoder_layer_parity_on_t4(
     pinned_decoders: tuple[Any, TinyLlamaWeights],
     assert_decoder_layer_parity: Callable[
@@ -96,8 +106,8 @@ def test_pinned_decoder_layer_parity_on_t4(
     )
 
 
-def test_pinned_paged_prefill_on_t4(pinned_decoders: tuple[Any, TinyLlamaWeights]) -> None:
-    model, weights = pinned_decoders
+def test_pinned_paged_prefill_on_t4(pinned_weights: TinyLlamaWeights) -> None:
+    weights = pinned_weights
     pool = torch.full((22, 2, 6, 16, 4, 64), torch.nan, dtype=torch.float16, device="cuda:0")
     allocator = KVAllocator(pool)
     pointer = pool.untyped_storage().data_ptr()
@@ -119,7 +129,8 @@ def test_pinned_paged_prefill_on_t4(pinned_decoders: tuple[Any, TinyLlamaWeights
             allocator.create(KVReservation(request, blocks))
             before = pool.clone()
             inputs = torch.tensor([ids], device=pool.device)
-            expected = model(inputs, use_cache=True)
+            dense_logits, cache = decoder_module.prefill(inputs, weights)
+            expected = SimpleNamespace(logits=dense_logits, past_key_values=cache.layers)
             logits = prefill_paged(inputs, weights, allocator, request)
             torch.testing.assert_close(logits, expected.logits, atol=5e-3, rtol=5e-3)
             table = allocator.block_table(request)
@@ -180,7 +191,6 @@ def _assert_pinned_paged_decode(
     live_requests = []
     references = {}
     dense_caches = {}
-    hf_references = {}
     blocker = RequestId("unrelated")
     blocker_table = ()
     boundary_request = requests[lengths.index(15)] if fragmented else None
@@ -192,9 +202,9 @@ def _assert_pinned_paged_decode(
                 allocator.create(KVReservation(request, (length + steps + 15) // 16))
                 live_requests.append(request)
                 inputs = torch.tensor([public_ids[:length]], device=pool.device)
-                references[request] = model(inputs, use_cache=True)
-                hf_references[request] = references[request]
-                if accuracy is not None:
+                if accuracy is None:
+                    references[request] = model(inputs, use_cache=True)
+                else:
                     dense_logits, dense_caches[request] = decoder_module.prefill(inputs, weights)
                     references[request] = SimpleNamespace(
                         logits=dense_logits, past_key_values=dense_caches[request].layers
@@ -229,10 +239,8 @@ def _assert_pinned_paged_decode(
                         )
                         for row, request in enumerate(order)
                     }
-                    hf_expected = expected
                 else:
                     expected = {}
-                    hf_expected = {}
                     for row, request in enumerate(order):
                         dense_logits, dense_caches[request] = decoder_module.decode(
                             tokens[row : row + 1],
@@ -242,11 +250,6 @@ def _assert_pinned_paged_decode(
                         )
                         expected[request] = SimpleNamespace(
                             logits=dense_logits, past_key_values=dense_caches[request].layers
-                        )
-                        hf_expected[request] = model(
-                            tokens[row : row + 1],
-                            past_key_values=hf_references[request].past_key_values,
-                            use_cache=True,
                         )
                 if fragmented and step == 1:
                     counts = allocator.capacity()
@@ -276,7 +279,7 @@ def _assert_pinned_paged_decode(
                             )
                 with forbid_dense_kv_history(pool):
                     logits = decode_paged(tokens, weights, allocator, order)
-                assert logits.shape == (len(order), 1, model.config.vocab_size)
+                assert logits.shape == (len(order), 1, weights.lm_head.shape[0])
                 assert logits.dtype == torch.float16 and torch.isfinite(logits).all()
                 for row, request in enumerate(order):
                     reference = expected[request]
@@ -290,7 +293,6 @@ def _assert_pinned_paged_decode(
                                 {
                                     "paged": logits[row : row + 1].detach().cpu(),
                                     "owned_reference": reference.logits.detach().cpu(),
-                                    "hf": hf_expected[request].logits.detach().cpu(),
                                 },
                                 destination / f"step-{step + 1}-request-{request}.pt",
                             )
@@ -300,9 +302,6 @@ def _assert_pinned_paged_decode(
                             "attended_tokens": old_lengths[request] + 1,
                             "owned_reference": compare_logits(
                                 logits[row : row + 1], reference.logits
-                            ),
-                            "hf_fidelity": compare_logits(
-                                logits[row : row + 1], hf_expected[request].logits
                             ),
                             "max_kv_tolerance_ratio": 0.0,
                         }
@@ -369,7 +368,6 @@ def _assert_pinned_paged_decode(
                                     rtol=0,
                                 )
                     references[request] = reference
-                    hf_references[request] = hf_expected[request]
                 counts = allocator.capacity()
                 assert counts.live_cached_token_slots == (
                     sum(lengths) + len(order) * (step + 1) + 16 * len(blocker_table)
@@ -394,6 +392,7 @@ def _assert_pinned_paged_decode(
     ids=["single", "mixed", "fragmented"],
 )
 @pytest.mark.usefixtures("legacy_eager_decode")
+@pytest.mark.hf_diagnostic
 def test_legacy_hf_paged_decode_on_t4(
     pinned_decoders: tuple[Any, TinyLlamaWeights],
     lengths: tuple[int, ...],
@@ -407,6 +406,7 @@ def test_legacy_hf_paged_decode_on_t4(
 
 @pytest.mark.parametrize("lengths", [(15,), (1, 15, 16, 17, 49)], ids=["single", "mixed"])
 @pytest.mark.usefixtures("legacy_eager_decode")
+@pytest.mark.hf_diagnostic
 def test_pinned_candidate_paged_decode_on_t4(
     pinned_decoders: tuple[Any, TinyLlamaWeights],
     lengths: tuple[int, ...],
@@ -430,6 +430,7 @@ def test_pinned_candidate_paged_decode_on_t4(
     ],
     ids=["boundary", "single", "mixed", "fragmented"],
 )
+@pytest.mark.hf_diagnostic
 def test_paired_at_17_pinned_decode_on_t4(
     pinned_decoders: tuple[Any, TinyLlamaWeights],
     lengths: tuple[int, ...],
@@ -443,6 +444,7 @@ def test_paired_at_17_pinned_decode_on_t4(
 
 
 @pytest.mark.parametrize("case", FIXTURES["prompts"], ids=lambda case: case["name"])
+@pytest.mark.hf_diagnostic
 def test_pinned_decoder_greedy_parity_on_t4(
     pinned_decoders: tuple[Any, TinyLlamaWeights],
     assert_decoder_greedy_parity: Callable[..., GreedyResult],
@@ -469,7 +471,7 @@ def test_pinned_decoder_greedy_parity_on_t4(
     ids=["single", "mixed", "fragmented", "held_out"],
 )
 def test_pinned_paged_decode_accuracy_on_t4(
-    pinned_decoders, lengths, fragmented, forbid_dense_kv_history, record_property
+    pinned_weights, lengths, fragmented, forbid_dense_kv_history, record_property
 ):
     report = {
         "policy": ACCURACY_POLICY,
@@ -490,7 +492,7 @@ def test_pinned_paged_decode_accuracy_on_t4(
     )
     try:
         _assert_pinned_paged_decode(
-            pinned_decoders,
+            (None, pinned_weights),
             lengths,
             forbid_dense_kv_history,
             fragmented=fragmented,

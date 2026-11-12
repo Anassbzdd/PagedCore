@@ -1,0 +1,20 @@
+{
+  "status": "passed",
+  "build_commands": [
+    ".venv/Scripts/python.exe -m build",
+    ".venv/Scripts/python.exe -m build --no-isolation"
+  ],
+  "artifacts": {
+    "pagedcore-0.1.0-py3-none-any.whl": {
+      "bytes": 37025,
+      "sha256": "72bab7f4d379afa1203304e1695ed9754382c9049c69cc7667130eda63ee4149"
+    },
+    "pagedcore-0.1.0.tar.gz": {
+      "bytes": 34263,
+      "sha256": "ff955b0ed17c969cd5299bbfad698f43f7d77f3a5959313293bdee4110ee6a8e"
+    }
+  },
+  "isolated_target_install": true,
+  "installed_package_import_config_help_env_smoke": "passed",
+  "limit": "Windows CPU packaging only; not clean Linux/CUDA service/Docker evidence"
+}

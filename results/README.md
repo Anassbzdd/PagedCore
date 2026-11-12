@@ -8,12 +8,14 @@ There are no serving benchmarks or vLLM comparison results yet.
 
 | Scope | Retained evidence | Boundary |
 |---|---|---|
-| Paged decode numerical repair | [November 1 CPU review](../docs/validation/2026-11-01-p53-numerical-repair.md) and [CPU archive](validation/2026-11-01/p53-cpu-repair.zip) | Operation-level pinned CPU replay and guarded regressions; no new T4 acceptance or performance evidence |
+| November 11 scope revision | [Review](../docs/validation/2026-11-11-validation-scope-revision.md) and [CPU report](validation/2026-11-11/cpu-review.json) | CPU/tooling only; P5.3 still fails, no new T4 claim |
+| November 10 integrated failure and replay | [Layer trace](../docs/validation/2026-11-10-layer-trace-t4-review.md) and [layer-5 review](../docs/validation/2026-11-10-layer5-replay.md) with raw archives in `results/zip/` | Integrated logit/KV failures unresolved; replay explains one normalization-sensitive call only |
+| Historical paged decode numerical investigation | [November 1 CPU review](../docs/validation/2026-11-01-p53-numerical-repair.md) and [CPU archive](validation/2026-11-01/p53-cpu-repair.zip) | Operation-level pinned CPU replay and guarded regressions; no new T4 acceptance or performance evidence |
 | Standalone paged attention completion | [October 31 review](../docs/validation/2026-10-31-p52-t4-review.md), [structured audit](validation/2026-10-31/p52-t4-review.json) and both linked T4 archives | Clean `3401406`: each run passes 617 CPU / 15 GPU cases, zero failures/errors/skips; both explicit CUDA attention tests pass. Later staged-layer/batched decode changes are outside this evidence |
 | Paged prefill | [October 30 review](../docs/validation/2026-10-30-p52-t4-review.md) and [T4 archive](validation/2026-10-30/t4-20261030T172045Z.zip) | Clean `922588b`: 609 CPU / 13 GPU passes, zero skips; pinned paged prefill passed on T4; this older run predates the explicit CUDA attention tests |
 | Phase 4 allocator completion | [October 27 review](../docs/validation/2026-10-27-phase4-review.md) and [T4 archive](validation/2026-10-27/t4-20261027T200933Z.zip) | Clean `986392e`: 554 CPU / 12 GPU passes, zero skips; current allocator runtime, small-pool T4 accounting/failure/reuse checks, dense parity and workspace probes |
-| Current working-tree CPU checks | [CPU report](validation/2026-10-27/cpu-review.json) and [JUnit](validation/2026-10-27/cpu-tests.xml) | Includes newer independent allocator property tests and collector guard regressions; no local GPU execution |
-| Dense tolerance envelope | [October 20 review](validation/2026-10-20-t4/review.json) and [archive](validation/2026-10-20-t4/pagedcore-p36-t4.zip) | Original Phase 3 tolerance gate; later archives repeat these checks |
+| Historical October 27 CPU checks | [CPU report](validation/2026-10-27/cpu-review.json) and [JUnit](validation/2026-10-27/cpu-tests.xml) | Includes newer independent allocator property tests and collector guard regressions; no local GPU execution |
+| Historical optional HF tolerance envelope | [October 20 review](validation/2026-10-20-t4/review.json) and [archive](validation/2026-10-20-t4/pagedcore-p36-t4.zip) | Original Phase 3 tolerance gate; later archives repeat these checks |
 | Dense maximum-path workspace | [October 21 review](validation/2026-10-21-t4/review.json) and [archive](validation/2026-10-21-t4/pagedcore-p37-t4.zip) | Original no-pool baseline; no paged/batched/service capacity claim |
 
 The dated CPU reports and earlier T4 archives remain as historical evidence.
@@ -25,11 +27,16 @@ records intact so claims can be audited.
 
 ## Retaining a new run
 
-Use `bash scripts/validate_t4.sh` on a clean Linux/T4 checkout. The collector
-retains setup/commands, source/lock identity, selected-device details, CPU/GPU
-reports, dense workspace probes and reference captures. It currently requires
-17 GPU cases, including both KV tests, paged prefill, two CUDA attention tests
-and the single/mixed paged-decode cases.
+The next focused T4 action is [the accuracy notebook](../notebooks/paged_decode_accuracy.ipynb):
+fresh Kaggle session, Internet/T4 enabled, Run All, download the ZIP even on failure.
+It retains exact source, setup/commands, target identity, raw logits and reports.
+Required policy `fp32-paged-v2-independent` uses ten GPU cases (RNG, owned paged
+prefill, two FP64 attention, two KV allocator/storage and four integrated cases).
+HF parity, token agreement and fidelity collection are optional only. Model quality
+and full-distribution evaluation remain planned; see [the policy](../docs/NUMERICAL_POLICY.md).
+
+`bash scripts/validate_t4.sh` remains the broader clean-checkout collector including
+dense workspace. Old evidence is never relabeled under the new contract.
 Review actual executed/skipped counts
 and source identity before copying a bundle from `results/local/` into
 `results/validation/`. Extend the required suite when new GPU surfaces exist.
@@ -40,3 +47,11 @@ tensors and decoded text from the checked-in public fixtures, as required by the
 [oracle contract](../docs/VALIDATION_PLAN.md#oracle-harness). Never publish private
 request content or credentials. Retain actual commands, source/lock identity,
 device/configuration details, test counts and limitations with each artifact.
+
+## Cleanup boundary
+
+November 11 archive/content inspection is retained in the
+[cleanup inventory](validation/2026-11-11/cleanup-inventory.json). Archives with
+unique/uncertain contents remain, including the only raw copies of completed gates
+and unresolved failures. Diagnostic scripts remain when referenced by these reports
+or needed for forensic reproduction. `.venv` and active install metadata stay.

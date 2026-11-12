@@ -18,8 +18,8 @@ ROOT = Path(__file__).resolve().parents[1]
 ACCURACY_RUN = r"""
     target_code = "import json,sys,torch; from pathlib import Path; from pagedcore.cli import collect_environment_diagnostics; assert torch.cuda.is_available() and torch.cuda.device_count()==1; assert 'T4' in torch.cuda.get_device_name(0); assert torch.__version__=='2.7.1+cu126'; p=torch.cuda.get_device_properties(0); Path(sys.argv[1]).write_text(json.dumps(dict(torch=torch.__version__,name=p.name,uuid=str(p.uuid),capability=[p.major,p.minor],visible_devices=torch.cuda.device_count(),total_memory=p.total_memory,environment=collect_environment_diagnostics()),indent=2))"
     run("target", [str(python), "-c", target_code, str(evidence / "target.json")], required=True)
-    run("checkpoint-verify", [str(python), "-m", "pagedcore.cli", "verify",
-         "--manifest-path", str(evidence / "environment-manifest.json")], required=True)
+    run("checkpoint-verify", [str(python), "-m", "scripts.verify_owned_checkpoint",
+         "--output", str(evidence / "environment-manifest.json")], required=True)
     run("lint", [str(python), "-m", "ruff", "check", "."], required=True)
     run("format", [str(python), "-m", "ruff", "format", "--check", "."], required=True)
     run("types", [str(python), "-m", "mypy", "--strict", "src/pagedcore"], required=True)
@@ -122,7 +122,7 @@ try:
     run("existing-component-diagnostic", [str(python), "-m", "scripts.diagnose_paged_decode",
          "--device", "cuda:0", "--steps", "3", "--value-reduction", "striped",
          "--output", str(evidence / "existing-components.json")])
-    run("gpu-regressions", [str(python), "-m", "pytest", "-v", "-ra", "tests/gpu",
+    run("gpu-regressions", [str(python), "-m", "pytest", "--run-hf-diagnostics", "-v", "-ra", "tests/gpu",
          "-k", "test_legacy_hf_paged_decode_on_t4 or paired_at_17 or eager_value_sum_at_17_tokens",
          "--junitxml=" + str(evidence / "gpu-regressions.xml")])
     (evidence / "source-after.json").write_text(json.dumps(verify_source(), indent=2))
@@ -304,18 +304,19 @@ Set `PAGEDCORE_EVIDENCE_WORKDIR` to override the output folder; otherwise Kaggle
 uses `/kaggle/working` and other environments use the current folder.
 
 This runs CPU checks and the required T4 suite, including independent FP64
-attention, the unchanged dense HF architectural checks, and paged decode versus
+attention, owned checkpoint/prefill smoke, and paged decode versus
 independent contiguous FP32 attention at the existing tolerances. Single, mixed,
 fragmented and held-out layouts are required. The decoder still uses FP16 weights
-and cache. HF logit error, top-one agreement and margins are retained as fidelity
-measurements rather than an exact-HF gate. No cuBLAS kernel profiling is needed.
+and cache. No HF model forward or HF fidelity report is required. Optional HF
+comparisons are deselected by default. No cuBLAS kernel profiling is needed.
 
 Download the final ZIP even when tests fail. `accuracy-summary.json` says passed
 only when CPU/GPU tests and all versioned reports are complete and valid. Setup
 logs, source hashes, target identity, raw logit tensors and failures are retained.
 This collector covers paged accuracy; end-to-end generation, maximum-active
 workspace, CUDA reuse and service gates remain separate. Read NUMERICAL_POLICY.md
-in the source snapshot for the owner-approved November 9 contract change.
+in the source snapshot for the November 11 independent validation contract. Model quality, full-distribution
+KL, and expanded component coverage remain planned and are not certified here.
 """
     if two_token:
         intro = """# PagedCore two-token reproduction on T4

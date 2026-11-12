@@ -94,6 +94,7 @@ files = ["src/pagedcore"]
 addopts = "--strict-config --strict-markers"
 testpaths = ["tests"]
 markers = [
+    "hf_diagnostic: optional Hugging Face comparisons; enable with --run-hf-diagnostics",
     "unit: isolated component and synthetic contract tests",
     "integration: cross-component tests",
     "gpu: tests that require an NVIDIA T4 and CUDA runtime",

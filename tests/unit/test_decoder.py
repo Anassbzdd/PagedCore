@@ -76,6 +76,7 @@ def decoder() -> SimpleNamespace:
 
 
 @pytest.mark.parametrize("tokens", [1, 15, 16, 17, 49])
+@pytest.mark.hf_diagnostic
 def test_prefill_matches_synthetic_hf_and_caches_prompt(
     decoder: SimpleNamespace, tokens: int
 ) -> None:
@@ -579,6 +580,7 @@ def test_paged_prefill_failure_preserves_admission_and_allows_retry(
     "tokens,maximum,ignore_eos",
     [(1, 1, False), (15, 8, False), (16, 8, True), (17, 8, True), (32, 8, True), (49, 8, True)],
 )
+@pytest.mark.hf_diagnostic
 def test_greedy_generation_matches_synthetic_hf(
     decoder: SimpleNamespace,
     assert_decoder_greedy_parity: Callable[..., GreedyResult],
@@ -622,6 +624,7 @@ def test_generation_rejects_context_overflow_before_prefill(
 
 
 @pytest.mark.parametrize("tokens", [1, 15, 16, 17, 49])
+@pytest.mark.hf_diagnostic
 def test_all_layers_match_synthetic_hf_prefill_and_cached_decode(
     decoder: SimpleNamespace,
     assert_decoder_layer_parity: Callable[
@@ -647,6 +650,7 @@ def test_all_layers_match_synthetic_hf_prefill_and_cached_decode(
 
 
 @pytest.mark.parametrize("reference_value", [0.0, -2.0])
+@pytest.mark.hf_diagnostic
 def test_layer_measurements_use_fp32_errors_and_combined_tolerance(
     decoder: SimpleNamespace,
     assert_decoder_layer_parity: Callable[
@@ -683,6 +687,7 @@ def test_layer_measurements_use_fp32_errors_and_combined_tolerance(
         )
 
 
+@pytest.mark.hf_diagnostic
 def test_layer_comparison_identifies_owned_attention_mismatch(
     decoder: SimpleNamespace,
     assert_decoder_layer_parity: Callable[[Any, TinyLlamaWeights, Tensor], None],

@@ -3,14 +3,14 @@
 This table maps [MVP acceptance criteria](SPEC.md#acceptance-criteria) to their
 implementation owners, current support and remaining evidence. All final
 acceptance rows remain open: dense parity and allocator completion establish
-prerequisites, while paged attention and the service are still planned.
+prerequisites, while integrated paged accuracy fails and the service remains planned.
 The current gate is [Phase 5](STATUS.md#next-implementation-gate).
 Task IDs are defined in the public [phase map](VALIDATION_PLAN.md#build-order).
 A `pending` path names intended evidence, not a file that already exists.
 
 | ID | Acceptance criterion | Owners | Current evidence and remaining checks | Final evidence |
 |---|---|---|---|---|
-| AC-01 | Dense HF architectural checks; paged accuracy versus independent FP32 reference and reported HF fidelity | P3.4–P3.6, P5.3, P5.6 | [Dense T4 comparisons](validation/2026-10-27-phase4-review.md) establish the historical foundation; revised paging acceptance follows [NUMERICAL_POLICY.md](NUMERICAL_POLICY.md) and awaits a new T4 run | `results/validation/decoder-accuracy.json` (pending) |
+| AC-01 | Independent FP64/component correctness; blocking FP32 paging accuracy; held-out cached-decode quality versus same-checkpoint vLLM | P3.4–P3.6 (historical), P5.3, P5.6; additional AC-01 evaluation | [Dense T4 comparisons](validation/2026-10-27-phase4-review.md) establish the historical foundation; revised paging acceptance follows [NUMERICAL_POLICY.md](NUMERICAL_POLICY.md) with unresolved November 10 integrated failures. Independent model coverage gaps and the quality/fidelity evaluator remain planned; pilot-justified margins/counts must freeze before held-out evaluation | `results/validation/decoder-accuracy.json` (pending) |
 | AC-02 | KV allocation/reuse/isolation/cleanup; bounded queues/active requests; cancellation and slow-consumer safety | P4.5–P4.6, P6.4, P6.7–P6.8, P7.5, P7.7, P8.7 | [Allocator unit tests](../tests/unit/test_kv_cache.py), [property model](../tests/unit/test_kv_cache_properties.py) and [T4 storage tests](../tests/gpu/test_kv_pool_cuda.py) pass; scheduler, transport and lifecycle tests remain pending | `results/validation/resource-lifecycle.json` (pending) |
 | AC-03 | A second request joins while the first is decoding | P6.3, P6.7 | `tests/integration/test_continuous_batching.py` (pending) | `results/validation/continuous-batching.json` (pending) |
 | AC-04 | Poisoned fragmented KV matches the independent owned reference; traces prove block-table reads without full-history gather | P5.4–P5.5 | [Attention math tests](../tests/gpu/test_attention_cuda.py) and [guarded decoder tests](../tests/gpu/test_decoder_parity.py) exist; the revised integrated T4 evidence remains pending | `results/validation/paged-attention.json` (pending) |
@@ -35,3 +35,7 @@ evidence closes artifact delivery. Follow the
 | Safe CUDA reuse and shutdown | P5.7, P6.4, P6.10, P7.1, P8.5–P8.7 | Allocator owning-stream guard passes; integrated access/reuse ordering, graceful zero ownership and forced escalation remain pending |
 | Measurements and memory | P2.1, P3.7, P5.7, P6.9, P8.2–P8.6 | Synthetic clocks/timing math and dense T4 workspace exist; bounded live instrumentation and paged/batched/service memory remain pending |
 | Comparable benchmarks and mechanism coverage | P10.1–P10.9, P11.1–P11.7 | Dispatch lag, granularity, terminal/deadline accounting, sampled memory and labeled mechanism experiments (pending) |
+
+HF comparisons are optional diagnostics, not hidden acceptance requirements.
+Quality, full-distribution KL and top-1 reporting follow [the policy](NUMERICAL_POLICY.md).
+The current notebook implements paging evidence only; the quality harness is planned.

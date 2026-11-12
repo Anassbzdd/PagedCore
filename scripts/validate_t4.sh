@@ -59,7 +59,7 @@ target = {
 }
 (Path(sys.argv[1]) / "target.json").write_text(json.dumps(target, indent=2) + "\n")
 PY
-uv run --no-sync pagedcore verify --manifest-path "$evidence_dir/manifest.json"
+uv run --no-sync python -m scripts.verify_owned_checkpoint --output "$evidence_dir/manifest.json"
 uv run --no-sync python -m ruff format --check .
 uv run --no-sync python -m ruff check .
 uv run --no-sync python -m mypy --strict src/pagedcore
@@ -71,11 +71,7 @@ uv run --no-sync python scripts/measure_dense_workspace.py "$evidence_dir" --wit
 uv run --no-sync python -m pytest -m gpu \
     -k 'not test_pinned_candidate_paged_decode_on_t4 and not paired_at_17 and not legacy' -v -ra \
     --junitxml="$evidence_dir/gpu-tests.xml"
-uv run --no-sync pagedcore oracle --case boundary_15 \
-    --output "$evidence_dir/reference.pt" > "$evidence_dir/capture.json"
-uv run --no-sync pagedcore oracle --case boundary_15 \
-    --compare "$evidence_dir/reference.pt" \
-    --output "$evidence_dir/reference-repeat.pt" > "$evidence_dir/comparison.json"
+
 git status --porcelain
 test -z "$(git status --porcelain)"
 date -u
@@ -95,10 +91,7 @@ directory = Path(sys.argv[1])
 report = ET.parse(directory / "gpu-tests.xml")
 cases = report.findall(".//testcase")
 required = {
-    "test_pinned_checkpoint_loads_and_runs_one_reference_forward_pass",
     "test_seed_everything_repeats_cuda_random_streams",
-    "test_public_reference_capture_and_repeatability_on_t4",
-    "test_pinned_decoder_layer_parity_on_t4",
     "test_pinned_paged_prefill_on_t4",
     "test_pinned_paged_decode_accuracy_on_t4[single]",
     "test_pinned_paged_decode_accuracy_on_t4[mixed]",
@@ -109,11 +102,6 @@ required = {
     "test_kv_pool_storage_on_t4",
     "test_kv_allocator_storage_and_stream_ownership_on_t4",
 }
-fixtures = json.loads(Path("tests/fixtures/reference_prompts.json").read_text())
-required.update(
-    f"test_pinned_decoder_greedy_parity_on_t4[{case['name']}]"
-    for case in fixtures["prompts"]
-)
 if not required <= {case.attrib["name"] for case in cases} or any(
     case.find(tag) is not None for case in cases for tag in ("skipped", "failure", "error")
 ):
@@ -128,43 +116,18 @@ for case_name, lengths in {
     testcase = next(case for case in cases if case.attrib["name"] == f"test_pinned_paged_decode_accuracy_on_t4[{case_name}]")
     records = testcase.findall("./properties/property[@name='paged_decode_accuracy']")
     if len(records) != 1:
-        raise SystemExit("GPU evidence rejected: versioned paged accuracy and HF fidelity reports required.")
+        raise SystemExit("GPU evidence rejected: versioned paged accuracy reports required.")
     try:
         accuracy = json.loads(records[0].attrib["value"])
     except (KeyError, ValueError) as error:
         raise SystemExit("GPU evidence rejected: malformed paged accuracy report.") from error
     if not valid_accuracy_report(accuracy, lengths):
-        raise SystemExit("GPU evidence rejected: incomplete or invalid paged accuracy/HF fidelity report.")
+        raise SystemExit("GPU evidence rejected: incomplete or invalid paged accuracy report.")
     accuracy_reports[case_name] = accuracy
 (directory / "paged-decode-accuracy.json").write_text(
     json.dumps(accuracy_reports, indent=2, allow_nan=False) + "\n", encoding="utf-8")
 
-properties = report.findall(".//testsuite/properties/property[@name='decoder_tolerance_envelope']")
-if len(properties) != 1:
-    raise SystemExit("GPU evidence rejected: owned-decoder tolerance measurements are required.")
-envelope = json.loads(properties[0].attrib["value"])
 manifest = json.loads((directory / "manifest.json").read_text())
-envelope.update(
-    environment=manifest["environment"],
-    provenance=manifest["provenance"],
-    target=json.loads((directory / "target.json").read_text()),
-)
-maxima = {}
-for group in ("intermediates", "logits"):
-    entries = [
-        {"case": case, "tensor": tensor, **errors}
-        for case, measurement in envelope["cases"].items()
-        for tensor, errors in measurement["tensors"].items()
-        if tensor.endswith(".logits") == (group == "logits")
-    ]
-    maxima[group] = {
-        metric: max(entries, key=lambda entry: entry[metric])
-        for metric in ("max_absolute_error", "max_tolerance_ratio")
-    }
-envelope["maxima"] = maxima
-(directory / "tolerance-envelope.json").write_text(
-    json.dumps(envelope, indent=2, allow_nan=False) + "\n", encoding="utf-8"
-)
 expected_runs = {
     (name, prompt, output, repetition)
     for name, prompt, output in (

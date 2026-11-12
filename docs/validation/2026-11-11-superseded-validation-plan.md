@@ -1,0 +1,782 @@
+# Superseded validation plan snapshot
+
+Retained November 11, 2026, before scope revision. Everything below is historical,
+including commands and old HF rules; it is not an active release contract.
+See [current policy](../NUMERICAL_POLICY.md). Original results and conclusions
+are preserved; no old failure becomes a pass.
+
+---
+
+
+Purpose: Turn the design into an ordered build, test, benchmark, and publication plan.
+
+# PagedCore Implementation and Validation Plan
+
+This is the public evidence contract and phase map. [STATUS.md](../STATUS.md) records current implementation/evidence limits. Planned tests, commands, and artifact paths below are requirements, not assertions that those surfaces exist.
+
+## Current numerical acceptance contract
+
+The owner-approved November 9 [numerical policy](../NUMERICAL_POLICY.md) supersedes
+integrated HF-eager reproduction requirements in earlier dated investigations
+below. Required paging checks use independent contiguous FP32 attention and the
+existing logit/KV thresholds. Standalone attention retains its independent FP64
+oracle. Exact greedy choices are required against the owned reference on the
+frozen suite; HF-eager differences are mandatory fidelity measurements. Legacy
+dense HF architecture/prefill/generation checks remain required and unchanged.
+The revised T4 accuracy suite adds a held-out 37/73/111/145-token prefix case.
+Missing accuracy reports or non-finite HF measurements reject collection.
+No earlier archive satisfies this new evidence contract automatically.
+
+## Build order
+
+Complete each runtime gate before starting the next substantial runtime feature. Preserve dense parity -> allocator correctness -> paged attention -> lifecycle correctness -> HTTP. CI, evidence tooling, and synthetic benchmark analysis can support these gates earlier; they do not bypass them. The task IDs below define public ownership even when the detailed local checklist is not distributed.
+
+| Phase / task IDs | Work | Evidence required |
+|---|---|---|
+| P0.1-P0.6: baseline | Package structure and reconciled public contracts | Parseable metadata and consistent constants/acceptance ownership |
+| P1.1-P1.6: environment | Frozen CPU/CUDA setup, configuration, diagnostics, controls, reference verifier and evidence closure | Attributable fresh Linux/T4 install, reference forward, CPU checks and CUDA repeatability report |
+| P9.1-P9.2: early automation | Schedule after environment implementation, before P2; retain IDs for traceability | CPU lint/format/strict typing/pytest automation and repeatable T4 job with test counts and artifacts |
+| P2.1-P2.5: types/reference | Minimal interfaces, lifecycle/accounting validators, timing schema, fixtures and frozen oracle | CPU rejection of illegal transitions and invalid capacity snapshots; deterministic reference IDs/tensors; documented special-token, attention, and numerical settings |
+| P3.1-P3.7: dense parity | Owned TinyLlama forward without paging | Layer/logit/greedy T4 parity and dense-prefill workspace record |
+| P4.1-P4.6: allocator | One pool, free list, tables and capacity ledger | Boundary, rollback, isolation, reuse and independent property-model tests |
+| P5.1-P5.7: paged attention | Block-table traversal, standalone and integrated FP32 online-softmax decode | Poisoned fragmentation, no-full-gather traces, T4 parity and batched workspace record |
+| P6.1-P6.10: lifecycle | Credits, FIFO, active limits, bounded thread bridge, cleanup, measurements and cooperative stop | Fake-model scheduling/fault/race tests, release-once assertions and safe CUDA reuse |
+| P7.1-P7.8: HTTP | Bounded preprocessing, strict validation, SSE/transport supervision and operational endpoints | CPU fake-model plus T4 black-box tests, delivery ordering and shutdown escalation |
+| P8.1-P8.8: hardening | Verify existing instrumentation/shutdown; final memory/fault/soak checks | Bounded retention, privacy, worst-case T4 memory and graceful/forced-stop reports |
+| P9.3-P9.7: delivery | Clean distributions, container and operator documentation | Clean wheel/sdist installs and direct/container service smoke checks |
+| P10.1-P10.9: harness | Shared external client, frozen inputs and tested analysis | Synthetic replay, failure/timeout accounting and attributable pilot artifacts |
+| P11.1-P11.10: measurements/report/release | Frozen comparison, profiling, report; then artifact publication | Inspectable raw results/report, followed by exact tested tag and clean artifact smoke |
+
+Start CI/T4 procedures immediately after environment implementation. Define measurement types in P2 and instrument worker/service during P6/P7. Smoke-test candidate vLLM/T4 compatibility early; freeze its final version/configuration before official runs. Synthetic analyzer work can start in P2. Official comparisons require P3-P8 and a direct Linux/T4 service smoke, plus the validated P10 harness; final Docker/distribution delivery can finish alongside the report.
+
+Keep each gate in a reviewable commit or small series of commits. Do not optimize an incorrect forward pass.
+
+## Allocator gate status
+
+As of 2026-10-27, P4.1–P4.6 are complete at the allocator boundary. The
+[completion review](../validation/2026-10-27-phase4-review.md) verifies the clean
+`986392e` T4 archive (554 CPU / 12 GPU passes, zero skips) against the source at
+that review. Newer independent property tests and collector guard regressions have
+[separate CPU evidence](../../results/validation/2026-10-27/cpu-review.json).
+The current implementation gate is P5.1–P5.7: noncontiguous block-table decode
+attention, parity, workspace and safe page reuse. Worker cancellation and
+integrated paged/batched/service memory gates remain open.
+
+As of 2026-10-28, `decoder.prefill_paged` transfers one prompt's rotated K and
+unrotated V from the owned dense forward into the admitted request's pages.
+[Synthetic CPU tests](../../tests/unit/test_decoder.py) cover absolute prompt
+positions across page boundaries, shuffled/reused storage, isolation and
+unpublished state after failures. The [October 30 review](../validation/2026-10-30-p52-t4-review.md)
+verifies this integration on T4 at clean `922588b`; it does not establish
+block-table decode, paged-attention parity or workspace safety. The
+[October 31 review](../validation/2026-10-31-p52-t4-review.md) closes P5.2 standalone
+online softmax at clean `3401406`: both runs pass 617 CPU and 15 GPU cases,
+including the two required CUDA attention tests, with zero failures/errors/skips.
+
+As of 2026-10-30, `decoder.decode_paged` implements batched one-token forwards
+with per-request positions, valid page lengths and staged layer writes. Its
+[synthetic CPU tests](../../tests/unit/test_decoder.py) and
+[allocator staging tests](../../tests/unit/test_kv_cache.py) do not establish T4
+decoder parity or workspace safety. Earlier T4 archives predate this decode and
+staged-append path; P5.4-P5.7 evidence remains required.
+
+As of 2026-11-01, the [shared decode guard](../../tests/conftest.py) instruments
+K/V-derived storage during actual paged decode. CPU tests cover single/mixed
+requests, page boundaries and the 2,048-token limit, and reject injected K/V
+concatenation, stacking, indexed gathering and preallocated-buffer copies.
+The required single/mixed T4 decode cases use the same guard. Their execution
+and retained evidence remain pending; CPU success does not close the Phase 5
+T4 gate.
+
+The November 1 numerical repair selects the design's two-pass eager-rounding
+attention for integrated decode and single-request arithmetic shapes within the
+batch transaction. The original online primitive/reference/fixtures remain in
+place. Logits retain `atol=rtol=5e-3`, K/V retain `atol=rtol=2e-3`, and greedy
+tokens must match exactly. Regression tests cover global probability rounding,
+batch composition/order, staged rollback and the existing storage guard. The
+[arithmetic diagnostic](../../scripts/diagnose_paged_decode.py) replays each eager
+operation's identical input and copies reference K/V into control pages outside
+serving forwards. It separates batch-dependent components, online/eager attention,
+and integrated logit/K/V errors. CPU results do not identify the first
+T4-specific divergent operation or close the T4 gate; retain a manual CUDA replay
+and the full collector result before acceptance.
+
+The November 2 replay additionally records FP32/FP16 probabilities, direct
+control-page K/V comparisons, first differing coordinates and value calculations
+with HF probabilities held fixed. Run both `--value-reduction striped` and
+`--value-reduction paged` on T4 and retain both JSON reports, including failures.
+The latter selects an experimental FP32 page-product accumulator without
+changing the serving default. The separate
+`test_pinned_candidate_paged_decode_on_t4[single/mixed]` cases apply the existing
+logit/K/V tolerances, greedy, ownership and storage guards to that candidate.
+Both candidate tests failed logit parity in the retained November 4 run. Keep
+their results as diagnostic evidence. A later candidate must pass the required
+integrated cases, the full collector and the remaining Phase 5 gates.
+
+For a focused reduction replay, run
+`python scripts/probe_value_reduction.py --device cuda:0 --profile --output results/local/value-scalar-t4.json`
+under the same pinned CUDA environment. It retains the 17 probability/value
+operands for the first striped and page-product discrepancies, compares FP64 and
+sequential FP32 results on all 22 layers, and optionally profiles the reference
+CUDA matmul. This is diagnostic reference math outside serving, not a different
+oracle or permission to gather K/V in owned decode. CPU operands and reduction
+orders cannot substitute for their actual T4 counterparts.
+
+To probe the addition order, run on the same pinned T4:
+
+```bash
+python scripts/probe_value_reduction.py --device cuda:0 --probe-order \
+  --output results/local/value-order-t4.json
+```
+
+At layer 1, the probe reuses the captured FP16 matmul shapes and strides. It
+moves two large, cancelling terms and one small term through all 4,080 ordered
+placements in the 17 token slots, measuring head 2, channel 41. A small term
+can round away when added before the large terms cancel. The JSON retains
+all observations and mismatch counts for the FP64, sequential FP32, two-lane
+and four-lane models. Check that the reference replay and synthetic sweep
+report a shared GEMVX kernel before interpreting these counts. Matching this
+sweep would narrow the candidate addition orders for this sampled shape and
+coordinate. It would still require validation on real operands and the
+integrated decoder cases.
+
+Run `python -m pytest -q tests/gpu/test_attention_cuda.py -k eager_value_sum_at_17_tokens`
+to replay the captured layer-1 mismatch through the serving value reducer. The
+test supplies fixed FP16 probabilities to isolate value arithmetic, places the
+17 values in two nonadjacent physical pages, and checks the captured HF scalar
+exactly. This is a focused reproduction of the one-step FP16 rounding difference.
+The integrated logit and K/V tolerances and greedy-token checks still apply.
+
+Run the two-lane candidate separately on the pinned T4:
+
+```bash
+python -m pytest -q -ra tests/gpu/test_attention_cuda.py \
+  tests/gpu/test_decoder_parity.py -k paired_at_17
+```
+
+The test fixture selects two FP32 sums only when attention sees exactly 17
+tokens. The captured-value case checks the original scalar on nonadjacent
+pages. The pinned-model boundary case starts with 15 tokens and decodes two
+steps across fragmented pages, including staged rollback and retry. The
+single, mixed and fragmented three-step cases check the wider impact at the
+existing tolerances. Retain the result even if a later step fails. These
+test-only runs are separate from the release collector.
+
+Run the integrated value-reduction control on the pinned T4 environment:
+
+```bash
+uv run --no-sync python scripts/diagnose_paged_decode.py --device cuda:0 \
+  --probe-value-reduction --output results/local/pagedcore-parity-probe.zip
+```
+
+Retain the archive and console summaries. The probe first reproduces the striped
+failure, then tests one FP64 weighted-value accumulation across valid pages with
+one final FP16 cast. If that fails, the native control uses PagedCore's own
+rounded probabilities and independent HF V only where every paged V slice
+matches. It records fallback layers and exact Q/K/V, probability, and output
+comparisons for each request. A mismatch after a fallback can include earlier
+drift. Reference operands are prepared outside the guarded owned forward.
+Only consider changing the serving reducer after reviewing attributable T4
+parity results. The diagnostic archive does not replace the collector.
+
+The [November 8 collection plan](../validation/2026-11-08-numerical-evidence-plan.md)
+provides one self-contained Kaggle notebook (`notebooks/p53_numerical_evidence.ipynb`, absent from the current tree; the diagnostic builder remains in `scripts/build_numerical_notebook.py`)
+for the remaining kernel-family investigation. It captures real operands at
+34 lengths, isolates page-local score arithmetic, runs guarded integrated
+single/mixed/fragmented diagnostic arms and retains raw results, failures and
+exact bundled source in one downloadable archive. It is diagnostic collection,
+not a replacement for the required T4 collector or remaining Phase 5 gates.
+
+## Evidence attribution
+
+The [November 8 value follow-up](../validation/2026-11-08-value-followup-review.md)
+records successful reducer dispatch but incomplete candidate forwards due to
+diagnostic V tracking reaching MLP hidden states. Revalidate the corrected
+rank-one half-split helper with the guard enabled; the prior candidate aborts
+cannot count as completed numerical comparisons or a passing T4 gate.
+
+For each completed gate retain a reviewed artifact under `results/validation/` identifying the gate, UTC capture time, implementation revision, source identity, lock SHA-256, actual sanitized arguments, setup record, resolved configuration, seeds, installed dependency versions, device identity and test report. Capture GPU name/UUID, selected CUDA device, compute capability, driver/runtime and relevant memory totals; distinguish CUDA-visible devices from physical inventory.
+
+A Git revision alone does not identify dirty source. Retain sanitized differences and relevant source hashes, or rerun after establishing a clean attributable source state. Clearly separate recommended commands from commands actually executed. Manifest version 2 records runtime/test source and install-metadata hashes and actual CLI arguments with manifest paths redacted. Programmatic calls leave command arguments unknown; setup history must be retained separately, because the verifier cannot observe the installer or an outer `uv` invocation. Missing hashes/Git metadata are unknown, not proof of a clean checkout. Never include credentials or private prompt/output data in provenance.
+
+Test reports must state collected, selected, executed, passed, failed and skipped counts/reasons. A successful process exit with no executed required GPU tests is insufficient. Environment reference verification and CUDA RNG repeatability are separate Phase 1 checks; neither substitutes for future custom-engine parity/lifecycle suites. Label CPU results explicitly and keep failed runs rather than replacing them with only a successful summary.
+
+The collector requires `test_kv_pool_storage_on_t4` and
+`test_kv_allocator_storage_and_stream_ownership_on_t4` to execute and pass.
+It also requires `test_pinned_paged_prefill_on_t4`, which compares the pinned
+checkpoint's prompt logits and every layer's paged K/V against eager HF at
+1/15/16/17/49 tokens, with shuffled/reused pages, isolation and release checks.
+That test passed in the [October 30 archive review](../validation/2026-10-30-p52-t4-review.md).
+The collector also requires `test_paged_attention_boundaries_on_t4` and
+`test_paged_attention_large_scores_on_t4` from
+[the CUDA attention suite](../../tests/gpu/test_attention_cuda.py). These directly
+call the primitive with CUDA tensors and compare against independent FP64 CPU
+attention at the existing `atol=rtol=2e-3`, including shuffled pages, long context,
+head mapping, large scores, autocast and read-only accounting. Both execute and
+pass in each [October 31 archive](../validation/2026-10-31-p52-t4-review.md) at
+`3401406`; the October 30 archive predates these tests. The newer staged-layer
+iterator and integrated batched decode still need their own T4 evidence.
+The collector requires `test_pinned_paged_decode_accuracy_on_t4[single]`,
+`[mixed]`, `[fragmented]` and `[held_out]`. These compare one request, a
+five-request 1/15/16/17/49-token group and new 37/73/111/145-token prefix layouts
+against independent contiguous FP32-attention forwards for three cached steps.
+They reverse request order between steps, compare logits at `atol=rtol=5e-3`
+and every layer's K/V at `2e-3`, and require exact next-token argmax against
+that owned reference. HF eager receives the same selected inputs and contributes
+mandatory finite fidelity metrics, not an exact paged-output acceptance check.
+Each JUnit case must retain a complete `paged_decode_accuracy` report with policy
+`fp32-paged-v1`; the exporter rejects missing, duplicate or invalid comparisons.
+
+Checks retain unchanged historical slots, reservations, committed lengths,
+stable pool storage, poisoned unrelated blocks and zero final ownership.
+The fragmented case inserts a sentinel page, injects a synchronous logit failure
+after staged writes, verifies rollback and retries the same step. Only the owned
+paged decode runs under the storage guard. Prefill and independent full-history
+reference calculations remain outside it. Legacy HF-rounding tests and rejected
+value candidates are separate forensic experiments, excluded from release
+collection. The exporter retains `paged-decode-accuracy.json` alongside the
+unchanged dense HF tolerance envelope and required workspace evidence.
+These focused decode comparisons do not close the later end-to-end generation,
+maximum-active workspace or page-reuse ordering gates.
+The [October 26 review](../validation/2026-10-26-p42-t4-review.md#findings-and-remaining-work)
+identified the two KV tests' omission from the earlier guard; both nevertheless
+passed in that archive. The [collector regressions](../../tests/unit/test_t4_evidence.py)
+now reject missing KV, paged-prefill, paged-decode or attention tests and skipped/failed/errored
+results. Complete passing reports must still export successfully.
+
+## Reference and numerical policy
+
+The P2 oracle explicitly loads the pinned HF model with `attn_implementation="eager"`, FP16 weights and evaluation/inference mode. Record the resolved backend, Torch/CUDA math settings, model configuration and tokenizer settings in reference artifacts. The existing Phase 1 verifier does not explicitly freeze that attention backend; its saved forward pass is only environment smoke evidence.
+
+Capture all decoder-relevant values from the loaded configuration, including RMSNorm epsilon, RoPE theta/scaling, intermediate size, head mapping, biases, weight tying, BOS/EOS IDs and vocabulary. Follow the [raw-prompt/decoding policy](../SPEC.md#http-contract). Compare token IDs directly across oracle, owned decoder and benchmark adapters. Use public deterministic fixtures; immediate-EOS and stopping paths may also use controlled logits, with synthetic coverage labeled separately from actual checkpoint parity.
+
+The [owned weight loader](../../src/pagedcore/weights.py) validates the pinned
+revision, config and complete safetensors metadata before loading FP16 tensors.
+[CPU contract tests](../../tests/unit/test_weights.py) exercise malformed snapshots,
+every required config field, missing/extra tensors, shape/dtype errors, untied
+mapping and non-finite conversion. Small real safetensors fixtures test I/O;
+their reduced dimensions do not prove pinned-checkpoint or GPU correctness.
+The [P3.1 CPU report](../../results/validation/2026-10-14-p3.1-cpu.json) separately
+records loading all real pinned weights on CPU. Dense parity tests use these owned weights on T4; CPU weight loading alone
+does not establish checkpoint parity.
+
+The [dense components](../../src/pagedcore/dense.py) have
+[synthetic CPU tests](../../tests/unit/test_dense.py) for projection/head layout,
+eight-to-one KV mapping, causal prefill-shaped and one-query attention, FP32
+RMSNorm/softmax behavior, RoPE at absolute positions through 2,047, output
+projection, SwiGLU and final norm/untied LM head. Component comparisons use the
+pinned Transformers implementation with random weights and unchanged tolerances;
+these are not full-layer or pinned-checkpoint parity tests. The
+[P3.2 CPU report](../../results/validation/2026-10-14-p3.2-cpu.json) records local
+checks and source identity.
+
+The [contiguous decoder](../../src/pagedcore/decoder.py) now composes these components
+for single-sequence prefill and one-token decode. Its
+[synthetic CPU tests](../../tests/unit/test_decoder.py) check eager HF prefill logits,
+cached versus fresh full-prefix forwards, rotated K/unrotated V, causal visibility,
+request isolation and unchanged input caches after success or injected failure.
+Lengths 1/15/16/17/49 exercise orchestration; a synthetic 2,047-position cache
+exercises the last decode position and overflow rejection, not maximum-prefill
+workspace. The [P3.3 CPU report](../../results/validation/2026-10-16-p3.3-cpu.json)
+retains local commands and source identity. These reduced-depth random-weight
+tests do not prove real-checkpoint layer/greedy parity. The separate T4 checks
+and evidence below close those dense decoder requirements.
+
+The [layer-comparison fixture](../../tests/conftest.py) snapshots every decoder
+layer's input/post-attention norms, projected attention, MLP and residual output,
+plus embeddings, final normalized hidden state and logits. It observes the actual
+owned forwards through temporary test wrappers and HF through hooks, restoring
+both on success or failure. Prefill and three cached decode steps receive identical
+IDs; decode replays reference-selected tokens, so this is forward comparison rather
+than proof of owned greedy selection or stopping. Intermediate/final-hidden
+comparisons use `atol=rtol=2e-3`; logits use `atol=rtol=5e-3`, with shape/dtype and
+finite-value checks and named step/layer failures.
+
+[Synthetic CPU cases](../../tests/unit/test_decoder.py) cover prompt lengths
+1/15/16/17/49 with two random-weight layers. Their HF RoPE frequencies remain FP32:
+calling `.half()` on the whole synthetic model also rounds buffers, which caused
+norm mismatches when the new comparisons were first run. Recreating the HF rotary
+module after parameter conversion removes that reference-fixture error without
+changing the owned math or tolerances. An injected attention error verifies that
+the comparisons detect a named owned-layer mismatch.
+
+The [pinned-checkpoint T4 test](../../tests/gpu/test_decoder_parity.py) uses the owned
+weight loader and eager HF with all 22 layers, prompt lengths 1/15/16/17/49 and
+three cached decode steps each. It is required by the T4 collector. The retained
+[October 18 T4 archive](../../results/validation/2026-10-18-t4/t4-20261018T153034Z.zip)
+records its passing execution at source `8940a1c`, with four GPU tests passing
+without skips. This proves the listed layer comparisons, not owned generation
+or workspace safety. See also the [P3.4 CPU report](../../results/validation/2026-10-17-p3.4-cpu.json).
+
+### Greedy parity
+
+[`decoder.generate`](../../src/pagedcore/decoder.py) selects tokens from the owned
+prefill/decode logits with argmax and applies the pinned EOS/length policy.
+The [shared comparison](../../tests/conftest.py) runs an independent eager FP16 HF
+model with the same input IDs and fresh greedy generation settings under the
+same reference math policy. It checks exact selected IDs, emitted IDs and finish
+reason. Stopping EOS is included only in selected IDs; ignored EOS is emitted.
+The [T4 cases](../../tests/gpu/test_decoder_parity.py) cover every public prompt at
+its declared output limit/EOS policy, including 256 output tokens. The collector
+requires every named fixture case to execute and pass before accepting a bundle.
+
+[Synthetic CPU generation tests](../../tests/unit/test_decoder.py) use two random
+layers at prompt lengths 1/15/16/17/32/49 and check independent invocations and
+input bounds. The [controlled stopping cases](../../tests/unit/test_reference_fixtures.py)
+compare the owned loop against HF for immediate/delayed EOS, EOS at the limit,
+length, ignored EOS and maximum output. Scripted owned forwards also assert the
+consumed token, cache position and number of forwards, so stopping cannot hide
+an extra decode. This separates stopping behavior from checkpoint numerics.
+The [P3.5 CPU report](../../results/validation/2026-10-18-p3.5-cpu.json) records local
+validation. The retained [October 19 T4 archive](../../results/validation/2026-10-19-t4/pagedcore-p35-t4.zip)
+records all six greedy cases passing at `7bbcd6a`, along with the layer comparison
+and three environment/reference tests (ten passed, zero skipped). Its source hashes
+match that revision. Tolerances are unchanged.
+
+### Tolerance envelope
+
+The same layer comparison returns measurements for every named tensor during
+prefill and three reference-token cached decode steps. The T4 test records them
+in the GPU JUnit suite's `decoder_tolerance_envelope` property for prompt lengths
+1/15/16/17/49 and all 22 layers. No prompt or generated text is included.
+This is an observed envelope for those forwards, not an exhaustive bound over
+all inputs or the full 256-token generation path.
+
+Errors are computed from FP16 snapshots after conversion to FP32. Each entry
+records maximum absolute error and maximum `abs(actual - reference) /
+(atol + rtol * abs(reference))`. This ratio measures the fraction of the allowed
+error, remains defined at reference zero, and must be at most one. The existing
+finite-value, dtype and `assert_close` checks still run at unchanged tolerances.
+
+`bash scripts/validate_t4.sh` exports these measurements as
+`tolerance-envelope.json`, with separate intermediate/logit maxima and the case,
+step and tensor producing each maximum. The report includes the environment,
+source/lock provenance, selected T4 UUID, platform, CUDA/runtime settings, seed,
+model config and math policy. The bundle also retains setup/commands, JUnit
+reports and dependencies frozen explicitly from `.venv/bin/python`.
+Missing measurements reject the bundle. The October 19 archive predates this
+recorder and cannot establish the owned-decoder envelope; its `comparison.json`
+measures only Hugging Face repeatability. CPU tests validate measurement/export
+logic but cannot close the T4 measurement gate.
+
+The reviewed [October 20 T4 archive](../../results/validation/2026-10-20-t4/pagedcore-p36-t4.zip)
+closes P3.6 at clean source `88be0f8`; see the [evidence review](../../results/validation/2026-10-20-t4/review.json).
+All 2,240 intermediate and 20 logit records have zero absolute error and zero
+tolerance ratio across the five prompts, all 22 layers and four forwards per
+prompt. The review checks every measurement label, recomputes maxima and verifies
+source/lock/collector/fixture hashes, JSON/JUnit agreement and environment identity.
+The bundle retains 401 passing CPU tests and ten passing GPU cases without skips.
+This is the observed envelope for the recorded T4/math configuration. The
+separate P3.7 workspace gate is satisfied by the October 21 evidence below.
+
+### Dense workspace
+
+P3.7 runs [the workspace recorder](../../scripts/measure_dense_workspace.py) in a
+separate process through `bash scripts/validate_t4.sh`, before GPU parity tests.
+Only the owned pinned FP16 weights are loaded; no HF model or paged pool is present.
+Use an otherwise idle T4 with exactly one CUDA-visible device and the native CUDA
+caching allocator. The recorder uses the same seed and strict math policy as parity.
+
+Measure these single-sequence paths using fixed synthetic IDs:
+
+| Path | Prompt tokens | Requested output | Decode forwards |
+|---|---:|---:|---:|
+| Maximum direct prefill | 2,048 | 0 | 0 |
+| Maximum generation prompt | 2,047 | 1 | 0 |
+| Maximum output at the context limit | 1,792 | 256 | 255 |
+
+Each path runs three times: once after releasing unused allocator segments, then
+twice reusing the allocator cache. Generation ignores EOS so it reaches the output
+limit. Reset allocator peaks immediately before each path, including input creation.
+Synchronize raw samples before/after the forward and after returned tensors are
+released; retain [first-use library workspace growth](https://docs.pytorch.org/docs/2.7/notes/cuda.html#cublas-workspaces)
+and require stable live
+allocations on repeats. Allocation retries or OOMs fail the run.
+
+Retain `dense-workspace.json` with device-free/total bytes, live/reserved bytes,
+allocator peaks and full allocator statistics at each boundary, plus model-loading
+baselines, all nine runs, math settings, source/lock/recorder hashes and environment
+identity. `dense-workspace-allocator.txt` retains allocator summaries. Failures leave
+partial samples and diagnostics in the raw directory; the collector rejects missing
+or incomplete workspace evidence before producing a successful ZIP.
+
+The peak increment above a run's baseline includes input, KV and logits as well as
+temporary tensors; it is not an isolated scratch-buffer size. Boundary device-free
+samples can miss transients, and allocator peaks exclude allocations outside
+PyTorch's allocator. These measurements do not certify a pool size from nominal
+VRAM or close the later paged/batched/service memory gates. Review actual T4 results
+before revising capacity or the provisional workspace margin. CPU tests validate
+recording and evidence rejection only.
+
+The retained [October 21 T4 archive](../../results/validation/2026-10-21-t4/pagedcore-p37-t4.zip)
+and [baseline review](../../results/validation/2026-10-21-t4/review.json) close P3.7
+at source `e9e21fb`. All nine runs and 27 samples passed, with no allocator retries
+or OOMs. Values below are recomputed from raw bytes (`MiB = bytes / 2**20`):
+
+| Path | Peak allocated MiB | Largest increment above its run baseline MiB |
+|---|---:|---:|
+| Maximum direct prefill | 3,228.22 | 1,128.05 |
+| Maximum generation prompt | 3,228.19 | 1,096.01 |
+| Maximum output | 2,979.72 | 847.54 |
+
+Retain this no-pool record unchanged as the dense baseline. The 1,128.05 MiB
+increment exceeds the former provisional 1,024 MiB margin, but includes dense KV,
+inputs, logits and temporary tensors. It neither isolates workspace demand nor
+certifies the configured 8,192 MiB pool or 32-active workload.
+
+### Combined memory validation before capacity freeze
+
+The collector now also runs the recorder with `--with-pool` in a fresh process.
+After loading weights, this mode checks actual free device bytes against
+`kv_pool_mib + workspace_margin_mib`, allocates and zeroes one unused FP16 tensor
+of exactly the configured pool bytes, then holds it through the same nine dense
+runs. It checks headroom again after allocation, rejects allocator retries/OOMs,
+and retains failures with partial samples. This is an early memory-pressure probe;
+the tensor does not implement the paged pool, ownership or block-table attention.
+The existing dense cache remains present, so its increment still includes dense KV.
+
+The separate `pool-dense-workspace.json` and `pool-dense-workspace-allocator.txt`
+record reservation bytes, model/pool baselines, configured margin and active limit,
+all raw samples/peaks and the observed margin comparison. A passed measurement
+means the recorded paths ran successfully; `capacity_validated` remains `false`,
+including when the dense increment fits the margin. The collector requires both
+complete reports and verifies reservation/configuration agreement before packaging.
+The [October 22 T4 archive](../../results/validation/2026-10-22-pool-memory-cpu/pagedcore-pool-memory-t4.zip)
+and [review](../../results/validation/2026-10-22-pool-memory-cpu/t4-review.json)
+retain this probe at clean source `6c6eec8`: all nine pressure runs passed,
+with zero retries/OOMs, 464 passing CPU tests and ten passing GPU tests without
+skips. The exact 8,192 MiB reservation stayed live through all 27 run boundaries.
+Peak allocated memory reached 11,420.22 MiB and allocator reserved memory
+11,626 MiB; the minimum boundary free sample was 3,128.81 MiB.
+The dense increment remained 1,128.05 MiB. Repeated cleanup allocations stabilized
+after one first-use 32 MiB increase. This is single-sequence reservation evidence.
+That run used the former 1,024 MiB margin. The [October 25 T4 archive](../../results/validation/2026-10-25/pagedcore-p42-t4-20261025T153708Z.zip)
+and [October 26 review](../validation/2026-10-26-p42-t4-review.md) at clean source
+`f72f39c` now supply the same nine pressure runs and 27 samples with the revised
+1,536 MiB margin. All passed with zero retries/OOMs, the same 1,128.05 MiB maximum
+dense increment and stable repeated cleanup after a one-time 32 MiB increase.
+Peak allocated/reserved memory was 11,420.22/11,626 MiB; minimum sampled device
+free memory was 3,128.81 MiB. The archive also retains 498 passing CPU tests and
+12 passing GPU tests without skips. This validates the revised setting only for
+the recorded single-sequence reservation probe; `capacity_validated=false`
+remains correct. Integrated model/pool and paged/batched/service capacity gates
+remain pending.
+
+Run the full attributable procedure on T4 from a clean committed checkout:
+
+```bash
+bash scripts/validate_t4.sh
+```
+
+For a focused pressure probe in an already configured CUDA environment, choose a
+new output directory; it does not replace the collector's complete evidence bundle:
+
+```bash
+export CUBLAS_WORKSPACE_CONFIG=:4096:8
+uv run --no-sync python scripts/measure_dense_workspace.py results/local/pool-pressure --with-pool
+```
+
+Capacity remains provisional until all of these have reviewed T4 evidence:
+
+1. The pool-reservation probe above, alongside the retained no-pool baseline.
+2. **P5.7:** the implemented paged pool with maximum active batched decode, and
+   long prefill while other sequences retain KV; include page-write/copy overlap
+   and ordered page reuse. Measure actual paged code, not an unused reservation.
+3. **P8.6/P8.7:** the actual maximum-context/32-active service workload and mixed
+   cancellation/fault/soak runs, with allocator/device memory and cleanup checks.
+
+If those runs expose OOMs, retries or unsafe headroom, raise the margin or lower
+the pool/active limit and repeat the affected tests before freezing capacity.
+Changing the pool, margin or active limit invalidates the relevant capacity result.
+These later gates remain pending until integrated paged/batched and service
+evidence is retained.
+
+### Oracle harness
+
+Run from the repository root with the frozen CUDA/dev environment on an actual T4:
+
+```bash
+export CUBLAS_WORKSPACE_CONFIG=:4096:8
+uv run --no-sync pagedcore oracle --case boundary_15 --output results/local/reference.pt
+uv run --no-sync pagedcore oracle --case boundary_15 --compare results/local/reference.pt --output results/local/reference-repeat.pt
+```
+
+`--case` accepts a name from the public fixture file; `--fixtures` explicitly selects
+that file outside the repository root. The command captures HF reference evidence,
+and `--compare` checks HF reference repeatability. Neither command compares an owned
+decoder or measures serving performance. Retain reviewed artifacts and command/test
+reports under `results/validation/` for gate acceptance; the default local artifacts
+are ignored. The retained [October 12 T4 archive](../../results/validation/2026-10-07-t4/p2.4-evidence.zip)
+contains an executed oracle test and two pinned FP16 captures with exact reference
+repeatability. The [evidence review](../../results/validation/2026-10-12-t4-evidence-review.json)
+records that historical run's source identity and limits: installer history and
+CUDA-visible device count are unknown. The later October 13 and October 27
+archives retain complete setup and selected-device attribution; see
+[current evidence](../STATUS.md#saved-t4-observations).
+
+From a clean checkout on Linux with an actual T4, Git and `uv` available, run:
+
+```bash
+bash scripts/validate_t4.sh
+```
+
+This [collector](../../scripts/validate_t4.sh) logs frozen environment setup, source/lock
+identity, physical GPU inventory and the single selected CUDA-visible T4. It runs
+the CPU checks, separate no-pool and pool-pressure dense recording, all 17 required GPU cases,
+reference capture and comparison, then
+creates a ZIP under `results/local/`. A failed run leaves its raw directory intact;
+no successful bundle is accepted with missing or skipped required GPU tests. Review
+and retain that bundle under `results/validation/` before closing the gate. The
+script's local syntax check is not execution on T4, and hosted CPU CI remains a
+separate requirement.
+
+[The oracle](../../src/pagedcore/oracle.py) captures independent CPU tensor snapshots
+for embeddings, input/post-attention norms, attention outputs, MLP outputs and
+layer outputs in the first and last decoder layers, plus the final norm and logits.
+Each key starts with `prefill` or `decode.<step>`; decode steps start at one. Full
+prefill logits are retained rather than HF generation's usual last-position slice.
+Programmatic `capture_reference(..., layers=(...))` can select other layer indices
+for diagnosis. HF performs cached greedy generation internally; the returned
+`ReferenceTrace` exposes only tensors, IDs, emitted-text decode and finish reason,
+not a Transformers cache. `compare_traces` accepts the same plain record from a
+future owned decoder, checks exact IDs/outcome/text and reports maximum absolute
+errors per tensor at the fixed thresholds below. It rejects missing keys, changed
+shapes/dtypes and non-finite values.
+
+The runner verifies the pinned tokenizer file hashes/settings and exact public
+prompt IDs, loads FP16 eager attention, and records the full resolved model config.
+Fresh generation settings disable inherited checkpoint defaults; an explicit EOS
+override prevents HF from restoring EOS stopping for `ignore_eos=true`. Stopping
+EOS belongs to selected greedy IDs but is excluded from emitted IDs; ignored EOS
+still counts as emitted. Decoding preserves the raw-prompt and special-token policy.
+
+During capture, TF32 and reduced-precision FP16/BF16 matrix-multiply reductions are
+disabled; float32 matmul precision is `highest`, cuDNN benchmarking is disabled,
+and cuDNN deterministic mode is enabled. Deterministic algorithms are enforced
+with `warn_only=false`: unsupported operations fail rather than weakening the
+reference policy. CUDA capture requires `CUBLAS_WORKSPACE_CONFIG=:4096:8` (or
+`:16:8`) before starting Python, including GPU pytest; the oracle rejects missing
+or unsupported values before loading the checkpoint. In PowerShell use
+`$env:CUBLAS_WORKSPACE_CONFIG = ":4096:8"`. Restart a notebook kernel if CUDA/cuBLAS
+was already used before setting the variable. The workspace setting and enforcement
+flags are recorded in artifact metadata; references captured under the previous
+policy must be regenerated for `--compare`. These controls and seed zero do not
+promise cross-device or cross-version equality, or bitwise equality between different
+decoder implementations. Caller math flags, model training mode and hooks are restored
+after success or failure. Artifacts contain tensor/ID records and primitive metadata,
+load with `weights_only=true`, and replace an existing file only after a complete
+write. Metadata retains source/lock and fixture hashes, actual sanitized CLI arguments
+(unknown for a programmatic call), environment, selected GPU identity, numerical
+policy and comparison discrepancies. Installer history remains a separate record.
+
+[Synthetic CPU tests](../../tests/unit/test_oracle.py) exercise a tiny random Llama,
+controlled finite logits, independent full-history forwards, artifact failure paths
+and mocked target-loading plumbing. They do not establish pinned-checkpoint parity.
+[Pure internal timing analysis](../../src/pagedcore/measurements.py) uses existing
+monotonic-nanosecond records; [synthetic tests](../../tests/unit/test_measurements.py)
+check TTFT, publication gaps, TPOT, separate generation/delivery latency and undefined
+zero/one-token cases. Pending/active disconnect cases permit transport termination
+before worker termination or while the worker outcome is still unknown; invalid
+transport timestamps and termination before arrival fail. This is initial analyzer
+arithmetic, not worker instrumentation or the later external benchmark client.
+The [T4 reference test](../../tests/gpu/test_oracle_reference.py)
+has executed in the retained archives. The October 27 review verifies fresh
+setup, source/lock identity and selected-device attribution for the current
+allocator runtime. Later paged/service tests remain separate requirements.
+
+### Public reference fixtures
+
+[Checked-in inputs](../../tests/fixtures/reference_prompts.json) contain public raw
+prompts with verified special-token-inclusive IDs at 15/16/17 tokens, 32/49-token
+multi-block prompts, a 256-token output request, EOS-enabled generation and a
+mixed-length group. Fixed-length cases use `ignore_eos=true`. The 17-token prompt
+preserves leading spaces and a trailing newline. These are input fixtures, not
+saved checkpoint-generated outputs or evidence that batching/paging works.
+
+The [fixture tests](../../tests/unit/test_reference_fixtures.py) check counts, context
+limits and maximum KV credits. Their offline tokenizer integration check compares
+every ID and the pinned tokenizer-file hashes; it explicitly skips when the files
+are absent from the local HF cache. Populate only the small tokenizer/config files
+before requiring this check (no checkpoint weights are downloaded):
+
+```bash
+uv run --no-sync python -c "from huggingface_hub import snapshot_download; from pagedcore.config import MODEL_ID, MODEL_REVISION; snapshot_download(MODEL_ID, revision=MODEL_REVISION, allow_patterns=['config.json', 'tokenizer.json', 'tokenizer_config.json', 'special_tokens_map.json'])"
+uv run --no-sync python -m pytest tests/unit/test_reference_fixtures.py -ra
+```
+
+An uncached offline CI run checks the fixture contracts and synthetic stopping
+cases but does not reverify tokenization. Require the tokenizer check to execute
+before accepting changed public prompts or IDs. Controlled logits on a tiny,
+randomly initialized CPU Llama model establish synthetic greedy stopping reference
+cases: immediate/delayed EOS, EOS at the output limit, length stopping, ignored EOS
+and 256-token output. HF returns a stopping EOS; the reference test excludes it
+from emitted IDs to match the public contract. The same scripts now exercise
+the owned generation loop with controlled forwards. They do not validate the
+pinned checkpoint's math, streaming, timestamps or T4 parity.
+
+### Numerical comparisons
+
+Apply [NUMERICAL_POLICY.md](../NUMERICAL_POLICY.md): compare paged decode with independent contiguous FP32 attention at the unchanged thresholds, and report HF fidelity separately. Diagnose deviations layer by layer. Any arithmetic-policy or tolerance change needs explicit documentation and new measured evidence.
+
+## Test strategy
+
+**Shared-contract CPU tests (P2.2):** Cover successful lifecycle paths with and
+without decode, cancellation/failure before and after admission, and rejection of
+skipped stages, backwards changes, self-transitions and every change from a terminal
+state. Reject nonpositive reservation credits, negative/noninteger capacity counts,
+and violations of `free + owned = total` or `owned <= reserved <= total`. Accept
+snapshots with reserved but unassigned capacity. These validators do not prove
+release-once cleanup, per-request ownership, or CUDA ordering; implement and test
+those assertions with the concrete allocator/worker in P4/P6.
+
+**CPU unit tests:** Exercise the allocator and scheduler with a fake model. Test empty/full pools, exact block boundaries, strict FIFO and head-of-line behavior, the active-sequence limit, credit release, cancellation at every state, double-free prevention, requests too large for the pool, and recovery after a failed request. Assert invariants after each state transition.
+
+Allocator failure-safety regressions reject impossible reservations without
+acquisition and corrupt/free/foreign/swapped tables before reads, writes or
+release. Inject synchronous copy failures into K and V writes across partial and
+new blocks; verify unchanged valid history, other requests and accounting, then
+strict release-once cleanup and complete reuse. The T4 allocator test also covers
+a synchronous exception after issuing K but before V, followed by retry/reuse;
+this is not evidence of recovery from an actual CUDA device failure.
+
+Use an independent CPU ownership/accounting model for randomized operations. Cover partial failures/rollback and per-request ownership as well as aggregate counts. Test bounded mailbox publication while the event loop is stalled, coalesced wakeups/lost-wakeup races, closed-loop publication, final-token/terminal races and duplicate cleanup signals. Complete lifecycle correctness with the fake model before adding HTTP.
+
+**GPU correctness tests:** On the pinned checkpoint, retain dense HF architectural
+checks and compare paged decode with independent contiguous FP32 attention under
+[the numerical policy](../NUMERICAL_POLICY.md). HF fidelity uses the same input-token
+history and FP16 weights. Cover one and multiple sequences, short and long prompts,
+block boundaries, EOS, maximum output length and reused physical blocks. Force a
+multi-block sequence onto shuffled physical block IDs and poison unrelated blocks
+so an implementation that ignores the block table fails. Keep bounded
+intermediate/logit errors and exact paged-versus-owned-reference greedy choices
+on deterministic fixtures. Investigate failures without widening tolerances.
+
+**Service tests:** Verify `POST /v1/generate`, `GET /healthz`, `GET /readyz`, and `GET /metrics`, including status codes, the default 64-request pending bound, the `262144`-byte body limit, and stable error codes. Verify SSE framing, one token event per emitted token, incremental decoding with incomplete byte sequences, final text flushing, first-step EOS, queue overload, the default 32-sequence active limit, simultaneous clients, disconnect during pending/prefill/decode, and readiness after an injected worker failure. Fill a token queue deliberately and prove the out-of-band terminal signal closes the stream. Confirm cancellation eventually returns all blocks, credits, and active slots.
+
+Cover strict booleans/integers, unknown fields, invalid UTF-8/surrogates, whitespace preservation, special-token IDs, error envelopes and validation precedence. Bound four preprocessing operations and test bodies with missing/incorrect `Content-Length`. Cancel tokenization and verify that its slot remains held until the job exits and no cancelled request is enqueued. Test successful mailbox draining before `done`, transport-write deadlines and cancellation of an already blocked send, including failure after generation has finished.
+
+**Memory and lifecycle tests:** Measure dense-prefill workspace in P3, pool plus batched-decode workspace in P5, and final maximum-context/32-active service memory in P8. Exercise long prefill while other requests already hold KV. Run repeated mixed requests/cancellations and assert zero owned blocks, reserved credits and active slots after graceful completion. Test CUDA ordering before page reuse and device failures that require fail-closed termination. Track process/device memory for unexplained growth.
+
+Test normal cooperative shutdown and forced escalation separately. A stuck worker must produce a failed-graceful-shutdown outcome after the ten-second waiting budget without freeing its live resources; an external subprocess supervisor then terminates the process. Report escalation duration separately. Do not count forced termination as proof that graceful cleanup returned all ownership to zero.
+
+Run CPU checks, `ruff`, and `mypy` on every CI push. Run GPU tests on an actual T4 before release; a CPU-only CI pass does not certify the engine.
+
+Establish these commands now; install matching `cpu` or `cuda` extras and `dev` with the frozen lock first:
+
+```bash
+python -m ruff check .
+python -m ruff format --check .
+python -m mypy --strict src/pagedcore
+python -m pytest -m "not gpu and not benchmark"
+export CUBLAS_WORKSPACE_CONFIG=:4096:8
+python -m pytest -m gpu -k "not legacy and not paired_at_17 and not test_pinned_candidate_paged_decode_on_t4" -ra
+```
+
+The last command requires an actual T4 and an inspected test report. The six
+registered markers (`unit`, `integration`, `gpu`, `service`, `slow`, `benchmark`)
+and their selection commands are documented in
+[Contributing](../../CONTRIBUTING.md#selecting-test-suites). Marks can overlap; every
+hardware-dependent test must carry `gpu` regardless of its other marks. Routine
+CPU CI excludes `gpu` and `benchmark` and includes CPU integration, service and
+slow checks. Empty or all-skipped selections do not satisfy a validation gate.
+Add package-build, service, container and benchmark smoke commands when those surfaces exist.
+
+## Benchmark protocol
+
+The comparison uses the same pinned TinyLlama weights and tokenizer, FP16, one T4, 2,048-token context, greedy decoding, and fixed output length. Run PagedCore and vLLM as separate servers on the same otherwise-idle machine, one at a time. Use one benchmark client with backend adapters: PagedCore uses `/v1/generate`, and vLLM uses `/v1/completions` so no chat template is added. Both receive the same raw prompt strings, and server-side tokenization is included in client TTFT. The official vLLM benchmark documentation distinguishes TTFT, inter-token latency, and time per output token, so report these names precisely. [Source: vLLM benchmark documentation](https://docs.vllm.ai/en/latest/benchmarking/cli/).
+
+Pin and smoke-test the exact vLLM release on the T4. Its frozen command must explicitly set `--dtype half`, `--max-model-len 2048`, `--block-size 16`, `--gpu-memory-utilization 0.90`, and `--no-enable-prefix-caching`; record all resolved engine settings. Keep the pinned release's normal chunked-prefill, scheduler, kernel, and CUDA-graph defaults because vLLM is the production reference, then name those differences when analyzing the gap. Configure PagedCore to remain within the same 90% device-memory ceiling and publish both systems' configured KV bytes; observed peak VRAM is still reported rather than assumed equal. T4-class GPUs do not support BF16 in vLLM, so the explicit FP16 override is required for this checkpoint. [Source: vLLM CUDA platform dtype checks](https://docs.vllm.ai/en/latest/api/vllm/platforms/cuda/).
+
+Create a checked-in workload file with deterministic prompts of approximately 128 and 512 tokenizer tokens. Use 32 and 128 generated tokens respectively. Enable `ignore_eos` in both servers and disable EOS stopping in the Hugging Face baseline so every system produces the fixed length. Verify actual prompt and output token counts; do not silently truncate. Hash the workload file and record its seed.
+
+Before each backend's pilot, verify exact prompt IDs, special-token behavior, resolved KV dtype, context/output limits and EOS policy. Smoke-test candidate vLLM compatibility early; pin the exact release and confirm that its flags implement the frozen policy rather than assuming latest-version behavior. Exclude unsupported cells with a recorded reason instead of silently changing precision or workloads.
+
+For each workload:
+
+1. Pilot both servers, then freeze a common offered-request-rate grid that includes an uncongested point and at least one point near saturation. Use Poisson arrivals (`burstiness=1.0`) from saved per-repetition seeds and no client-side concurrency cap. Publish the chosen grid before inspecting comparative results.
+
+2. Restart the server between repetitions and clear any reusable prefix cache. Warm up with 20 requests; exclude them from results.
+
+    Freeze a balanced backend run order across repetitions, workload/order seeds, request deadline and drain policy. Record the actual order; avoid consistently running one backend first.
+
+3. Run at least five repetitions of at least 100 measured requests per grid point, using the same precomputed arrival schedules. Increase the total to at least 1,000 requests for any cell used to make a p99 TTFT claim.
+
+4. Let admitted requests complete; record attempted, completed, rejected, and failed requests. Never compute latency percentiles from successes while hiding rejection rates.
+
+    Drain after the final scheduled arrival until every request reaches a terminal outcome or its frozen deadline. Timeouts are failures and remain in raw data; close the connection to signal cancellation. Retain late-result observations separately without reclassifying a timed-out attempt as a success.
+
+5. Save raw per-request event times, token counts, device VRAM samples, configuration, and environment metadata.
+
+
+Report client-measured TTFT p50/p95, pooled streamed-output ITL p50/p95, per-request TPOT p50/p95, end-to-end latency p50/p95, `output_tok_per_s`, achieved request rate, error/rejection rate, and sampled peak device VRAM, using the timing definitions below. Emit p99 fields and sample counts for every latency metric, but set a p99 to `null` with `insufficient_sample` below 1,000 relevant observations. Calculate a 95% bootstrap confidence interval across repetition-level throughput values, recording bootstrap seed/resample count. Five repetitions are a minimum and produce limited uncertainty estimates; do not treat tokens or pooled gaps as independent repetitions.
+
+Sample total device-used memory through NVML every 50 ms, with no other GPU processes. Retain absolute samples, device memory total and the idle baseline recorded before startup; publish both absolute sampled peak and baseline-subtracted peak. Include startup/warmup/measurement phase labels, actual sample timestamps and gaps. These are sampled peaks and can miss shorter transients; use separate allocator/profiling diagnostics for workspace safety. Device-level sampling includes vLLM child processes. Internal KV metrics are diagnostic; use `N/A` where another system lacks an equivalent. For PagedCore, report peak occupancy, reservation ratio, slot fill and effective pool fill.
+
+Run Hugging Face `generate` as a **single-request reference baseline** for latency and output throughput. Label its concurrent-QPS cells `N/A`; do not imply it is a configured online serving system.
+
+Record the HF baseline's resolved attention backend and math settings separately from the correctness oracle. If using a different backend for latency, freeze and name that difference; do not attribute it to PagedCore paging.
+
+### Client timing and accounting
+
+All primary comparisons use the same external client and one monotonic clock. Record scheduled arrival, actual dispatch, first/last observed output, observed output-event gaps, terminal receipt or failure/timeout, verified token counts and statuses. Report dispatch lag; a client that cannot sustain the schedule cannot certify the offered-rate cell. Do not cap client concurrency, but report resource exhaustion as a failed attempt rather than dropping it.
+
+For comparison, an output event is a nonempty generated text delta for both adapters. Metadata-only or empty deltas do not establish client TTFT; PagedCore's internal first-token timestamp remains a distinct diagnostic. Use `TTFT = first_output - dispatch`, `TPOT = (last_output - first_output) / (output_tokens - 1)` when at least two output tokens and observable output exist, and `end_to_end = terminal - dispatch`. Also retain `last_output - dispatch` and terminal overhead so final flushing/EOS/transport costs are visible. Undefined values are `null` with a reason, never zero.
+
+Client ITL pools gaps between consecutive observed output events. Stream events, model tokens and network reads are distinct: one output event may carry multiple tokens and one network read may contain several events. Never manufacture per-token timestamps by retokenizing text or assigning zero gaps within a chunk. Verify counts from backend completion metadata and PagedCore event indices while retaining only counts/times, not token IDs or generated text. Report stream granularity and missing usage/count metadata; invalidate a count-dependent cell when counts cannot be established. Internal model-token ITL must be labeled separately.
+
+The throughput interval starts at the first scheduled measured arrival and ends at the last terminal/deadline, including dispatch lag and drain. Publish interval bounds, offered-window duration and drain duration. `output_tok_per_s = completed_requests_emitted_tokens / interval_seconds`; `achieved_req_per_s = completed_requests / interval_seconds`. Report partial tokens from failed/cancelled attempts separately. Require `attempted = completed + rejected + failed`, with timeouts/cancellations/client failures included in failed and explicit subcounts. Successful latency summaries always appear beside all outcome counts.
+
+### Mechanism experiments
+
+The default 8,192 MiB pool exceeds the maximum KV reservation allowed by 32 active/context-bounded requests: 1,408 MiB. The fixed workloads use about 110/440 MiB at that active limit. These derived capacities cannot demonstrate credit pressure under default settings.
+
+Alongside the official frozen comparison, run separately labeled PagedCore experiments with smaller pools, mixed prompt/output lengths, fragmentation/reuse, and long-prefill interference. Select settings that actually trigger credit limits and FIFO blocking; retain admission/queue, occupancy/reservation and cleanup measurements. Use paired public inputs/seeds and change one factor at a time for causal claims. Never replace the official cells with a favorable sensitivity setting. These experiments exercise existing MVP behavior and add no scheduling features.
+
+## Analysis required for publication
+
+Publish the raw result files and a table with these columns:
+
+|Workload and offered rate|System|Completed / attempted|TTFT p95|ITL p95|TPOT p95|Output tok/s|Peak VRAM|KV utilization|
+|---|---|---|---|---|---|---|---|---|
+
+Follow the table with:
+
+- A correctness summary and the largest observed reference discrepancy.
+
+- Where time goes: queue, prefill, dense model operations, blockwise attention, scheduler, and streaming. Use synchronized GPU profiling only for component timings; keep ordinary client latency measurements unsynchronized.
+
+- The measured gap to vLLM at matched workload and load, with uncertainty and named confounds.
+
+- The effects of serial prefill and conservative capacity credits.
+
+- Any overload, OOM, or failed runs, including how they were handled.
+
+
+Do not assert that a particular optimization caused a gap unless a profile or controlled experiment supports it.
+
+## Risks and responses
+
+|Risk|Response|
+|---|---|
+|FP16 numerical differences change greedy output|Compare intermediate tensors and logits; document tolerance and any true divergence.|
+|A “paged” implementation copies full KV history each step|Review decode attention’s data path and test it with a full-history-gather prohibition.|
+|Pool sizing leaves too little transient workspace|Measure worst-case GPU use, raise the workspace margin, and fail startup when unsafe.|
+|Cancelled streams leak blocks or credits|Exercise cancellation at each lifecycle state and assert post-run zero ownership.|
+|Many short requests create an unsafe decode batch|Gate admission on the 32-slot active limit as well as KV credits; validate workspace before changing the limit.|
+|A full token queue prevents stream termination|Use the separate terminal future and test forced slow-consumer closure.|
+|Long prefills damage ITL|Measure mixed prompt lengths and name serial prefill as an MVP limitation.|
+|Benchmark favors one server through configuration or hidden failures|Pin configurations, use one client/workload, publish raw data and rejection counts.|
+|vLLM version or T4 support changes|Pin and smoke-test the exact release before comparative runs; record any unsupported configuration.|
+
+## Release gate
+
+Publish installable v0.1.0 artifacts only after model parity, allocator invariants, service lifecycle tests, lint/type checks, clean installation, Docker smoke test, and the T4 benchmark pass. The README must link architecture, exact reproduction commands, raw measurements, results and limitations. The technical report may precede artifact publication under the milestones below.
+
+After that release, consider preemption/recomputation, chunked prefill, copy-on-write and prefix sharing, then speculative decoding. Each is a separate change with its own correctness test and before/after result.
+
+## Completion milestones
+
+1. **Diagnostic pilot:** label exploratory measurements and failures; never present them as an official comparison or as closing an unproven correctness gate.
+2. **Official measurement entry:** P3-P8 correctness, lifecycle/service, privacy and memory gates pass on attributable source; CPU CI/T4 reports exist; direct Linux/T4 service smoke and P10 synthetic/pilot checks pass. Freeze inputs, versions, grid, run order, deadlines and analysis definitions before comparative runs.
+3. **Portfolio demonstration:** publish attributable correctness evidence, official raw/summarized measurements, mechanism experiments and a profile-backed technical report explaining a gap or failure. No speed target or additional serving feature is required.
+4. **Artifact release:** finish distribution/container checks, final documentation and the release checklist; tag the exact tested source and publish installable artifacts/checksums. Run the post-release smoke separately. Release completion is distinct from the earlier technical demonstration.

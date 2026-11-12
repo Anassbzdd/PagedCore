@@ -2,7 +2,7 @@
 
 PagedCore is a learning-focused, single-GPU LLM inference engine for studying paged KV-cache management, continuous batching, and streaming generation on one NVIDIA T4.
 
-The v0.1.0 scope is intentionally narrow: a pinned TinyLlama checkpoint, a Llama-compatible FP16 decoder, greedy generation, a 2,048-token context, one model worker, and a local FastAPI/SSE interface. Hugging Face is the architectural and fidelity reference. Paged decode is checked against independent FP64 attention and contiguous FP32-attention decode under [the numerical policy](docs/NUMERICAL_POLICY.md); the serving path owns its decoder and KV-cache behavior.
+The v0.1.0 scope is intentionally narrow: a pinned TinyLlama checkpoint, a Llama-compatible FP16 decoder, greedy generation, a 2,048-token context, one model worker, and a local FastAPI/SSE interface. Correctness uses independent mathematics, model-component checks and paging invariants. Quality evaluation against the same checkpoint in vLLM is planned; HF comparisons are optional diagnostics. Paged decode is checked against independent FP64 attention and contiguous FP32-attention decode under [the numerical policy](docs/NUMERICAL_POLICY.md); the serving path owns its decoder and KV-cache behavior.
 
 ## Status
 
@@ -19,7 +19,7 @@ paged attention at clean `3401406`: two runs each pass 617 CPU and 15 GPU tests
 with zero skips. The newer batched one-token paged decode and staged attention
 reads have synthetic CPU coverage; the revised independent-accuracy contract
 still requires a new T4 run. The [self-contained Kaggle notebook](notebooks/paged_decode_accuracy.ipynb)
-collects that run and separate HF fidelity measurements. Continuous batching, the worker and HTTP/SSE service
+collects owned-reference accuracy without required HF execution. The November 10 integrated T4 comparison still fails; P5.3 remains open. Independent component coverage and held-out model quality are additional release gaps. Continuous batching, the worker and HTTP/SSE service
 remain planned. Pool/batched/service memory safety and performance
 comparisons are also pending. See [current status](docs/STATUS.md) for evidence
 boundaries and [the phase map](docs/VALIDATION_PLAN.md#build-order) for next steps.
@@ -46,26 +46,22 @@ Print the resolved, non-sensitive environment and PagedCore settings with:
 uv run pagedcore env
 ```
 
-On the target T4, verify the pinned model/tokenizer and capture a prompt-free
+On the target T4, verify the owned checkpoint/tokenizer and capture a prompt-free
 environment manifest with:
 
 ```bash
-uv run pagedcore verify
+uv run --no-sync python -m scripts.verify_owned_checkpoint --output results/local/environment-manifest.json
 ```
 
-The manifest is written to `results/local/environment-manifest.json` by default. It
-records the resolved snapshot revision and, when run from a Git checkout, the commit,
-working-tree status, lock SHA-256, and hashes of runtime/test sources and install metadata.
-Manifest version 2 captures the actual CLI arguments with manifest paths redacted;
-programmatic verification leaves arguments unknown. Setup history is also unknown
-unless retained separately by the validation operator. Recommended commands above
-are not recorded as executed commands.
-This command requires CUDA device 0 to be an NVIDIA T4 and performs one reference
-forward pass; a CPU-only run does not satisfy the target-machine gate.
-
-Expected configuration or manifest-write failures return exit code 1 and JSON on
-stderr. Retain setup output and CPU/GPU test reports alongside the manifest, following
-the [evidence attribution contract](docs/VALIDATION_PLAN.md#evidence-attribution).
+Create `results/local/` first. The version-3 manifest records owned-forward smoke,
+pinned model/tokenizer identity, environment and source/lock provenance. It requires
+one CUDA-visible T4 and does not compare against an external model. Retain actual
+setup/commands and reports under the [evidence contract](docs/VALIDATION_PLAN.md#evidence-attribution).
+The older `pagedcore verify` and `pagedcore oracle` commands remain optional HF
+diagnostics. For the next required T4 run use the self-contained
+[paging accuracy notebook](notebooks/paged_decode_accuracy.ipynb), enable Internet
+and T4 GPU, Run All and retain the ZIP even on failure. It does not evaluate model
+quality, end-to-end paged generation, workspace or the service.
 
 ## Project documents
 

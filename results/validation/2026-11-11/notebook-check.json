@@ -1,0 +1,16 @@
+{
+  "status": "passed",
+  "notebook": "notebooks/paged_decode_accuracy.ipynb",
+  "cells": 2,
+  "embedded_files": 94,
+  "snapshot_sha256": "a71446636bf2f997bdfd0917232a07c1297af8febf6d6a03540833ff7973b9f3",
+  "notebook_sha256": "5378acb8c9abccda47e53b966d69752ae2037bb1d11b1bbc268a373e63ccd98e",
+  "checks": [
+    "JSON and v4 cell structure",
+    "code compiles",
+    "outputs/counts empty",
+    "payload hash",
+    "every embedded source hash matches current file",
+    "owned-only required entry point"
+  ]
+}

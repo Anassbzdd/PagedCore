@@ -1,0 +1,74 @@
+[
+  {
+    "path": "C:\\Users\\user\\OneDrive\\Desktop\\PagedCore\\.hypothesis",
+    "files": 59,
+    "bytes": 42257.0,
+    "containment_verified": true
+  },
+  {
+    "path": "C:\\Users\\user\\OneDrive\\Desktop\\PagedCore\\.mypy_cache",
+    "files": 4710,
+    "bytes": 220540417.0,
+    "containment_verified": true
+  },
+  {
+    "path": "C:\\Users\\user\\OneDrive\\Desktop\\PagedCore\\.pytest_cache",
+    "files": 5,
+    "bytes": 97087.0,
+    "containment_verified": true
+  },
+  {
+    "path": "C:\\Users\\user\\OneDrive\\Desktop\\PagedCore\\.ruff_cache",
+    "files": 118,
+    "bytes": 29846.0,
+    "containment_verified": true
+  },
+  {
+    "path": "C:\\Users\\user\\OneDrive\\Desktop\\PagedCore\\build",
+    "files": 4,
+    "bytes": 10097.0,
+    "containment_verified": true
+  },
+  {
+    "path": "C:\\Users\\user\\OneDrive\\Desktop\\PagedCore\\dist",
+    "files": 3,
+    "bytes": 71289.0,
+    "containment_verified": true
+  },
+  {
+    "path": "C:\\Users\\user\\OneDrive\\Desktop\\PagedCore\\results\\local\\wheel-smoke-2026-11-11",
+    "files": 32,
+    "bytes": 201397.0,
+    "containment_verified": true
+  },
+  {
+    "path": "C:\\Users\\user\\OneDrive\\Desktop\\PagedCore\\src\\pagedcore\\__pycache__",
+    "files": 14,
+    "bytes": 158397.0,
+    "containment_verified": true
+  },
+  {
+    "path": "C:\\Users\\user\\OneDrive\\Desktop\\PagedCore\\tests\\__pycache__",
+    "files": 2,
+    "bytes": 37054.0,
+    "containment_verified": true
+  },
+  {
+    "path": "C:\\Users\\user\\OneDrive\\Desktop\\PagedCore\\tests\\gpu\\__pycache__",
+    "files": 7,
+    "bytes": 170628.0,
+    "containment_verified": true
+  },
+  {
+    "path": "C:\\Users\\user\\OneDrive\\Desktop\\PagedCore\\tests\\unit\\__pycache__",
+    "files": 34,
+    "bytes": 1257822.0,
+    "containment_verified": true
+  },
+  {
+    "path": "C:\\Users\\user\\OneDrive\\Desktop\\PagedCore\\scripts\\__pycache__",
+    "files": 9,
+    "bytes": 237814.0,
+    "containment_verified": true
+  }
+]

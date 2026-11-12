@@ -13,6 +13,22 @@ pytestmark = pytest.mark.unit
 ROOT = Path(__file__).parents[2]
 
 
+@pytest.mark.parametrize("diagnostics", [False, True])
+def test_gpu_collection_requires_hf_opt_in(diagnostics):
+    from scripts.export_paged_accuracy import required_gpu_cases
+
+    command = [sys.executable, "-m", "pytest", "--collect-only", "-q", "-m", "gpu"]
+    if diagnostics:
+        command.append("--run-hf-diagnostics")
+    result = subprocess.run(command, cwd=ROOT, text=True, capture_output=True, check=False)
+    assert result.returncode == 0, result.stdout + result.stderr
+    names = {line.rsplit("::", 1)[-1] for line in result.stdout.splitlines() if "::" in line}
+    assert required_gpu_cases() <= names
+    assert ("test_pinned_decoder_layer_parity_on_t4" in names) is diagnostics
+    if not diagnostics:
+        assert names == required_gpu_cases()
+
+
 def _accuracy_report(lengths):
     metrics = {
         "max_absolute_error": 0.0,
@@ -23,7 +39,7 @@ def _accuracy_report(lengths):
         "greedy_matches": True,
     }
     return {
-        "policy": "fp32-paged-v1",
+        "policy": "fp32-paged-v2-independent",
         "lengths": list(lengths),
         "steps": 3,
         "comparisons": [
@@ -32,7 +48,6 @@ def _accuracy_report(lengths):
                 "request": request,
                 "attended_tokens": length + step,
                 "owned_reference": metrics.copy(),
-                "hf_fidelity": metrics.copy(),
                 "max_kv_tolerance_ratio": 0.0,
             }
             for step in range(1, 4)
@@ -46,10 +61,7 @@ def gpu_report() -> ET.Element:
     root = ET.Element("testsuites")
     suite = ET.SubElement(root, "testsuite")
     required = [
-        "test_pinned_checkpoint_loads_and_runs_one_reference_forward_pass",
         "test_seed_everything_repeats_cuda_random_streams",
-        "test_public_reference_capture_and_repeatability_on_t4",
-        "test_pinned_decoder_layer_parity_on_t4",
         "test_pinned_paged_prefill_on_t4",
         "test_pinned_paged_decode_accuracy_on_t4[single]",
         "test_pinned_paged_decode_accuracy_on_t4[mixed]",
@@ -60,10 +72,6 @@ def gpu_report() -> ET.Element:
         "test_kv_pool_storage_on_t4",
         "test_kv_allocator_storage_and_stream_ownership_on_t4",
     ]
-    fixtures = json.loads((ROOT / "tests/fixtures/reference_prompts.json").read_text())
-    required.extend(
-        f"test_pinned_decoder_greedy_parity_on_t4[{case['name']}]" for case in fixtures["prompts"]
-    )
     for name in required:
         case = ET.SubElement(suite, "testcase", name=name)
         if "test_pinned_paged_decode_accuracy_on_t4[" in name:
@@ -169,8 +177,8 @@ def test_collector_rejects_unsuccessful_kv_tests(
     assert not tmp_path.with_suffix(".zip").exists()
 
 
-@pytest.mark.parametrize("fault", ["missing", "old_policy", "incomplete", "nan_hf"])
-def test_collector_requires_versioned_complete_paging_and_hf_evidence(tmp_path, gpu_report, fault):
+@pytest.mark.parametrize("fault", ["missing", "old_policy", "incomplete", "nan_owned"])
+def test_collector_requires_versioned_complete_paging_evidence(tmp_path, gpu_report, fault):
     case = next(
         case
         for case in gpu_report[0]
@@ -186,7 +194,7 @@ def test_collector_requires_versioned_complete_paging_and_hf_evidence(tmp_path, 
         elif fault == "incomplete":
             report["comparisons"].pop()
         else:
-            report["comparisons"][0]["hf_fidelity"]["rms_error"] = float("nan")
+            report["comparisons"][0]["owned_reference"]["rms_error"] = float("nan")
         prop.set("value", json.dumps(report))
     ET.ElementTree(gpu_report).write(tmp_path / "gpu-tests.xml")
     result = _run_collector(tmp_path)
@@ -203,7 +211,7 @@ def test_collector_requires_versioned_complete_paging_and_hf_evidence(tmp_path, 
         "missing_gpu",
         "target",
         "incomplete",
-        "nan_hf",
+        "nan_owned",
         "interrupted",
         "missing_command",
     ],
@@ -236,13 +244,13 @@ def test_focused_accuracy_exporter_keeps_the_required_gates(tmp_path, gpu_report
         ET.ElementTree(cpu).write(tmp_path / "cpu-tests.xml")
     if fault == "missing_gpu":
         gpu_report[0].remove(gpu_report[0][0])
-    if fault in ("incomplete", "nan_hf"):
+    if fault in ("incomplete", "nan_owned"):
         prop = gpu_report.find(".//testcase/properties/property[@name='paged_decode_accuracy']")
         report = json.loads(prop.get("value"))
         if fault == "incomplete":
             report["comparisons"].pop()
         else:
-            report["comparisons"][0]["hf_fidelity"]["rms_error"] = float("nan")
+            report["comparisons"][0]["owned_reference"]["rms_error"] = float("nan")
         prop.set("value", json.dumps(report))
     ET.ElementTree(gpu_report).write(tmp_path / "gpu-tests.xml")
     (tmp_path / "target.json").write_text(
@@ -260,7 +268,8 @@ def test_focused_accuracy_exporter_keeps_the_required_gates(tmp_path, gpu_report
     else:
         summary = export(tmp_path)
         assert summary["status"] == "passed" and len(summary["cases"]) == 4
-        assert summary["hf_fidelity_summary"]["comparisons"] == 45
+        assert summary["gpu_passed"] == 10
+        assert "hf_fidelity_summary" not in summary
 
 
 @pytest.mark.parametrize("include_measurements", [False, True])
@@ -269,7 +278,7 @@ def test_focused_accuracy_exporter_keeps_the_required_gates(tmp_path, gpu_report
     "pool_state",
     ["complete", "missing", "partial", "unreserved", "mismatch", "false_certification"],
 )
-def test_collector_requires_and_retains_owned_decoder_measurements(
+def test_collector_requires_workspace_without_hf_measurements(
     tmp_path: Path,
     gpu_report: ET.Element,
     include_measurements: bool,
@@ -388,11 +397,6 @@ def test_collector_requires_and_retains_owned_decoder_measurements(
         (directory / "dense-workspace-allocator.txt").write_text("synthetic diagnostics")
     result = _run_collector(directory)
     archive = directory.with_suffix(".zip")
-    if not include_measurements:
-        assert result.returncode != 0
-        assert "tolerance measurements are required" in result.stderr
-        assert not archive.exists()
-        return
     if workspace_state != "complete":
         assert result.returncode != 0
         assert "dense workspace" in result.stderr
@@ -404,18 +408,8 @@ def test_collector_requires_and_retains_owned_decoder_measurements(
         assert not archive.exists()
         return
     assert result.returncode == 0, result.stderr
-    report = json.loads((directory / "tolerance-envelope.json").read_text())
-    assert report["cases"] == measurements["cases"]
-    assert report["environment"] == manifest["environment"]
-    assert report["provenance"] == manifest["provenance"]
-    assert report["target"] == target
-    maxima = report["maxima"]
-    assert maxima["intermediates"]["max_absolute_error"]["case"] == "first"
-    assert maxima["intermediates"]["max_tolerance_ratio"]["case"] == "second"
-    assert maxima["logits"]["max_absolute_error"]["max_absolute_error"] == 0.03
-    assert maxima["logits"]["max_tolerance_ratio"]["max_tolerance_ratio"] == 0.8
+    assert not (directory / "tolerance-envelope.json").exists()
     with zipfile.ZipFile(archive) as bundle:
-        assert json.loads(bundle.read("evidence/tolerance-envelope.json")) == report
         assert json.loads(bundle.read("evidence/dense-workspace.json")) == workspace
         assert bundle.read("evidence/dense-workspace-allocator.txt") == b"synthetic diagnostics"
         assert json.loads(bundle.read("evidence/pool-dense-workspace.json")) == pool_workspace

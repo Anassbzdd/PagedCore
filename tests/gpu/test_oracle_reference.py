@@ -5,7 +5,7 @@ import torch
 
 from pagedcore.oracle import load_reference, run_oracle
 
-pytestmark = pytest.mark.gpu
+pytestmark = [pytest.mark.gpu, pytest.mark.hf_diagnostic]
 
 
 def test_public_reference_capture_and_repeatability_on_t4(tmp_path: Path) -> None:

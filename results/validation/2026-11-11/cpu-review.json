@@ -1,0 +1,251 @@
+{
+  "captured_at_utc": "2026-11-11T22:02:09.113343+00:00",
+  "scope": "Windows CPU verification and validation-scope tooling revision; no new GPU execution",
+  "current_gate": "P5.3 open: integrated FP32 T4 failures remain blocking",
+  "git_revision": "4d03d428bbe520355d15d1ba460f938031b2ddd8",
+  "working_tree": "dirty; initial user changes preserved; no commit or push",
+  "cpu": {
+    "command": ".venv/Scripts/python.exe -m pytest -m \"not gpu and not benchmark\" -ra --junitxml=results/validation/2026-11-11/cpu-tests-final.xml",
+    "passed": 764,
+    "deselected": 59,
+    "skipped": 0,
+    "failed": 0,
+    "seconds": 187.79,
+    "report": "cpu-tests-final.xml"
+  },
+  "other_checks": [
+    {
+      "command": ".venv/Scripts/python.exe -m ruff check .",
+      "status": "passed"
+    },
+    {
+      "command": ".venv/Scripts/python.exe -m ruff format --check .",
+      "status": "passed",
+      "files": 88
+    },
+    {
+      "command": ".venv/Scripts/python.exe -m mypy --strict src/pagedcore",
+      "status": "passed",
+      "source_files": 14
+    },
+    {
+      "command": "uv lock --check",
+      "status": "passed"
+    },
+    {
+      "command": "python -m build; python -m build --no-isolation; isolated target wheel import/config/help/env smoke",
+      "status": "passed",
+      "report": "packaging-check.json"
+    },
+    {
+      "command": "bash -n scripts/validate_t4.sh",
+      "status": "passed"
+    },
+    {
+      "command": "git diff --check",
+      "status": "passed"
+    }
+  ],
+  "focused_regressions": {
+    "final_source_regressions": 36,
+    "final_tooling_regressions": 26,
+    "initial_full_suite": 759
+  },
+  "cleanup": {
+    "status": "partial",
+    "removed_archives": [
+      "results/local/actionlint/actionlint.zip",
+      "results/local/value-probe-archive-smoke.zip"
+    ],
+    "recursive_cleanup": "blocked by automatic approval review",
+    "reason": "blocked by policy",
+    "verified_but_retained_targets": [
+      {
+        "path": "C:\\Users\\user\\OneDrive\\Desktop\\PagedCore\\.hypothesis",
+        "files": 59,
+        "bytes": 42257.0,
+        "containment_verified": true
+      },
+      {
+        "path": "C:\\Users\\user\\OneDrive\\Desktop\\PagedCore\\.mypy_cache",
+        "files": 4710,
+        "bytes": 220540417.0,
+        "containment_verified": true
+      },
+      {
+        "path": "C:\\Users\\user\\OneDrive\\Desktop\\PagedCore\\.pytest_cache",
+        "files": 5,
+        "bytes": 97087.0,
+        "containment_verified": true
+      },
+      {
+        "path": "C:\\Users\\user\\OneDrive\\Desktop\\PagedCore\\.ruff_cache",
+        "files": 118,
+        "bytes": 29846.0,
+        "containment_verified": true
+      },
+      {
+        "path": "C:\\Users\\user\\OneDrive\\Desktop\\PagedCore\\build",
+        "files": 4,
+        "bytes": 10097.0,
+        "containment_verified": true
+      },
+      {
+        "path": "C:\\Users\\user\\OneDrive\\Desktop\\PagedCore\\dist",
+        "files": 3,
+        "bytes": 71289.0,
+        "containment_verified": true
+      },
+      {
+        "path": "C:\\Users\\user\\OneDrive\\Desktop\\PagedCore\\results\\local\\wheel-smoke-2026-11-11",
+        "files": 32,
+        "bytes": 201397.0,
+        "containment_verified": true
+      },
+      {
+        "path": "C:\\Users\\user\\OneDrive\\Desktop\\PagedCore\\src\\pagedcore\\__pycache__",
+        "files": 14,
+        "bytes": 158397.0,
+        "containment_verified": true
+      },
+      {
+        "path": "C:\\Users\\user\\OneDrive\\Desktop\\PagedCore\\tests\\__pycache__",
+        "files": 2,
+        "bytes": 37054.0,
+        "containment_verified": true
+      },
+      {
+        "path": "C:\\Users\\user\\OneDrive\\Desktop\\PagedCore\\tests\\gpu\\__pycache__",
+        "files": 7,
+        "bytes": 170628.0,
+        "containment_verified": true
+      },
+      {
+        "path": "C:\\Users\\user\\OneDrive\\Desktop\\PagedCore\\tests\\unit\\__pycache__",
+        "files": 34,
+        "bytes": 1257822.0,
+        "containment_verified": true
+      },
+      {
+        "path": "C:\\Users\\user\\OneDrive\\Desktop\\PagedCore\\scripts\\__pycache__",
+        "files": 9,
+        "bytes": 237814.0,
+        "containment_verified": true
+      }
+    ],
+    "recursive_paths_removed": [],
+    "working_environment_retained": true
+  },
+  "preserved_user_changes": [
+    "docs/validation/2026-11-10-layer5-replay.md",
+    "results/validation/2026-11-10/layer5-replay-t4-review.json",
+    "November 10 layer-5 replay paragraph retained verbatim in current STATUS and historical snapshot"
+  ],
+  "local_ignored_instruction_edits": [
+    "AGENTS.md",
+    "docs/task.md"
+  ],
+  "source_sha256": {
+    "src/pagedcore/accuracy.py": "e5561ededa3cd1e76fbeaa51d915e89605af90a157f67ad8deeb5d9f4ee1205c",
+    "src/pagedcore/attention.py": "58e4222b14b8e69b76fd1183f2246b6f5178af281bd15495cbc99766aba5d973",
+    "src/pagedcore/cli.py": "14394f9024e362da5093959764b56478bc80e9e45d82a610e171566ba424f82b",
+    "src/pagedcore/config.py": "9ad8fceb558dafef9274d6c83bfe9bcf904a97e3df3fa2cec4d08551e490dccb",
+    "src/pagedcore/decoder.py": "95254ffac22988f86a9071287874c05c4e38861b221594f91f68cfe0346ddf95",
+    "src/pagedcore/dense.py": "f323cc6bdbd7d6e6f4b69223db6460832f85707cc9b879dd0accec2fbf0ecf93",
+    "src/pagedcore/determinism.py": "2fdcba5697c59b4f68942fb7d3a14baff46cc4d0d70470c7f23e5c56a437afa2",
+    "src/pagedcore/engine_types.py": "db31cb04b5dd4e127d37f1b3a4b88bc20f2272520893a150428197713c6cae40",
+    "src/pagedcore/kv_cache.py": "b532677340b9f4bf82bbe59dfa615a24fe1351660e93200aa030f1f124d722ec",
+    "src/pagedcore/measurements.py": "760946d8dac98f4a9bfcc182a2426a5b92af62aa23fb859d239895d42ca5c3f0",
+    "src/pagedcore/oracle.py": "6fbc7fe7fdd01eb7cb23055ad3189fad00b733bc1dcd727e091306dcf34f9eb8",
+    "src/pagedcore/verification.py": "4e6b77ea1e88b81ae96047b59b4e5fa859c4237251d9e674a6ee27c2fbd75044",
+    "src/pagedcore/weights.py": "1a0b9f34003ab9ca99ccd00e2f193253071d45b480adce7ed809e65ffa72ec5b",
+    "src/pagedcore/__init__.py": "42b1e9884f56caa6de42f8177eedcc2f9b81ae2df2f9db28e45114117e8f3d29",
+    "scripts/build_numerical_notebook.py": "c75e858c1526052b4af860a8f73e3f0d5772e11e6d5bb6d768e921082e20792f",
+    "scripts/collect_numerical_evidence.py": "55aa09e14a7a5d0143eb257883de7bf2c6215c0781d94f87f1fbaa1cb1a40a62",
+    "scripts/diagnose_paged_decode.py": "32e523da7bd574dd23cfdb22060f383a4f2193687c15c0f290964d9749a8e143",
+    "scripts/export_paged_accuracy.py": "e1752e49e7ad55a3746f9745702523bddadaebb99d168301625397eb712dcaf6",
+    "scripts/measure_dense_workspace.py": "4f3da204947fca357b23e6322d6f73d26e6c4bfa926ebf6f703057d90361dfbb",
+    "scripts/probe_two_token_decode.py": "3fdad22b69b88cb76ff26fb7a7d0d78d28e8376317c20fdc3b00820f57ac704e",
+    "scripts/probe_value_reduction.py": "a300fb16c38574205645b91b47954258128704fe25c6a50c55e7c313f3e992b7",
+    "scripts/replay_layer5.py": "6d4164782a6aee5da73218e7bf8349941eb1d22fd640c7698267e269e2d78d46",
+    "scripts/trace_two_token_decode.py": "1e26179dbc2db14980b527a2d6260c9722a0361b61d7d47bd229ca7847685d3b",
+    "scripts/verify_owned_checkpoint.py": "0027d17ec3d59fa8f6ea718916f6ffdde36af0e5b7f88d2b0a51ef0afbe400a5",
+    "tests/conftest.py": "eabca4ba56df29a5d77ca8a04f01267c7d3715f352f7ea4e8238b76f06eb68de",
+    "tests/gpu/test_attention_cuda.py": "76620a099d0b771805461a8d21277807f62019daa46dda2e4281da03e8e00d2e",
+    "tests/gpu/test_decoder_parity.py": "351f5ee5c80facc2e1120108d44ba1e2c6c07ed51ed45c0345b66d3be642fd52",
+    "tests/gpu/test_kv_pool_cuda.py": "ba3f57c802b5a722c4ea2ca43207599f727a53dceeadd3cc85727c34220c01ff",
+    "tests/gpu/test_oracle_reference.py": "9127c834244c85637db0285517219d461565ad28363f5aa1529ee8f018bd304d",
+    "tests/gpu/test_target_verification.py": "bd957bda7a501609b873f036a11b86e10d139f864596f15672d2de38b1a8c6c3",
+    "tests/unit/test_accuracy.py": "fa70f4c676b3aaf42ba43ba77192288f3f207c8189ad5f57b9b4e1d839c13a0c",
+    "tests/unit/test_attention.py": "9ceeca61997411a234d69c17f0cc04b7266dc1ceac352a24f59c624a5b65ec51",
+    "tests/unit/test_cli.py": "f1d72b629020a78f89f50b1b8ccdb01a69ac28fb2f2a4d80405f770bcb22b5f2",
+    "tests/unit/test_config.py": "9625b57c40407152e93bf39d4d518a2b735212efadd2a48804ed0abdefff9996",
+    "tests/unit/test_decoder.py": "9a4757758ef0ac416858fdf762c79c9086818bd9bb61f20d5f8b8cf3dba7857b",
+    "tests/unit/test_decode_diagnostic.py": "9f48f58acfd8d200cc2a5daa6b449c6943aa365820a06b50dbda7248223479ac",
+    "tests/unit/test_dense.py": "9a88741a3a829ad5f8a4932d0d21065a58a81647ecf25a39fbae001afb3a9c42",
+    "tests/unit/test_dense_workspace.py": "b555081e6f11029c3dddd70c54804ec21af618f6465696d1058eca725a091dc8",
+    "tests/unit/test_determinism.py": "4da0279f676caced156a2db72ebc0c691ff787f22ac15c9635e85d723835eefa",
+    "tests/unit/test_engine_types.py": "ea9c52b46ac60f72c0dc95ade581b799e2b6746d627c9334c4ba7e8ab11193f3",
+    "tests/unit/test_independent_components.py": "0670bd50baee48cf47b91373b9f0b9e89ab42d2c7773180d941396403dc42d7b",
+    "tests/unit/test_kv_cache.py": "d939ca4764890edf53b4bd136f4d9aff366518dcfe0250a97f435b3f8e74d480",
+    "tests/unit/test_kv_cache_properties.py": "4803bdd58b04100f8d5e84cf8518d1dbd939c8cfc42b26e9454ab2be1d55fd5e",
+    "tests/unit/test_layer_trace.py": "6a253d43a4e5630e52fa933cc77e12c40ea29ee4f6e130a772241f84e810a60d",
+    "tests/unit/test_measurements.py": "469ae30346ef880b1bbfadc58af72320f7597d3a658a0fda017c9df8fbddd00a",
+    "tests/unit/test_numerical_evidence.py": "9a3ba7f8fa9ff39b5a707862840a0b530395a3406124a632605e2a3480e3d707",
+    "tests/unit/test_oracle.py": "b47f8f38a3988704da5bc5b2b11d9539728a0d86fba414f46cdfab4ef8f8166b",
+    "tests/unit/test_owned_checkpoint_verification.py": "01f526ccfb59f026edaa4fbf0ed7aee2d587f4b7241a8fff5ace240b2c8c5243",
+    "tests/unit/test_reference_fixtures.py": "2568e03cfe53d3bc5ea44e69b7902832e606c552d71a45bcbc2ec7508745b41f",
+    "tests/unit/test_t4_evidence.py": "6e431b7bbb9d6fa03c44ceb81d249078147cdf306afb7352420a74d6b055ad0b",
+    "tests/unit/test_two_token_probe.py": "b17a9e638386e73faf19d9192d2c808d6839e9e673b95e69cbb80f281764b3e7",
+    "tests/unit/test_value_reduction_probe.py": "553e5ce224006ffabadfa32c6c1b24247ca1f513c7efb52ce3c6cb023518914d",
+    "tests/unit/test_verification.py": "75df0ea776fd91478db64e74b0861be1cb9e49a1cbb8464fbff1ceeb49cfb2b1",
+    "tests/unit/test_weights.py": "5555b55d797ddd5020887016ff19f9b7dfb54432f09a95b17ffe42ab58ea64ae",
+    "pyproject.toml": "e123de8f645d41d955e181491f1c6b753af3acd732732f82ee00eff923e6e2fb",
+    "uv.lock": "46700b60b0a8d492fc673aec8a0e12c27ae43124dd8e194f8c754dbd6ca7ea48",
+    "README.md": "4e608dbc289bcfb1504781c6a6151b15ba16c97a295df0934ebce5bd670e4942",
+    "AGENTS.md": "9e6ba61d796388b5b406907e2ae6d2ad6cbedd3f4d8459c05ba1ceef9d13fc54",
+    "docs/task.md": "c2b20979f4fb8e4b533dd677157284a3765effaad6e1aea6b0937e31043a9020",
+    "docs/NUMERICAL_POLICY.md": "fcfbedb513b06cf0f62569f02a4666e4fd67d2ce869356eaecad33220cc8e7a9",
+    "docs/VALIDATION_PLAN.md": "c49b1f48c816b098957aa7793dd3ccee8fb83718fa65d45b004d3a744c57a181",
+    "docs/SPEC.md": "d72bec7a046b938dab6013d032c8dd5bb03e8dbcaab7c98b36c92e58496ba415",
+    "docs/DESIGN.md": "4707044752f02e4f903bbd4106ae3d5ef464754f8a470cbe69fe4432ca280825",
+    "docs/STATUS.md": "c6d46a75bd30e4f5de6d6548b07fde8e37685273a31b158bcb1299c89101b7f3"
+  },
+  "known_limits": [
+    "No new GPU correctness, memory or performance validation",
+    "Original T4 logit ratio 2.1705 and measured K/V ratio 1.9796 remain failures",
+    "Independent component gaps and held-out vLLM quality/fidelity evaluator remain planned",
+    "Recursive cache/build cleanup blocked by automatic approval review"
+  ],
+  "next_t4": "Fresh Kaggle session; enable Internet and T4 GPU; open notebooks/paged_decode_accuracy.ipynb; Run All; retain final ZIP even on failure.",
+  "notebook_check": {
+    "status": "passed",
+    "notebook": "notebooks/paged_decode_accuracy.ipynb",
+    "cells": 2,
+    "embedded_files": 94,
+    "snapshot_sha256": "a71446636bf2f997bdfd0917232a07c1297af8febf6d6a03540833ff7973b9f3",
+    "notebook_sha256": "5378acb8c9abccda47e53b966d69752ae2037bb1d11b1bbc268a373e63ccd98e",
+    "checks": [
+      "JSON and v4 cell structure",
+      "code compiles",
+      "outputs/counts empty",
+      "payload hash",
+      "every embedded source hash matches current file",
+      "owned-only required entry point"
+    ]
+  },
+  "documentation_check": {
+    "status": "passed",
+    "checked_files": 16,
+    "local_links_checked": 372,
+    "failures": []
+  },
+  "preservation_check": {
+    "retained_archives": 30,
+    "all_original_archive_sha256_match": true,
+    "november_10_replay_status_paragraph_retained_verbatim": true,
+    "snapshot_comparison": "relative link adjusted back to original docs directory before text comparison",
+    "two_authorized_zip_removals_confirmed": true
+  },
+  "final_diff_check": "passed"
+}

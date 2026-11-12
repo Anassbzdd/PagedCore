@@ -8,7 +8,7 @@ from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from torch import Tensor
 
-ACCURACY_POLICY = "fp32-paged-v1"
+ACCURACY_POLICY = "fp32-paged-v2-independent"
 
 
 def compare_logits(actual: Tensor, reference: Tensor) -> dict[str, float | bool]:
@@ -36,7 +36,7 @@ def compare_logits(actual: Tensor, reference: Tensor) -> dict[str, float | bool]
 
 
 def valid_accuracy_report(report: object, lengths: tuple[int, ...], steps: int = 3) -> bool:
-    """Reject missing comparisons and non-finite HF evidence independently of pytest status."""
+    """Reject missing or failing owned-reference comparisons independently of pytest status."""
     if not isinstance(report, dict) or report.get("policy") != ACCURACY_POLICY:
         return False
     if report.get("lengths") != list(lengths) or report.get("steps") != steps:
@@ -63,26 +63,20 @@ def valid_accuracy_report(report: object, lengths: tuple[int, ...], steps: int =
         if row.get("attended_tokens") != lengths[request] + step:
             return False
         observed.add((step, request))
-        for group in ("owned_reference", "hf_fidelity"):
-            comparison = row.get(group)
+        comparison = row.get("owned_reference")
+        if not isinstance(comparison, dict) or type(comparison.get("greedy_matches")) is not bool:
+            return False
+        for key in metrics:
+            number = comparison.get(key)
             if (
-                not isinstance(comparison, dict)
-                or type(comparison.get("greedy_matches")) is not bool
+                isinstance(number, bool)
+                or not isinstance(number, (float, int))
+                or not math.isfinite(number)
+                or number < 0
             ):
                 return False
-            for key in metrics:
-                number = comparison.get(key)
-                if (
-                    isinstance(number, bool)
-                    or not isinstance(number, (float, int))
-                    or not math.isfinite(number)
-                    or number < 0
-                ):
-                    return False
-            if group == "owned_reference" and (
-                comparison["max_tolerance_ratio"] > 1 or not comparison["greedy_matches"]
-            ):
-                return False
+        if comparison["max_tolerance_ratio"] > 1 or not comparison["greedy_matches"]:
+            return False
         kv_ratio = row.get("max_kv_tolerance_ratio")
         if (
             isinstance(kv_ratio, bool)

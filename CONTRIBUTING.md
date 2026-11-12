@@ -38,16 +38,25 @@ CPU CI does not certify T4 execution or the later clean wheel/sdist installation
 
 On a clean Linux/T4 checkout with Git and `uv` available, run
 `bash scripts/validate_t4.sh` to retain setup/command logs, device identity, CPU and
-GPU reports, and reference captures in one local ZIP. Review the bundle before
+GPU reports, and owned-reference accuracy reports in one local ZIP. This broader collector
+also records dense workspace. The next focused T4 action is the
+[self-contained accuracy notebook](notebooks/paged_decode_accuracy.ipynb):
+enable Internet/T4, Run All, then retain its ZIP even on failure. Review the bundle before
 publishing it under `results/validation/`; see the [evidence contract](docs/VALIDATION_PLAN.md#oracle-harness).
 
 ## Selecting test suites
 
-The six registered markers are `unit` (isolated components and synthetic contracts),
+The seven registered markers are `unit` (isolated components and synthetic contracts),
 `integration` (cross-component checks), `gpu` (actual T4/CUDA execution), `service`
 (HTTP/SSE), `slow` (long-running checks), and `benchmark` (benchmark-harness checks).
 Use explicit module or test marks. Mark every hardware-dependent test `gpu`,
 including integration, service, slow, and benchmark tests that require CUDA.
+The `hf_diagnostic` marker is deselected by default, including with `-m gpu`.
+Explicitly use `--run-hf-diagnostics -m hf_diagnostic` for optional HF comparisons;
+they do not define release acceptance. Checkpoint hosting/tokenization stays.
+Independent component gaps and planned quality evaluation are tracked in
+[the numerical policy](docs/NUMERICAL_POLICY.md).
+
 Markers can overlap: the cached-tokenizer integration check is in a unit-marked
 module, and `slow` describes duration rather than hardware requirements.
 

@@ -5,7 +5,7 @@ from pagedcore.verification import verify_target
 torch = pytest.importorskip("torch")
 pytest.importorskip("transformers")
 
-pytestmark = pytest.mark.gpu
+pytestmark = [pytest.mark.gpu, pytest.mark.hf_diagnostic]
 
 
 def test_pinned_checkpoint_loads_and_runs_one_reference_forward_pass() -> None:

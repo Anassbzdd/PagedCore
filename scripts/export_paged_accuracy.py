@@ -21,10 +21,7 @@ CASES = {
 
 def required_gpu_cases() -> set[str]:
     names = {
-        "test_pinned_checkpoint_loads_and_runs_one_reference_forward_pass",
         "test_seed_everything_repeats_cuda_random_streams",
-        "test_public_reference_capture_and_repeatability_on_t4",
-        "test_pinned_decoder_layer_parity_on_t4",
         "test_pinned_paged_prefill_on_t4",
         "test_paged_attention_boundaries_on_t4",
         "test_paged_attention_large_scores_on_t4",
@@ -32,10 +29,6 @@ def required_gpu_cases() -> set[str]:
         "test_kv_allocator_storage_and_stream_ownership_on_t4",
     }
     names.update(f"test_pinned_paged_decode_accuracy_on_t4[{case}]" for case in CASES)
-    fixtures = json.loads((ROOT / "tests/fixtures/reference_prompts.json").read_text())
-    names.update(
-        f"test_pinned_decoder_greedy_parity_on_t4[{case['name']}]" for case in fixtures["prompts"]
-    )
     return names
 
 
@@ -79,10 +72,10 @@ def export(directory: Path) -> dict[str, Any]:
             raise ValueError(f"Expected one accuracy test: {name}")
         properties = tests[0].findall("./properties/property[@name='paged_decode_accuracy']")
         if len(properties) != 1:
-            raise ValueError(f"Versioned accuracy and HF evidence missing: {name}")
+            raise ValueError(f"Versioned accuracy evidence missing: {name}")
         report = json.loads(properties[0].attrib["value"])
         if not valid_accuracy_report(report, lengths):
-            raise ValueError(f"Incomplete or invalid accuracy/HF evidence: {name}")
+            raise ValueError(f"Incomplete or invalid accuracy evidence: {name}")
         reports[name] = report
     target = json.loads((directory / "target.json").read_text())
     if (
@@ -91,7 +84,6 @@ def export(directory: Path) -> dict[str, Any]:
         or target.get("visible_devices") != 1
     ):
         raise ValueError("Evidence must identify the pinned Torch build and one visible T4")
-    comparisons = [row for report in reports.values() for row in report["comparisons"]]
     return {
         "status": "passed",
         "policy": ACCURACY_POLICY,
@@ -100,20 +92,6 @@ def export(directory: Path) -> dict[str, Any]:
         "gpu_passed": len(gpu),
         "target": target,
         "cases": reports,
-        "hf_fidelity_summary": {
-            "comparisons": len(comparisons),
-            "greedy_matches": sum(row["hf_fidelity"]["greedy_matches"] for row in comparisons),
-            "max_absolute_error": max(
-                row["hf_fidelity"]["max_absolute_error"] for row in comparisons
-            ),
-            "max_normalized_rms_error": max(
-                row["hf_fidelity"]["normalized_rms_error"] for row in comparisons
-            ),
-            "max_previous_hf_tolerance_ratio": max(
-                row["hf_fidelity"]["max_tolerance_ratio"] for row in comparisons
-            ),
-            "scope": "Common owned-reference token histories, not free-running HF generation",
-        },
     }
 
 

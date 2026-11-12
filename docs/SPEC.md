@@ -70,7 +70,7 @@ Require an `application/json` body containing one object with only `prompt`, `ma
 
 Enforce the `262144`-byte limit while reading the body, including when `Content-Length` is absent or incorrect. Acquire a preprocessing slot before accumulating a body or tokenizing; do not queue additional preprocessing jobs. Release that slot on every exit. Body reading, validation, and tokenization remain bounded separately from the pending queue.
 
-Tokenize the raw prompt with the pinned tokenizer using `add_special_tokens=true` and `truncation=false`, retaining its pinned BOS/EOS settings. Do not apply a chat template, normalize the prompt, or manually add special tokens. Count the resulting IDs, including special tokens, when rejecting `prompt tokens + requested output tokens > 2048`. The oracle and benchmark adapters must verify identical prompt IDs and effective special-token settings.
+Tokenize the raw prompt with the pinned tokenizer using `add_special_tokens=true` and `truncation=false`, retaining its pinned BOS/EOS settings. Do not apply a chat template, normalize the prompt, or manually add special tokens. Count the resulting IDs, including special tokens, when rejecting `prompt tokens + requested output tokens > 2048`. The evaluation and benchmark adapters must verify identical prompt IDs and effective special-token settings.
 
 With `ignore_eos=false`, stop when EOS is selected. Use `true` for fixed-length benchmark generation. Decode emitted IDs with `skip_special_tokens=true` and `clean_up_tokenization_spaces=false`; incremental text plus the final flush must match that full-sequence decode. Ignored EOS IDs still count as emitted tokens even when their text delta is empty.
 
@@ -129,7 +129,7 @@ The final MVP acceptance criteria are:
 Planned implementation, test, and evidence ownership is tracked in the
 [MVP acceptance traceability table](TRACEABILITY.md).
 
-- Validate model architecture and dense prefill/decode against the pinned Hugging Face reference. Validate paged decode against an independent contiguous FP32-attention reference, with bounded tensor/logit error and exact greedy choices on the frozen suite. Retain HF logit-error and token-agreement measurements as fidelity evidence; the paged engine does not promise bitwise or universal token identity with HF eager. The required checks and limits are defined in [the numerical policy](NUMERICAL_POLICY.md).
+- Validate attention mathematics with independent FP64 on identical Q/K/V and model components with independent norm, RoPE, projection, masking, position and cache checks. Validate paged decode against the independent contiguous FP32-attention reference at unchanged logit/KV thresholds and exact greedy choices on its frozen suite. This integrated comparison remains blocking after the November 10 failure. Evaluate model quality separately with held-out cached-decode loss/perplexity and fixed tasks against the same pinned checkpoint in an established vLLM configuration. Report KL/top-1 agreement only on aligned common histories with complete distributions for KL. HF comparisons are optional; universal backend token identity is not required. Independent coverage gaps and pilot/freeze requirements are explicit in [the numerical policy](NUMERICAL_POLICY.md); the quality evaluator remains planned.
 
 - Tests should prove that KV blocks are allocated and reused correctly, requests stay isolated from each other, and resources are freed when a request is cancelled. They should also check that queue limits and active-request limits work, and that a slow client cannot make output memory grow forever or prevent the stream from eventually ending.
 
@@ -149,7 +149,7 @@ There is no speed target. Correct behavior and honest measurement are the releas
 
 ### Official measurement entry
 
-Before official comparative runs, prove decoder/paging parity, ownership and lifecycle invariants, HTTP behavior, current CPU CI and T4 checks, and worst-case memory safety. The direct Linux/T4 setup and benchmark harness must pass their smoke/synthetic checks; freeze the protocol, inputs, and settings. Docker validation, the completed comparison/report, and published artifacts belong to final delivery and do not block earlier diagnostic pilots. Pilots must remain labeled as exploratory evidence.
+Before official comparative runs, prove independent model correctness, paging accuracy and model quality, ownership and lifecycle invariants, HTTP behavior, current CPU CI and T4 checks, and worst-case memory safety. The direct Linux/T4 setup and benchmark harness must pass their smoke/synthetic checks; freeze the protocol, inputs, and settings. Docker validation, the completed comparison/report, and published artifacts belong to final delivery and do not block earlier diagnostic pilots. Pilots must remain labeled as exploratory evidence.
 
 ### Portfolio evidence and artifact release
 

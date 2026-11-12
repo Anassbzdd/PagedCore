@@ -197,7 +197,7 @@ def _build_parser() -> argparse.ArgumentParser:
     )
     verify = commands.add_parser(
         "verify",
-        help="load the pinned checkpoint and run one T4 reference forward pass",
+        help="run an optional HF checkpoint smoke on T4",
     )
     verify.add_argument(
         "--manifest-path",
@@ -205,7 +205,9 @@ def _build_parser() -> argparse.ArgumentParser:
         default=Path("results/local/environment-manifest.json"),
         help="where to write the prompt-free verification manifest",
     )
-    oracle = commands.add_parser("oracle", help="capture a public T4 HF correctness reference")
+    oracle = commands.add_parser(
+        "oracle", help="capture an optional public T4 HF diagnostic reference"
+    )
     oracle.add_argument(
         "--fixtures", type=Path, default=Path("tests/fixtures/reference_prompts.json")
     )

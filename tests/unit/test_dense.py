@@ -69,6 +69,7 @@ def components() -> SimpleNamespace:
 
 
 @pytest.mark.parametrize("scale", [0.0, 1e-4, 1.0, 1000.0])
+@pytest.mark.hf_diagnostic
 def test_rms_norm_matches_hf_with_fp32_accumulation(
     components: SimpleNamespace, scale: float
 ) -> None:
@@ -101,6 +102,7 @@ def test_qkv_projection_layout_and_weight_orientation(components: SimpleNamespac
 
 
 @pytest.mark.parametrize("positions", [[[0, 15, 16, 17]], [[0, 1, 2], [511, 1023, 2047]]])
+@pytest.mark.hf_diagnostic
 def test_rope_matches_hf_at_absolute_positions(
     components: SimpleNamespace, positions: list[list[int]]
 ) -> None:
@@ -175,6 +177,7 @@ def test_dense_attention_causality_and_gqa_with_uniform_scores(decode: bool) -> 
 
 
 @pytest.mark.parametrize("decode", [False, True])
+@pytest.mark.hf_diagnostic
 def test_dense_attention_and_output_projection_match_hf(
     components: SimpleNamespace, decode: bool
 ) -> None:
@@ -227,6 +230,7 @@ def test_output_projection_merges_heads_in_order(components: SimpleNamespace) ->
     torch.testing.assert_close(result, expected, atol=0, rtol=0)
 
 
+@pytest.mark.hf_diagnostic
 def test_swiglu_matches_hf(components: SimpleNamespace) -> None:
     hidden = torch.randn(2, 3, 2048, dtype=torch.float16)
     with torch.inference_mode():
@@ -236,6 +240,7 @@ def test_swiglu_matches_hf(components: SimpleNamespace) -> None:
     assert actual.dtype == torch.float16
 
 
+@pytest.mark.hf_diagnostic
 def test_final_norm_and_lm_head_use_the_untied_head(components: SimpleNamespace) -> None:
     embedding = torch.zeros(11, 2048, dtype=torch.float16)
     head = torch.randn_like(embedding) * 0.01

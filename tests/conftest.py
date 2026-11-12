@@ -22,6 +22,20 @@ from pagedcore.weights import LayerWeights, TinyLlamaWeights
 TEST_SEED = 0
 
 
+def pytest_addoption(parser: pytest.Parser) -> None:
+    parser.addoption(
+        "--run-hf-diagnostics", action="store_true", help="include optional HF comparisons"
+    )
+
+
+def pytest_collection_modifyitems(config: pytest.Config, items: list[pytest.Item]) -> None:
+    if config.getoption("--run-hf-diagnostics"):
+        return
+    optional = [item for item in items if item.get_closest_marker("hf_diagnostic")]
+    items[:] = [item for item in items if item not in optional]
+    config.hook.pytest_deselected(items=optional)
+
+
 @pytest.fixture(autouse=True)
 def deterministic_test_state() -> None:
     """Start every test with the same Python and PyTorch RNG state."""

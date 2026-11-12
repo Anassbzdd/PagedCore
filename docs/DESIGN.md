@@ -14,7 +14,7 @@ has synthetic CPU coverage; T4 decoder evidence, the worker and HTTP remain pend
 
 The KV-cache allocator and the attention code must both use the same block table. It is not enough to track free blocks separately while Hugging Face attention still reads from a normal contiguous KV cache. In real paged inference, attention must read the KV data through the block-table mapping created by the allocator.
 
-PagedCore loads the pinned TinyLlama weights and tokenizer, then implements the Llama decoder forward path needed for this one model: RMSNorm, Q/K/V projections, RoPE, grouped-query attention, output projection, SwiGLU MLP, final norm, and LM head. The prefill and decode paths share these weights. The Hugging Face model is a correctness oracle, not the runtime cache implementation.
+PagedCore loads the pinned TinyLlama weights and tokenizer, then implements the Llama decoder forward path needed for this one model: RMSNorm, Q/K/V projections, RoPE, grouped-query attention, output projection, SwiGLU MLP, final norm, and LM head. The prefill and decode paths share these weights. Correctness uses independent mathematics, component checks and paging invariants. HF comparisons are optional diagnostics; the checkpoint/tokenizer still come from the Hub.
 
 PagedAttention’s defining mapping is from a sequence’s logical KV blocks to noncontiguous physical KV blocks read by attention.
 
@@ -39,7 +39,7 @@ dense attention, output projection, SwiGLU, and final normalization/LM logits.
 Q/K/V use `[batch, heads, tokens, 64]`; each KV head serves eight consecutive query
 heads. RoPE rotates Q/K using the pinned half-pair convention before K is cached.
 RMSNorm reductions and RoPE trigonometry use FP32; dense eager attention uses an
-FP32 softmax rounded to FP16 before multiplying V, matching the oracle's operation
+FP32 softmax rounded to FP16 before multiplying V, preserving the existing prefill operation
 order. Callers supply valid absolute positions and a boolean causal mask with at
 least one allowed key per query, and run under inference mode.
 
@@ -123,14 +123,14 @@ is rounded to FP16. This uses one uniform arithmetic policy at every length,
 with no reference-kernel classification or length-specific reduction rules.
 The independent contiguous validation path uses full FP32 matrix products and
 softmax, rather than the paged primitive or its online reduction. Weights,
-cache and surrounding model operations remain FP16. Dense prefill and the
-original dense HF architectural checks retain their validated eager policy.
+cache and surrounding model operations remain FP16. Dense prefill retains its existing arithmetic. Historical HF comparisons can
+be rerun as optional diagnostics.
 
-The [numerical policy](NUMERICAL_POLICY.md) separates paging accuracy from HF
-fidelity. Paged logits and all-layer K/V must meet the existing tolerances
+The [numerical policy](NUMERICAL_POLICY.md) separates mathematics, paging, model
+implementation, quality, distribution fidelity and serving evidence. Paged logits and all-layer K/V must meet the existing tolerances
 against the independent FP32 reference, with exact greedy choices on the frozen
-suite. HF-eager error and token-agreement reports remain mandatory but do not
-require reproducing its internal GPU addition order. The November 2026
+suite. The unresolved integrated FP32 failure remains blocking. HF reports are
+optional; independent model coverage gaps and quality evaluation remain release work. The November 2026
 kernel-order diagnostics are historical experiments, not serving algorithms.
 Their opt-in `eager_rounding=True` path remains available for forensic replay.
 
@@ -373,8 +373,9 @@ After the decode step, emit one new token for each active request. Finished or c
 
 For this model, eight query heads share each KV head. Apply RoPE using the token’s absolute position before storing K in the cache. Keep scores, softmax and weighted-value accumulation in FP32, then convert the final attention output back to FP16.
 
-Before optimizing performance, pass the independent paging accuracy checks and
-retain HF fidelity measurements under the [numerical policy](NUMERICAL_POLICY.md).
+Before optimizing performance, pass independent model and paging checks under the
+[numerical policy](NUMERICAL_POLICY.md). Model quality against vLLM is separate
+planned evaluation, not numerical reproduction of its implementation.
 
 This implementation will use many small PyTorch operations, which may create significant overhead and limit performance. Measure and report this limitation.
 

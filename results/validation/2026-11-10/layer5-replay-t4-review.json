@@ -1,0 +1,106 @@
+{
+  "review_date": "2026-11-10",
+  "archive": "results/zip/layer5-replay.zip",
+  "archive_sha256": "787f78cfac2457286306a81a2fae1c463513152bd538702823fcb51bfea9216d",
+  "file_sha256": {
+    "replay_layer5.py": "6d4164782a6aee5da73218e7bf8349941eb1d22fd640c7698267e269e2d78d46",
+    "input-layer-05.pt": "df137bdc4080e63f2fff7256550ebbe83d2ecb05bdd18ad21f0dc6ee75f73254",
+    "report.json": "120b5a64c0e7fa4f2ee44bff4e0a97121b80ceb888b6f9c179212c0a36023dad",
+    "outputs.pt": "f530086cc982efe7bd601d7cb393921dda1d374eb1fd4b39013362d357ba3f9b",
+    "run.log": "120b5a64c0e7fa4f2ee44bff4e0a97121b80ceb888b6f9c179212c0a36023dad",
+    "command.json": "c60b33ca8ae1b1d8b52fcbfa0f07cc97fda34a001a799ca1e0c5ae4214c57c5b"
+  },
+  "script_matches_local_source": true,
+  "input_matches_reviewed_trace": true,
+  "all_eight_arms_metrics_recomputed": true,
+  "native_outputs_independently_match_recorded_trace": true,
+  "normalize_first_full_tensors_exact_to_reference": [
+    "reference_normalize_first",
+    "grouped_softmax_first",
+    "exp_normalize_first"
+  ],
+  "report": {
+    "device": "cuda:0",
+    "torch": "2.7.1+cu126",
+    "gpu": "Tesla T4",
+    "input_sha256": "df137bdc4080e63f2fff7256550ebbe83d2ecb05bdd18ad21f0dc6ee75f73254",
+    "script_sha256": "6d4164782a6aee5da73218e7bf8349941eb1d22fd640c7698267e269e2d78d46",
+    "native_replays_exact": {
+      "reference": true,
+      "paged": true
+    },
+    "arms": {
+      "reference_normalize_first": {
+        "head0_channel3": -0.0029630661010742188,
+        "head0_channel3_fp16": -0.002964019775390625,
+        "max_error_fp64_qkv": 1.1790710102710378e-08,
+        "max_error_fp64_fixed_scores": 6.232587695942371e-09,
+        "fp16_mismatches_fp64_qkv": 2
+      },
+      "grouped_softmax_first": {
+        "head0_channel3": -0.0029630661010742188,
+        "head0_channel3_fp16": -0.002964019775390625,
+        "max_error_fp64_qkv": 1.1790710102710378e-08,
+        "max_error_fp64_fixed_scores": 6.232587695942371e-09,
+        "fp16_mismatches_fp64_qkv": 2
+      },
+      "exp_normalize_first": {
+        "head0_channel3": -0.0029630661010742188,
+        "head0_channel3_fp16": -0.002964019775390625,
+        "max_error_fp64_qkv": 1.1790710102710378e-08,
+        "max_error_fp64_fixed_scores": 6.232587695942371e-09,
+        "fp16_mismatches_fp64_qkv": 2
+      },
+      "normalize_last": {
+        "head0_channel3": -0.002963065868243575,
+        "head0_channel3_fp16": -0.0029621124267578125,
+        "max_error_fp64_qkv": 9.92806495347942e-09,
+        "max_error_fp64_fixed_scores": 5.1458423425132516e-09,
+        "fp16_mismatches_fp64_qkv": 1
+      },
+      "division_fp64_only": {
+        "head0_channel3": -0.0029630658777227803,
+        "head0_channel3_fp16": -0.0029621124267578125,
+        "max_error_fp64_qkv": 1.04538559302092e-08,
+        "max_error_fp64_fixed_scores": 5.678201436820629e-09,
+        "fp16_mismatches_fp64_qkv": 1
+      },
+      "pv_and_division_fp64": {
+        "head0_channel3": -0.0029630659171190512,
+        "head0_channel3_fp16": -0.0029621124267578125,
+        "max_error_fp64_qkv": 8.619940768117562e-09,
+        "max_error_fp64_fixed_scores": 4.956385267484986e-09,
+        "fp16_mismatches_fp64_qkv": 1
+      },
+      "fp64_fixed_scores": {
+        "head0_channel3": -0.0029630662002208363,
+        "head0_channel3_fp16": -0.002964019775390625,
+        "max_error_fp64_qkv": 8.689747456325225e-09,
+        "max_error_fp64_fixed_scores": 0.0,
+        "fp16_mismatches_fp64_qkv": 2
+      },
+      "fp64_qkv": {
+        "head0_channel3": -0.002963065840592333,
+        "head0_channel3_fp16": -0.0029621124267578125,
+        "max_error_fp64_qkv": 0.0,
+        "max_error_fp64_fixed_scores": 8.689747456325225e-09,
+        "fp16_mismatches_fp64_qkv": 0
+      }
+    },
+    "math_settings": {
+      "matmul_allow_tf32": false,
+      "fp16_reduced_precision_reduction": false,
+      "bf16_reduced_precision_reduction": false,
+      "cudnn_allow_tf32": false,
+      "cudnn_benchmark": false,
+      "cudnn_deterministic": true,
+      "float32_matmul_precision": "highest",
+      "deterministic_algorithms": true,
+      "deterministic_warn_only": false,
+      "cublas_workspace_config": ":4096:8"
+    },
+    "scope": "Isolated saved layer-5 operands, not integrated acceptance"
+  },
+  "limitations": "One saved layer-5 attention call. No new local GPU execution, independent environment inventory, or integrated decoder acceptance. Full-tensor equality and metrics were recomputed locally from the archive; GPU environment/math and exit status are recorded by the runner.",
+  "gate": "P5.3 remains open; serving math, tolerances and acceptance tests unchanged."
+}
