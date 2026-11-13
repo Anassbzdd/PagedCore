@@ -1,0 +1,302 @@
+{
+  "review_date": "2026-11-13",
+  "scope": "CPU audit of user-supplied T4 evidence; no local GPU execution",
+  "archive_sha256": "e900806e8b8589be425d3a75ffb91b5a837638f60127e34db8d5acb7975c58e6",
+  "evidence_hashes_verified": 26,
+  "notebook_run": {
+    "snapshot_sha256": "0847965022829c254b20f2a7730f60442ca3ae3bd4fae8a93e553a2bb0ff7e0e",
+    "base_revision": "8e15e0baedea08e8ed7c00a5920c1b785f722e5c",
+    "scope": "Paged-decoder accuracy validation, not full release acceptance",
+    "environment_overrides": {
+      "CUDA_VISIBLE_DEVICES": "0",
+      "CUBLAS_WORKSPACE_CONFIG": ":4096:8",
+      "OMP_NUM_THREADS": "1",
+      "MKL_NUM_THREADS": "1"
+    }
+  },
+  "source_hashes_verified": 97,
+  "all_bundled_files_match_checkout_before_review_writes": true,
+  "attention_sha256": "a88a9ed1673c59dd6c1ce2f7f974398a79b5d60a2bb07297b9b95933b60155cd",
+  "commands": [
+    {
+      "name": "setup-uv",
+      "returncode": 0
+    },
+    {
+      "name": "setup-frozen",
+      "returncode": 0
+    },
+    {
+      "name": "resolved-dependencies",
+      "returncode": 0
+    },
+    {
+      "name": "gpu-inventory",
+      "returncode": 0
+    },
+    {
+      "name": "target",
+      "returncode": 0
+    },
+    {
+      "name": "checkpoint-verify",
+      "returncode": 0
+    },
+    {
+      "name": "lint",
+      "returncode": 0
+    },
+    {
+      "name": "format",
+      "returncode": 0
+    },
+    {
+      "name": "types",
+      "returncode": 0
+    },
+    {
+      "name": "cpu-tests",
+      "returncode": 0
+    },
+    {
+      "name": "gpu-regressions",
+      "returncode": 1
+    },
+    {
+      "name": "accuracy-export",
+      "returncode": 1
+    }
+  ],
+  "target": {
+    "torch": "2.7.1+cu126",
+    "name": "Tesla T4",
+    "uuid": "d77e77e4-1aa6-27aa-c6cc-e6eb26b7372d",
+    "capability": [
+      7,
+      5
+    ],
+    "visible_devices": 1,
+    "total_memory": 15636037632,
+    "environment": {
+      "python": "3.11.15",
+      "package": {
+        "name": "pagedcore",
+        "version": "0.1.0"
+      },
+      "dependencies": {
+        "torch": "2.7.1+cu126",
+        "transformers": "4.52.4"
+      },
+      "cuda": {
+        "available": true,
+        "runtime": "12.6"
+      },
+      "driver": "580.178.04",
+      "gpu": [
+        {
+          "name": "Tesla T4",
+          "memory_mib": 15360
+        },
+        {
+          "name": "Tesla T4",
+          "memory_mib": 15360
+        }
+      ],
+      "model": {
+        "id": "TinyLlama/TinyLlama-1.1B-Chat-v1.0",
+        "revision": "af8e934848d8dd00074cc2cd8a40a9b05c3b011e"
+      },
+      "settings": {
+        "model_id": "TinyLlama/TinyLlama-1.1B-Chat-v1.0",
+        "model_revision": "af8e934848d8dd00074cc2cd8a40a9b05c3b011e",
+        "context_limit": 2048,
+        "min_new_tokens": 1,
+        "default_max_new_tokens": 128,
+        "max_new_tokens": 256,
+        "block_tokens": 16,
+        "kv_pool_mib": 8192,
+        "workspace_margin_mib": 1536,
+        "max_pending_requests": 64,
+        "max_active_sequences": 32,
+        "token_queue_size": 32,
+        "bind_address": "localhost",
+        "log_level": "INFO"
+      }
+    }
+  },
+  "captured_at_utc": "2026-11-13T19:15:21.702755+00:00",
+  "tests": {
+    "cpu": {
+      "executed": 767,
+      "failed": 0,
+      "errors": 0,
+      "skipped": 0,
+      "passed": 767
+    },
+    "gpu": {
+      "executed": 10,
+      "failed": 4,
+      "errors": 0,
+      "skipped": 0,
+      "passed": 6
+    }
+  },
+  "comparisons": [
+    {
+      "step": 1,
+      "request": 0,
+      "attended_tokens": 16,
+      "owned_reference": {
+        "max_absolute_error": 0.015625,
+        "rms_error": 0.002958351227131742,
+        "normalized_rms_error": 0.0005349745430931553,
+        "max_tolerance_ratio": 1.3038754074610648,
+        "greedy_matches": true,
+        "reference_top1_margin_min": 1.84375
+      },
+      "max_kv_tolerance_ratio": 0.0,
+      "case": "single",
+      "logits_outside_tolerance": 13,
+      "kv_status": "unmeasured_placeholder"
+    },
+    {
+      "step": 1,
+      "request": 0,
+      "attended_tokens": 2,
+      "owned_reference": {
+        "max_absolute_error": 0.0,
+        "rms_error": 0.0,
+        "normalized_rms_error": 0.0,
+        "max_tolerance_ratio": 0.0,
+        "greedy_matches": true,
+        "reference_top1_margin_min": 8.32421875
+      },
+      "max_kv_tolerance_ratio": 0.0,
+      "case": "mixed",
+      "logits_outside_tolerance": 0,
+      "kv_status": "measured_under_test_assertions"
+    },
+    {
+      "step": 1,
+      "request": 1,
+      "attended_tokens": 16,
+      "owned_reference": {
+        "max_absolute_error": 0.015625,
+        "rms_error": 0.002958351227131742,
+        "normalized_rms_error": 0.0005349745430931553,
+        "max_tolerance_ratio": 1.3038754074610648,
+        "greedy_matches": true,
+        "reference_top1_margin_min": 1.84375
+      },
+      "max_kv_tolerance_ratio": 0.0,
+      "case": "mixed",
+      "logits_outside_tolerance": 13,
+      "kv_status": "unmeasured_placeholder"
+    },
+    {
+      "step": 1,
+      "request": 0,
+      "attended_tokens": 2,
+      "owned_reference": {
+        "max_absolute_error": 0.0,
+        "rms_error": 0.0,
+        "normalized_rms_error": 0.0,
+        "max_tolerance_ratio": 0.0,
+        "greedy_matches": true,
+        "reference_top1_margin_min": 8.32421875
+      },
+      "max_kv_tolerance_ratio": 0.0,
+      "case": "fragmented",
+      "logits_outside_tolerance": 0,
+      "kv_status": "measured_under_test_assertions"
+    },
+    {
+      "step": 1,
+      "request": 1,
+      "attended_tokens": 16,
+      "owned_reference": {
+        "max_absolute_error": 0.015625,
+        "rms_error": 0.002958351227131742,
+        "normalized_rms_error": 0.0005349745430931553,
+        "max_tolerance_ratio": 1.3038754074610648,
+        "greedy_matches": true,
+        "reference_top1_margin_min": 1.84375
+      },
+      "max_kv_tolerance_ratio": 0.0,
+      "case": "fragmented",
+      "logits_outside_tolerance": 13,
+      "kv_status": "unmeasured_placeholder"
+    },
+    {
+      "step": 1,
+      "request": 0,
+      "attended_tokens": 38,
+      "owned_reference": {
+        "max_absolute_error": 0.015625,
+        "rms_error": 0.004151897625105693,
+        "normalized_rms_error": 0.0008088959400227776,
+        "max_tolerance_ratio": 1.9093875692494497,
+        "greedy_matches": true,
+        "reference_top1_margin_min": 0.328125
+      },
+      "max_kv_tolerance_ratio": 0.0,
+      "case": "held_out",
+      "logits_outside_tolerance": 41,
+      "kv_status": "unmeasured_placeholder"
+    }
+  ],
+  "logit_metric_fields_recomputed": 36,
+  "recorded_rows": 6,
+  "required_rows": 45,
+  "acceptance": {
+    "status": "rejected",
+    "reason": "Required command did not complete successfully: gpu-regressions"
+  },
+  "equal_raw_pairs": {
+    "single/0=mixed/1": true,
+    "single/0=fragmented/1": true,
+    "mixed/0=fragmented/0": true
+  },
+  "previous_same_input_comparisons": [
+    {
+      "case": "single",
+      "reference_unchanged": true,
+      "old": {
+        "max_absolute_error": 0.015625,
+        "rms_error": 0.0029877085150726607,
+        "normalized_rms_error": 0.000540283379163264,
+        "max_tolerance_ratio": 1.4751210920299427,
+        "greedy_matches": true,
+        "reference_top1_margin_min": 1.84375
+      },
+      "new": {
+        "max_absolute_error": 0.015625,
+        "rms_error": 0.002958351227131742,
+        "normalized_rms_error": 0.0005349745430931553,
+        "max_tolerance_ratio": 1.3038754074610648,
+        "greedy_matches": true,
+        "reference_top1_margin_min": 1.84375
+      }
+    },
+    {
+      "case": "held_out",
+      "reference_unchanged": true,
+      "old": {
+        "max_absolute_error": 0.015625,
+        "rms_error": 0.0035564232456119773,
+        "normalized_rms_error": 0.0006928822876033523,
+        "max_tolerance_ratio": 2.03472037382072,
+        "greedy_matches": true,
+        "reference_top1_margin_min": 0.328125
+      },
+      "new": {
+        "max_absolute_error": 0.015625,
+        "rms_error": 0.004151897625105693,
+        "normalized_rms_error": 0.0008088959400227776,
+        "max_tolerance_ratio": 1.9093875692494497,
+        "greedy_matches": true,
+        "reference_top1_margin_min": 0.328125
+      }
+    }
+  ]
+}

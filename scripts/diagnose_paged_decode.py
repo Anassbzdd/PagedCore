@@ -451,14 +451,14 @@ def run(
                             legacy_scores[..., start:stop] = partial / 8
                             start = stop
                         record(
-                            "online_attention",
+                            "fp32_paged_attention",
                             f"layer.{layer}.scaled_scores",
                             legacy_scores,
                             product / 8,
                             row=row,
                         )
                         for mode, eager_rounding in (
-                            ("online_attention", False),
+                            ("fp32_paged_attention", False),
                             ("eager_attention", True),
                         ):
                             with AttentionScores() as scores:

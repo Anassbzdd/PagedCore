@@ -20,7 +20,7 @@ Historical HF results retain their original conclusions; optional comparisons us
 ## Mathematical and paging acceptance
 
 Assemble independent FP64 attention only in tests. Compute scaled QK, allowed-key
-softmax and weighted V independently of the online traversal, using identical
+softmax and weighted V independently of the page traversal, using identical
 operands. Keep `atol=rtol=2e-3` for FP16 attention output. Cover all eight query
 heads per KV head, causal exclusion, 1/15/16/17/49/2048-token lengths, nonadjacent
 pages, large/cancelling scores and masked poison. Broader common-input controls
@@ -37,9 +37,13 @@ needs stream-ordering evidence; synchronous retry does not prove device-fault re
 
 Compare paged decode with contiguous FP32 attention using full matrix products,
 softmax and weighted values with one final FP16 cast, without shared page traversal
-or online reduction. Weights, K/V and surrounding activations remain FP16. Paged
+or pagewise reduction. Weights, K/V and surrounding activations remain FP16. Paged
 scores, normalization and V accumulation remain FP32 uniformly across lengths.
-Prefill keeps existing arithmetic. This revision changes no serving math or limits.
+Prefill keeps existing arithmetic. The November 13 implementation adaptation
+normalizes bounded FP32 scores once before pagewise FP32 value accumulation,
+replacing online normalize-last arithmetic. It changes no limits, comparator or
+thresholds. [Source study and rationale](validation/2026-11-13-vllm-implementation.md)
+distinguish this adaptation from vLLM's FP16 probability conversion and epsilon.
 
 Keep `atol=rtol=5e-3` for logits, `2e-3` for K/V and exact greedy choices against
 the owned reference on the frozen paging suite. This finite-suite check is not

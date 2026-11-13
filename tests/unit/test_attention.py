@@ -179,6 +179,86 @@ def _reference(query: Tensor, key: Tensor, value: Tensor) -> Tensor:
     return torch.stack(heads).reshape(1, 32, 1, 64).half()
 
 
+def test_paged_attention_normalizes_all_scores_before_page_value_products(
+    monkeypatch, forbid_dense_kv_history
+) -> None:
+    key = torch.zeros(22, 17, 4, 64, dtype=torch.float16)
+    value = torch.zeros_like(key)
+    value[:, :16], value[:, 16:] = 2, 19
+    query = torch.zeros(1, 32, 1, 64, dtype=torch.float16)
+    pool = torch.full((22, 2, 3, 16, 4, 64), torch.nan, dtype=torch.float16)
+    allocator = KVAllocator(pool)
+    request, blocker = RequestId("normalized"), RequestId("blocker")
+    allocator.create(KVReservation(request, 2))
+    allocator.append(request, key[:, :16], value[:, :16])
+    allocator.create(KVReservation(blocker, 1))
+    allocator.append(blocker, key[:, :16], torch.full_like(key[:, :16], 1000))
+    allocator.append(request, key[:, 16:], value[:, 16:])
+    assert allocator.block_table(request) == (0, 2)
+    before, counts = pool.clone(), allocator.capacity()
+    matmul = torch.matmul
+    value_pages = []
+
+    def check_weights(left, right):
+        if right.shape[-1] == 64:
+            assert left.dtype == right.dtype == torch.float32
+            # Equal scores require 1/17 per token, including the partial page.
+            torch.testing.assert_close(left, torch.full_like(left, 1 / 17), atol=0, rtol=1e-7)
+            value_pages.append(right.shape[-2])
+        return matmul(left, right)
+
+    monkeypatch.setattr(torch, "matmul", check_weights)
+    with forbid_dense_kv_history(pool), torch.autocast("cpu", dtype=torch.bfloat16):
+        actual = paged_attention(query, allocator, request, layer_index=0)
+
+    assert value_pages == [16, 1]
+    torch.testing.assert_close(actual, torch.full_like(actual, 3), atol=0, rtol=0)
+    torch.testing.assert_close(pool, before, atol=0, rtol=0, equal_nan=True)
+    assert allocator.capacity() == counts
+    assert allocator.block_table(request) == (0, 2)
+    allocator.release_all(request)
+    allocator.release_all(blocker)
+    assert allocator.capacity().owned_blocks == allocator.capacity().reserved_blocks == 0
+
+
+def test_paged_attention_retains_tiny_probabilities_until_value_accumulation(
+    forbid_dense_kv_history,
+) -> None:
+    key = torch.zeros(22, 17, 4, 64, dtype=torch.float16)
+    key[:, :, :, 0] = -160
+    key[:, 0, :, 0] = 0
+    value = torch.full_like(key, 65504)
+    value[:, 0] = 0
+    query = torch.zeros(1, 32, 1, 64, dtype=torch.float16)
+    query[..., 0] = 1
+    allocator, request, pool = _cache(key, value)
+    expected = _reference(query, key[0], value[0])
+
+    with forbid_dense_kv_history(pool):
+        actual = paged_attention(query, allocator, request, layer_index=0)
+
+    # exp(-20) rounds to zero in FP16, but its weighted contribution is visible.
+    assert (actual > 0).all()
+    torch.testing.assert_close(actual, expected, atol=1e-6, rtol=2e-3)
+
+
+def test_paged_attention_rounds_only_after_value_cancellation_across_pages(
+    forbid_dense_kv_history,
+) -> None:
+    key = torch.zeros(22, 32, 4, 64, dtype=torch.float16)
+    value = torch.zeros_like(key)
+    value[:, 0], value[:, 1], value[:, 16] = 32768, 8, -32768
+    allocator, request, pool = _cache(key, value)
+
+    with forbid_dense_kv_history(pool):
+        actual = paged_attention(
+            torch.zeros(1, 32, 1, 64).half(), allocator, request, layer_index=0
+        )
+
+    # Rounding the first page's 1024.25 to FP16 would lose the quarter.
+    torch.testing.assert_close(actual, torch.full_like(actual, 0.25), atol=0, rtol=0)
+
+
 @pytest.mark.parametrize("tokens,layer", [(1, 0), (15, 21), (16, 7), (17, 0), (49, 21), (2048, 11)])
 def test_paged_attention_matches_reference_at_cache_boundaries(tokens: int, layer: int) -> None:
     key = torch.randn(22, tokens, 4, 64).half()

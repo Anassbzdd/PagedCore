@@ -103,26 +103,31 @@ slots in the final page. Eight consecutive query heads share each KV head withou
 expanding the full history. Reads use the allocator's owning thread and stream;
 attention does not mutate cache storage or accounting.
 
-The default standalone mode keeps score products, the running maximum, softmax
-denominator and weighted-value sum in FP32 with autocast disabled. When a page raises the running maximum, the
-previous denominator and weighted sum are rescaled before adding that page's
-contribution. This keeps all pages on the same exponential scale without
-retaining their scores or copying full-history K/V. Only the normalized output
-is converted to FP16, retaining `[1, 32, 1, 64]` layout. Synthetic
+The default uses two page traversals with autocast disabled. The first computes
+FP32 scaled QK scores into a bounded `[4, 8, 2048]` buffer. A single stable FP32
+softmax covers only its valid token prefix. The second rereads V pages and adds
+FP32 products of globally normalized probabilities and each page into a FP32
+output accumulator. Only the completed output is converted to FP16, retaining
+`[1, 32, 1, 64]` layout. Scores and probabilities each require at most 256 KiB;
+K/V conversions remain page-sized, with no full-history K/V copy. Synthetic
 [CPU tests](../tests/unit/test_attention.py) cover boundary lengths through 2,048,
 head mapping, large scores, autocast and read-only ownership. During batched
 decode, the primitive reads a completed staged layer through `iter_layer_blocks`;
-other layers' unpublished slots cannot be read. The standalone primitive has
+other layers' unpublished slots cannot be read. The previous online primitive has
 [T4 evidence at `3401406`](validation/2026-10-31-p52-t4-review.md). The newer
 staged-layer iterator, integrated pinned-checkpoint/T4 decoder parity, T4 decode
 traces and workspace evidence remain pending.
 
-Integrated decode uses the FP32 online-softmax path above. Scores, scaling,
+Integrated decode uses the FP32 normalize-before-values path above. Scores, scaling,
 normalization and weighted values remain FP32 until the final attention output
 is rounded to FP16. This uses one uniform arithmetic policy at every length,
 with no reference-kernel classification or length-specific reduction rules.
+This November 13 adaptation follows the two-pass structure of vLLM's CUDA
+paged-attention kernel while retaining FP32 probabilities and softmax without
+a denominator epsilon. [Implementation study](validation/2026-11-13-vllm-implementation.md)
+records the source links, deliberate differences and validation limits.
 The independent contiguous validation path uses full FP32 matrix products and
-softmax, rather than the paged primitive or its online reduction. Weights,
+softmax, rather than the paged primitive or its pagewise products. Weights,
 cache and surrounding model operations remain FP16. Dense prefill retains its existing arithmetic. Historical HF comparisons can
 be rerun as optional diagnostics.
 
@@ -157,7 +162,7 @@ independent-row `bmm` projections. Preserving the entire single-request arithmet
 shape removes that source of batch-dependent kernel selection without changing
 the reference. This is a correctness-first batch interface and shared transaction,
 not simultaneous batched GEMM execution; its throughput cost remains unmeasured.
-Attention traverses each request's pages separately with FP32 online softmax and
+Attention traverses each request's pages separately with FP32 global softmax and
 the existing eight-query-heads-per-KV-head mapping. Each layer writes the current
 rotated K and unrotated V before reading
 history, including that token. Valid per-request lengths exclude unused slots;
@@ -367,7 +372,7 @@ If there is no active or pending work, the worker waits without polling. Serial 
 
 **Decode:** For every active request, take its most recently emitted token and current position. Run those tokens together as one batch through the model. Compute their new K/V values and append them to the correct physical KV blocks.
 
-During attention, read the request’s valid physical KV blocks in logical block-table order. Integrated decode uses FP32 online softmax and processes K/V at most one block at a time. Do not rebuild the entire KV history into one large contiguous tensor.
+During attention, read the request’s valid physical KV blocks in logical block-table order. Integrated decode normalizes bounded FP32 scores before a second traversal for values, and processes K/V at most one block at a time. Do not rebuild the entire KV history into one large contiguous tensor.
 
 After the decode step, emit one new token for each active request. Finished or cancelled requests are then removed.
 

@@ -1,0 +1,549 @@
+{
+  "archive": "C:\\Users\\user\\OneDrive\\Desktop\\pagedcore-accuracy-zh7r_l2j.zip",
+  "archive_sha256": "dedb8bb881eb95e3352a2474e0b7bd71c884b77eef4ed01a6147ad871ebc9464",
+  "evidence_hashes_verified": 24,
+  "cases": {
+    "single": {
+      "metrics": {
+        "max_absolute_error": 0.015625,
+        "rms_error": 0.0029877085150726607,
+        "normalized_rms_error": 0.000540283379163264,
+        "max_tolerance_ratio": 1.4751210920299427,
+        "greedy_matches": true,
+        "reference_top1_margin_min": 1.84375
+      },
+      "violating_logits": 12,
+      "logits": 32000,
+      "recorded_comparisons": 1,
+      "required_comparisons": 3,
+      "history": 16,
+      "max_error_among_violations": 0.00830078125,
+      "current_kv_ratio_placeholder": 0.0,
+      "report": {
+        "policy": "fp32-paged-v2-independent",
+        "model_id": "TinyLlama/TinyLlama-1.1B-Chat-v1.0",
+        "model_revision": "af8e934848d8dd00074cc2cd8a40a9b05c3b011e",
+        "lengths": [
+          15
+        ],
+        "steps": 3,
+        "comparisons": [
+          {
+            "step": 1,
+            "request": 0,
+            "attended_tokens": 16,
+            "owned_reference": {
+              "max_absolute_error": 0.015625,
+              "rms_error": 0.0029877085150726607,
+              "normalized_rms_error": 0.000540283379163264,
+              "max_tolerance_ratio": 1.4751210920299427,
+              "greedy_matches": true,
+              "reference_top1_margin_min": 1.84375
+            },
+            "max_kv_tolerance_ratio": 0.0
+          }
+        ],
+        "case": "single",
+        "math_settings": {
+          "matmul_allow_tf32": false,
+          "fp16_reduced_precision_reduction": false,
+          "bf16_reduced_precision_reduction": false,
+          "cudnn_allow_tf32": false,
+          "cudnn_benchmark": false,
+          "cudnn_deterministic": true,
+          "float32_matmul_precision": "highest",
+          "deterministic_algorithms": true,
+          "deterministic_warn_only": false,
+          "cublas_workspace_config": ":4096:8"
+        }
+      }
+    },
+    "mixed": {
+      "metrics": {
+        "max_absolute_error": 0.015625,
+        "rms_error": 0.003628686508969759,
+        "normalized_rms_error": 0.0008965526315802772,
+        "max_tolerance_ratio": 2.1704749959099088,
+        "greedy_matches": true,
+        "reference_top1_margin_min": 8.32421875
+      },
+      "violating_logits": 181,
+      "logits": 32000,
+      "recorded_comparisons": 1,
+      "required_comparisons": 15,
+      "history": 2,
+      "max_error_among_violations": 0.01416015625,
+      "current_kv_ratio_placeholder": 0.0,
+      "report": {
+        "policy": "fp32-paged-v2-independent",
+        "model_id": "TinyLlama/TinyLlama-1.1B-Chat-v1.0",
+        "model_revision": "af8e934848d8dd00074cc2cd8a40a9b05c3b011e",
+        "lengths": [
+          1,
+          15,
+          16,
+          17,
+          49
+        ],
+        "steps": 3,
+        "comparisons": [
+          {
+            "step": 1,
+            "request": 0,
+            "attended_tokens": 2,
+            "owned_reference": {
+              "max_absolute_error": 0.015625,
+              "rms_error": 0.003628686508969759,
+              "normalized_rms_error": 0.0008965526315802772,
+              "max_tolerance_ratio": 2.1704749959099088,
+              "greedy_matches": true,
+              "reference_top1_margin_min": 8.32421875
+            },
+            "max_kv_tolerance_ratio": 0.0
+          }
+        ],
+        "case": "mixed",
+        "math_settings": {
+          "matmul_allow_tf32": false,
+          "fp16_reduced_precision_reduction": false,
+          "bf16_reduced_precision_reduction": false,
+          "cudnn_allow_tf32": false,
+          "cudnn_benchmark": false,
+          "cudnn_deterministic": true,
+          "float32_matmul_precision": "highest",
+          "deterministic_algorithms": true,
+          "deterministic_warn_only": false,
+          "cublas_workspace_config": ":4096:8"
+        }
+      }
+    },
+    "fragmented": {
+      "metrics": {
+        "max_absolute_error": 0.015625,
+        "rms_error": 0.003628686508969759,
+        "normalized_rms_error": 0.0008965526315802772,
+        "max_tolerance_ratio": 2.1704749959099088,
+        "greedy_matches": true,
+        "reference_top1_margin_min": 8.32421875
+      },
+      "violating_logits": 181,
+      "logits": 32000,
+      "recorded_comparisons": 1,
+      "required_comparisons": 15,
+      "history": 2,
+      "max_error_among_violations": 0.01416015625,
+      "current_kv_ratio_placeholder": 0.0,
+      "report": {
+        "policy": "fp32-paged-v2-independent",
+        "model_id": "TinyLlama/TinyLlama-1.1B-Chat-v1.0",
+        "model_revision": "af8e934848d8dd00074cc2cd8a40a9b05c3b011e",
+        "lengths": [
+          1,
+          15,
+          16,
+          17,
+          49
+        ],
+        "steps": 3,
+        "comparisons": [
+          {
+            "step": 1,
+            "request": 0,
+            "attended_tokens": 2,
+            "owned_reference": {
+              "max_absolute_error": 0.015625,
+              "rms_error": 0.003628686508969759,
+              "normalized_rms_error": 0.0008965526315802772,
+              "max_tolerance_ratio": 2.1704749959099088,
+              "greedy_matches": true,
+              "reference_top1_margin_min": 8.32421875
+            },
+            "max_kv_tolerance_ratio": 0.0
+          }
+        ],
+        "case": "fragmented",
+        "math_settings": {
+          "matmul_allow_tf32": false,
+          "fp16_reduced_precision_reduction": false,
+          "bf16_reduced_precision_reduction": false,
+          "cudnn_allow_tf32": false,
+          "cudnn_benchmark": false,
+          "cudnn_deterministic": true,
+          "float32_matmul_precision": "highest",
+          "deterministic_algorithms": true,
+          "deterministic_warn_only": false,
+          "cublas_workspace_config": ":4096:8"
+        }
+      }
+    },
+    "held_out": {
+      "metrics": {
+        "max_absolute_error": 0.015625,
+        "rms_error": 0.0035564232456119773,
+        "normalized_rms_error": 0.0006928822876033523,
+        "max_tolerance_ratio": 2.03472037382072,
+        "greedy_matches": true,
+        "reference_top1_margin_min": 0.328125
+      },
+      "violating_logits": 41,
+      "logits": 32000,
+      "recorded_comparisons": 1,
+      "required_comparisons": 12,
+      "history": 38,
+      "max_error_among_violations": 0.0126953125,
+      "current_kv_ratio_placeholder": 0.0,
+      "report": {
+        "policy": "fp32-paged-v2-independent",
+        "model_id": "TinyLlama/TinyLlama-1.1B-Chat-v1.0",
+        "model_revision": "af8e934848d8dd00074cc2cd8a40a9b05c3b011e",
+        "lengths": [
+          37,
+          73,
+          111,
+          145
+        ],
+        "steps": 3,
+        "comparisons": [
+          {
+            "step": 1,
+            "request": 0,
+            "attended_tokens": 38,
+            "owned_reference": {
+              "max_absolute_error": 0.015625,
+              "rms_error": 0.0035564232456119773,
+              "normalized_rms_error": 0.0006928822876033523,
+              "max_tolerance_ratio": 2.03472037382072,
+              "greedy_matches": true,
+              "reference_top1_margin_min": 0.328125
+            },
+            "max_kv_tolerance_ratio": 0.0
+          }
+        ],
+        "case": "held_out",
+        "math_settings": {
+          "matmul_allow_tf32": false,
+          "fp16_reduced_precision_reduction": false,
+          "bf16_reduced_precision_reduction": false,
+          "cudnn_allow_tf32": false,
+          "cudnn_benchmark": false,
+          "cudnn_deterministic": true,
+          "float32_matmul_precision": "highest",
+          "deterministic_algorithms": true,
+          "deterministic_warn_only": false,
+          "cublas_workspace_config": ":4096:8"
+        }
+      }
+    }
+  },
+  "mixed_fragmented_raw_equal": true,
+  "earlier_run_raw_equality": {
+    "single": {
+      "paged": true,
+      "owned_reference": true
+    },
+    "mixed": {
+      "paged": true,
+      "owned_reference": true
+    },
+    "fragmented": {
+      "paged": true,
+      "owned_reference": true
+    },
+    "held_out": {
+      "paged": true,
+      "owned_reference": true
+    }
+  },
+  "reviewed_on": "2026-11-13",
+  "captured_at_utc": "2026-11-12T22:40:50.667628+00:00",
+  "source_files_verified": 94,
+  "snapshot_sha256": "a71446636bf2f997bdfd0917232a07c1297af8febf6d6a03540833ff7973b9f3",
+  "source_after_matches": true,
+  "all_embedded_sources_matched_local_checkout_before_review": true,
+  "local_matching_revision": "8e15e0b",
+  "source_base_revision": "4d03d428bbe520355d15d1ba460f938031b2ddd8",
+  "source_identity_note": "Bundled working snapshot, not a clean-base-commit claim",
+  "cpu": {
+    "passed": 764,
+    "failed": 0,
+    "skipped": 0
+  },
+  "gpu": {
+    "passed": 6,
+    "failed": 4,
+    "skipped": 0,
+    "cases": [
+      {
+        "name": "test_paged_attention_boundaries_on_t4",
+        "outcome": "passed"
+      },
+      {
+        "name": "test_paged_attention_large_scores_on_t4",
+        "outcome": "passed"
+      },
+      {
+        "name": "test_pinned_paged_prefill_on_t4",
+        "outcome": "passed"
+      },
+      {
+        "name": "test_pinned_paged_decode_accuracy_on_t4[single]",
+        "outcome": "failure"
+      },
+      {
+        "name": "test_pinned_paged_decode_accuracy_on_t4[mixed]",
+        "outcome": "failure"
+      },
+      {
+        "name": "test_pinned_paged_decode_accuracy_on_t4[fragmented]",
+        "outcome": "failure"
+      },
+      {
+        "name": "test_pinned_paged_decode_accuracy_on_t4[held_out]",
+        "outcome": "failure"
+      },
+      {
+        "name": "test_kv_pool_storage_on_t4",
+        "outcome": "passed"
+      },
+      {
+        "name": "test_kv_allocator_storage_and_stream_ownership_on_t4",
+        "outcome": "passed"
+      },
+      {
+        "name": "test_seed_everything_repeats_cuda_random_streams",
+        "outcome": "passed"
+      }
+    ]
+  },
+  "target": {
+    "torch": "2.7.1+cu126",
+    "name": "Tesla T4",
+    "uuid": "865ce8e0-d2e6-c230-5a27-1fd101b1a1e2",
+    "capability": [
+      7,
+      5
+    ],
+    "visible_devices": 1,
+    "total_memory": 15636037632,
+    "environment": {
+      "python": "3.11.15",
+      "package": {
+        "name": "pagedcore",
+        "version": "0.1.0"
+      },
+      "dependencies": {
+        "torch": "2.7.1+cu126",
+        "transformers": "4.52.4"
+      },
+      "cuda": {
+        "available": true,
+        "runtime": "12.6"
+      },
+      "driver": "580.178.04",
+      "gpu": [
+        {
+          "name": "Tesla T4",
+          "memory_mib": 15360
+        },
+        {
+          "name": "Tesla T4",
+          "memory_mib": 15360
+        }
+      ],
+      "model": {
+        "id": "TinyLlama/TinyLlama-1.1B-Chat-v1.0",
+        "revision": "af8e934848d8dd00074cc2cd8a40a9b05c3b011e"
+      },
+      "settings": {
+        "model_id": "TinyLlama/TinyLlama-1.1B-Chat-v1.0",
+        "model_revision": "af8e934848d8dd00074cc2cd8a40a9b05c3b011e",
+        "context_limit": 2048,
+        "min_new_tokens": 1,
+        "default_max_new_tokens": 128,
+        "max_new_tokens": 256,
+        "block_tokens": 16,
+        "kv_pool_mib": 8192,
+        "workspace_margin_mib": 1536,
+        "max_pending_requests": 64,
+        "max_active_sequences": 32,
+        "token_queue_size": 32,
+        "bind_address": "localhost",
+        "log_level": "INFO"
+      }
+    }
+  },
+  "commands": [
+    {
+      "name": "setup-uv",
+      "argv": [
+        "/usr/bin/python3",
+        "-m",
+        "pip",
+        "install",
+        "uv==0.11.27"
+      ],
+      "cwd": "/kaggle/working/pagedcore-accuracy-zh7r_l2j/source",
+      "returncode": 0
+    },
+    {
+      "name": "setup-frozen",
+      "argv": [
+        "/usr/bin/python3",
+        "-m",
+        "uv",
+        "sync",
+        "--frozen",
+        "--extra",
+        "cuda",
+        "--extra",
+        "dev",
+        "--python",
+        "3.11.15"
+      ],
+      "cwd": "/kaggle/working/pagedcore-accuracy-zh7r_l2j/source",
+      "returncode": 0
+    },
+    {
+      "name": "resolved-dependencies",
+      "argv": [
+        "/usr/bin/python3",
+        "-m",
+        "uv",
+        "pip",
+        "freeze",
+        "--python",
+        "/kaggle/working/pagedcore-accuracy-zh7r_l2j/source/.venv/bin/python"
+      ],
+      "cwd": "/kaggle/working/pagedcore-accuracy-zh7r_l2j/source",
+      "returncode": 0
+    },
+    {
+      "name": "gpu-inventory",
+      "argv": [
+        "nvidia-smi",
+        "-q"
+      ],
+      "cwd": "/kaggle/working/pagedcore-accuracy-zh7r_l2j/source",
+      "returncode": 0
+    },
+    {
+      "name": "target",
+      "argv": [
+        "/kaggle/working/pagedcore-accuracy-zh7r_l2j/source/.venv/bin/python",
+        "-c",
+        "import json,sys,torch; from pathlib import Path; from pagedcore.cli import collect_environment_diagnostics; assert torch.cuda.is_available() and torch.cuda.device_count()==1; assert 'T4' in torch.cuda.get_device_name(0); assert torch.__version__=='2.7.1+cu126'; p=torch.cuda.get_device_properties(0); Path(sys.argv[1]).write_text(json.dumps(dict(torch=torch.__version__,name=p.name,uuid=str(p.uuid),capability=[p.major,p.minor],visible_devices=torch.cuda.device_count(),total_memory=p.total_memory,environment=collect_environment_diagnostics()),indent=2))",
+        "/kaggle/working/pagedcore-accuracy-zh7r_l2j/evidence/target.json"
+      ],
+      "cwd": "/kaggle/working/pagedcore-accuracy-zh7r_l2j/source",
+      "returncode": 0
+    },
+    {
+      "name": "checkpoint-verify",
+      "argv": [
+        "/kaggle/working/pagedcore-accuracy-zh7r_l2j/source/.venv/bin/python",
+        "-m",
+        "scripts.verify_owned_checkpoint",
+        "--output",
+        "/kaggle/working/pagedcore-accuracy-zh7r_l2j/evidence/environment-manifest.json"
+      ],
+      "cwd": "/kaggle/working/pagedcore-accuracy-zh7r_l2j/source",
+      "returncode": 0
+    },
+    {
+      "name": "lint",
+      "argv": [
+        "/kaggle/working/pagedcore-accuracy-zh7r_l2j/source/.venv/bin/python",
+        "-m",
+        "ruff",
+        "check",
+        "."
+      ],
+      "cwd": "/kaggle/working/pagedcore-accuracy-zh7r_l2j/source",
+      "returncode": 0
+    },
+    {
+      "name": "format",
+      "argv": [
+        "/kaggle/working/pagedcore-accuracy-zh7r_l2j/source/.venv/bin/python",
+        "-m",
+        "ruff",
+        "format",
+        "--check",
+        "."
+      ],
+      "cwd": "/kaggle/working/pagedcore-accuracy-zh7r_l2j/source",
+      "returncode": 0
+    },
+    {
+      "name": "types",
+      "argv": [
+        "/kaggle/working/pagedcore-accuracy-zh7r_l2j/source/.venv/bin/python",
+        "-m",
+        "mypy",
+        "--strict",
+        "src/pagedcore"
+      ],
+      "cwd": "/kaggle/working/pagedcore-accuracy-zh7r_l2j/source",
+      "returncode": 0
+    },
+    {
+      "name": "cpu-tests",
+      "argv": [
+        "/kaggle/working/pagedcore-accuracy-zh7r_l2j/source/.venv/bin/python",
+        "-m",
+        "pytest",
+        "-m",
+        "not gpu and not benchmark",
+        "-ra",
+        "--junitxml=/kaggle/working/pagedcore-accuracy-zh7r_l2j/evidence/cpu-tests.xml"
+      ],
+      "cwd": "/kaggle/working/pagedcore-accuracy-zh7r_l2j/source",
+      "returncode": 0
+    },
+    {
+      "name": "gpu-regressions",
+      "argv": [
+        "/kaggle/working/pagedcore-accuracy-zh7r_l2j/source/.venv/bin/python",
+        "-m",
+        "pytest",
+        "-m",
+        "gpu",
+        "-v",
+        "-ra",
+        "-k",
+        "not legacy and not paired_at_17 and not test_pinned_candidate_paged_decode_on_t4",
+        "--junitxml=/kaggle/working/pagedcore-accuracy-zh7r_l2j/evidence/gpu-tests.xml"
+      ],
+      "cwd": "/kaggle/working/pagedcore-accuracy-zh7r_l2j/source",
+      "returncode": 1
+    },
+    {
+      "name": "accuracy-export",
+      "argv": [
+        "/kaggle/working/pagedcore-accuracy-zh7r_l2j/source/.venv/bin/python",
+        "-m",
+        "scripts.export_paged_accuracy",
+        "/kaggle/working/pagedcore-accuracy-zh7r_l2j/evidence"
+      ],
+      "cwd": "/kaggle/working/pagedcore-accuracy-zh7r_l2j/source",
+      "returncode": 1
+    }
+  ],
+  "kv_evidence": "Not measured by completed assertions: all cases abort before KV comparisons; report zeros are initialization placeholders.",
+  "complete_integrated_rows": "4/45 expected; mixed/fragmented both record only request 0 at step 1.",
+  "limits": [
+    "No complete trajectory, fragmented rollback/retry or complete KV accuracy certification",
+    "No full same-input multi-layer FP64 comparison in this archive",
+    "No new local GPU execution; review uses CPU tensor arithmetic",
+    "Attention/paging primitive passes do not close integrated P5.3",
+    "Raw equality with earlier run preserves relevance of earlier trace but does not add a new cause measurement"
+  ],
+  "retained_archive": "results/validation/2026-11-13/pagedcore-accuracy-zh7r_l2j.zip",
+  "next_investigation": "Proposed, not executed: 44 common-input FP64 attention controls using retained 22-layer two-token trace operands from both original paths.",
+  "review_checks": {
+    "documentation_local_links_verified": 49,
+    "retained_archive_bytes_match_original": true,
+    "runtime_code_changed": false,
+    "new_local_gpu_execution": false
+  }
+}

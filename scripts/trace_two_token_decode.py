@@ -87,6 +87,7 @@ class AttentionMath(TorchDispatchMode):
             "maximum",
             "sub",
             "add",
+            "add_",
             "_to_copy",
             "to",
         }:
@@ -205,6 +206,12 @@ def capture_forward(trace, allocator=None):
                 for logical, pair in enumerate(original_read(request, layer_index=layer_index)):
                     assert logical == 0 and pair[0].shape == (2, 4, 64)
                     for name, value in zip(("k_read", "v_read"), pair, strict=True):
+                        if name in trace.layers[layer_index]:
+                            # Two-pass attention must reread the same staged slots.
+                            assert torch.equal(
+                                trace.layers[layer_index][name]["value"], value.cpu()
+                            )
+                            continue
                         trace.put(name, value)
                         trace.layers[layer_index][name]["pool_read"] = {
                             "logical_block": logical,
@@ -225,6 +232,7 @@ def attention_stages(trace, layer, *, paged):
     products = [e for e in events if e["operation"].split(".")[1] in ("matmul", "bmm", "mm")]
     scales = [e for e in events if e.get("scalar") == 0.125]
     divisions = [e for e in events if e["operation"] == "aten.div.Tensor"]
+    accumulations = [e for e in events if e["operation"] == "aten.add_.Tensor"]
     result = {}
     if products:
         result["query_key_dot"] = products[0]["output"]
@@ -232,6 +240,8 @@ def attention_stages(trace, layer, *, paged):
         result["scaled_scores"] = scales[0]["output"]
     if paged and divisions:
         result["precast_attention"] = divisions[-1]["output"]
+    elif paged and accumulations:
+        result["precast_attention"] = accumulations[-1]["output"]
     elif not paged and len(products) == 2:
         result["precast_attention"] = products[-1]["output"]
     return result

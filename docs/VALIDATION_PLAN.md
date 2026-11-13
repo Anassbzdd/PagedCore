@@ -26,7 +26,7 @@ Complete each runtime gate before starting the next substantial runtime feature.
 | P2.1-P2.5: types/fixtures | Minimal interfaces, lifecycle/accounting validators, timing schema, fixtures and independent component checks | CPU rejection of illegal transitions and invalid capacity snapshots; deterministic reference IDs/tensors; documented special-token, attention, and numerical settings |
 | P3.1-P3.7: dense model | Owned TinyLlama forward without paging | Independent component coverage (gaps open), historical dense evidence and dense-prefill workspace |
 | P4.1-P4.6: allocator | One pool, free list, tables and capacity ledger | Boundary, rollback, isolation, reuse and independent property-model tests |
-| P5.1-P5.7: paged attention | Block-table traversal, standalone and integrated FP32 online-softmax decode | Poisoned fragmentation, no-full-gather traces, T4 integrated accuracy and batched workspace record |
+| P5.1-P5.7: paged attention | Block-table traversal, bounded FP32 score softmax then pagewise FP32 value accumulation | Poisoned fragmentation, no-full-gather traces, T4 integrated accuracy and batched workspace record |
 | P6.1-P6.10: lifecycle | Credits, FIFO, active limits, bounded thread bridge, cleanup, measurements and cooperative stop | Fake-model scheduling/fault/race tests, release-once assertions and safe CUDA reuse |
 | P7.1-P7.8: HTTP | Bounded preprocessing, strict validation, SSE/transport supervision and operational endpoints | CPU fake-model plus T4 black-box tests, delivery ordering and shutdown escalation |
 | P8.1-P8.8: hardening | Verify existing instrumentation/shutdown; final memory/fault/soak checks | Bounded retention, privacy, worst-case T4 memory and graceful/forced-stop reports |

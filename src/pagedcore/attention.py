@@ -33,21 +33,24 @@ def paged_attention(
         grouped_query = query.reshape(4, 8, 64).float()
         if eager_rounding:
             return _eager_attention(grouped_query, allocator, request_id, layer_index)
-        maximum = torch.full((4, 8, 1), -torch.inf, dtype=torch.float32, device=query.device)
-        denominator = torch.zeros_like(maximum)
-        numerator = torch.zeros_like(grouped_query)
-        for key, value in chain((first,), blocks):
-            scores = torch.matmul(grouped_query, key.permute(1, 2, 0).float())
-            scores = scores * (64**-0.5)
-            next_maximum = torch.maximum(maximum, scores.amax(dim=-1, keepdim=True))
-            rescale = torch.exp(maximum - next_maximum)
-            probabilities = torch.exp(scores - next_maximum)
-            denominator = rescale * denominator + probabilities.sum(dim=-1, keepdim=True)
-            numerator = rescale * numerator + torch.matmul(
-                probabilities, value.transpose(0, 1).float()
+        # Only scores span the bounded context; K/V conversions stay page-sized.
+        scores = torch.empty((4, 8, 2048), dtype=torch.float32, device=query.device)
+        length = 0
+        for key, _ in chain((first,), blocks):
+            stop = length + key.shape[0]
+            scores[..., length:stop] = torch.matmul(grouped_query, key.permute(1, 2, 0).float()) * (
+                64**-0.5
             )
-            maximum = next_maximum
-        return (numerator / denominator).reshape(1, 32, 1, 64).half()
+            length = stop
+        # Normalize globally before multiplying V; never round page outputs to FP16.
+        probabilities = scores[..., :length].softmax(dim=-1)
+        output = torch.zeros_like(grouped_query)
+        start = 0
+        for _, value in allocator.iter_layer_blocks(request_id, layer_index=layer_index):
+            stop = start + value.shape[0]
+            output.add_(torch.matmul(probabilities[..., start:stop], value.transpose(0, 1).float()))
+            start = stop
+        return output.reshape(1, 32, 1, 64).half()
 
 
 def _eager_attention(

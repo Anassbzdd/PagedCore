@@ -8,6 +8,9 @@ There are no serving benchmarks or vLLM comparison results yet.
 
 | Scope | Retained evidence | Boundary |
 |---|---|---|
+| Normalize-before-values T4 accuracy | [Review](../docs/validation/2026-11-13-normalize-first-accuracy-t4-review.md), [audit](validation/2026-11-13/normalize-first-accuracy-t4-review.json), [raw ZIP](validation/2026-11-13/pagedcore-accuracy-p6ts13rg.zip) | 767 CPU / six GPU passes; two-token logits exact, but all four integrated cases still fail at longer histories; only six of 45 rows, P5.3 remains open |
+| Common-input attention replay | [Review](../docs/validation/2026-11-13-common-input-t4-review.md), [audit](validation/2026-11-13/common-input-t4-review.json), [raw ZIP](validation/2026-11-13/pagedcore-common-input-twucs6i0.zip) | 44 cases, exact native replay; both archived attention paths meet attention tolerance. Two-token history only; does not validate newer normalize-first changes or close P5.3 |
+| November 12 independent accuracy T4 run | [November 13 review](../docs/validation/2026-11-13-accuracy-t4-review.md), [structured audit](validation/2026-11-13/accuracy-t4-review.json), [raw ZIP](validation/2026-11-13/pagedcore-accuracy-zh7r_l2j.zip) | 764 CPU / six GPU passes; four integrated failures. Raw logits exactly reproduce earlier failed rows; K/V fields unfinished, P5.3 stays open |
 | November 11 scope revision | [Review](../docs/validation/2026-11-11-validation-scope-revision.md) and [CPU report](validation/2026-11-11/cpu-review.json) | CPU/tooling only; P5.3 still fails, no new T4 claim |
 | November 10 integrated failure and replay | [Layer trace](../docs/validation/2026-11-10-layer-trace-t4-review.md) and [layer-5 review](../docs/validation/2026-11-10-layer5-replay.md) with raw archives in `results/zip/` | Integrated logit/KV failures unresolved; replay explains one normalization-sensitive call only |
 | Historical paged decode numerical investigation | [November 1 CPU review](../docs/validation/2026-11-01-p53-numerical-repair.md) and [CPU archive](validation/2026-11-01/p53-cpu-repair.zip) | Operation-level pinned CPU replay and guarded regressions; no new T4 acceptance or performance evidence |
@@ -27,7 +30,7 @@ records intact so claims can be audited.
 
 ## Retaining a new run
 
-The next focused T4 action is [the accuracy notebook](../notebooks/paged_decode_accuracy.ipynb):
+After a justified implementation change, use [the accuracy notebook](../notebooks/paged_decode_accuracy.ipynb):
 fresh Kaggle session, Internet/T4 enabled, Run All, download the ZIP even on failure.
 It retains exact source, setup/commands, target identity, raw logits and reports.
 Required policy `fp32-paged-v2-independent` uses ten GPU cases (RNG, owned paged

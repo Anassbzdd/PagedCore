@@ -90,7 +90,15 @@ def _reference(query: Tensor, key: Tensor, value: Tensor) -> Tensor:
     return torch.stack(heads).reshape(1, 32, 1, 64).half()
 
 
-def _check_attention(query: Tensor, key: Tensor, value: Tensor, *, layer: int) -> None:
+def _check_attention(
+    query: Tensor,
+    key: Tensor,
+    value: Tensor,
+    forbid_dense_kv_history: Callable[[Tensor], TorchDispatchMode],
+    *,
+    layer: int,
+    atol: float = 2e-3,
+) -> None:
     assert query.is_cuda and key.is_cuda and value.is_cuda
     tokens = key.shape[1]
     blocks = (tokens + 15) // 16
@@ -116,7 +124,7 @@ def _check_attention(query: Tensor, key: Tensor, value: Tensor, *, layer: int) -
     counts = allocator.capacity()
     expected = _reference(query, key[layer], value[layer])
 
-    with reference_math():
+    with reference_math(), forbid_dense_kv_history(pool):
         actual = paged_attention(query, allocator, request, layer_index=layer)
         with torch.autocast("cuda", dtype=torch.float16):
             autocast_actual = paged_attention(query, allocator, request, layer_index=layer)
@@ -125,7 +133,7 @@ def _check_attention(query: Tensor, key: Tensor, value: Tensor, *, layer: int) -
     assert actual.device == query.device and actual.dtype == torch.float16
     assert actual.shape == query.shape and not actual.requires_grad
     assert torch.isfinite(actual).all()
-    torch.testing.assert_close(actual.cpu(), expected, atol=2e-3, rtol=2e-3)
+    torch.testing.assert_close(actual.cpu(), expected, atol=atol, rtol=2e-3)
     torch.testing.assert_close(autocast_actual, actual, atol=0, rtol=0)
     torch.testing.assert_close(pool, before, atol=0, rtol=0, equal_nan=True)
     assert allocator.block_table(request) == table
@@ -137,12 +145,17 @@ def _check_attention(query: Tensor, key: Tensor, value: Tensor, *, layer: int) -
     assert pool.untyped_storage().data_ptr() == pointer
 
 
-def test_paged_attention_boundaries_on_t4(t4_device: torch.device) -> None:
+def test_paged_attention_boundaries_on_t4(
+    t4_device: torch.device,
+    forbid_dense_kv_history: Callable[[Tensor], TorchDispatchMode],
+) -> None:
     for tokens, layer in ((1, 0), (15, 21), (16, 7), (17, 0), (49, 21), (2048, 11)):
         key = torch.randn(22, tokens, 4, 64, dtype=torch.float16, device=t4_device)
         value = torch.randn_like(key)
         query = torch.randn(1, 32, 1, 128, dtype=torch.float16, device=t4_device)
-        _check_attention(query[..., ::2].requires_grad_(), key, value, layer=layer)
+        _check_attention(
+            query[..., ::2].requires_grad_(), key, value, forbid_dense_kv_history, layer=layer
+        )
 
     key = torch.zeros(22, 33, 4, 64, dtype=torch.float16, device=t4_device)
     values = (
@@ -151,11 +164,31 @@ def test_paged_attention_boundaries_on_t4(t4_device: torch.device) -> None:
     )
     value = values[None, :, :, None].expand(22, 33, 4, 64).half()
     _check_attention(
-        torch.zeros(1, 32, 1, 64, dtype=torch.float16, device=t4_device), key, value, layer=21
+        torch.zeros(1, 32, 1, 64, dtype=torch.float16, device=t4_device),
+        key,
+        value,
+        forbid_dense_kv_history,
+        layer=21,
     )
 
+    key = torch.zeros(22, 17, 4, 64, dtype=torch.float16, device=t4_device)
+    key[:, :, :, 0], key[:, 0, :, 0] = -160, 0
+    value = torch.full_like(key, 65504)
+    value[:, 0] = 0
+    query = torch.zeros(1, 32, 1, 64, dtype=torch.float16, device=t4_device)
+    query[..., 0] = 1
+    _check_attention(query, key, value, forbid_dense_kv_history, layer=0, atol=1e-6)
 
-def test_paged_attention_large_scores_on_t4(t4_device: torch.device) -> None:
+    key = torch.zeros(22, 32, 4, 64, dtype=torch.float16, device=t4_device)
+    value = torch.zeros_like(key)
+    value[:, 0], value[:, 1], value[:, 16] = 32768, 8, -32768
+    _check_attention(torch.zeros_like(query), key, value, forbid_dense_kv_history, layer=0)
+
+
+def test_paged_attention_large_scores_on_t4(
+    t4_device: torch.device,
+    forbid_dense_kv_history: Callable[[Tensor], TorchDispatchMode],
+) -> None:
     for reverse in (False, True):
         for query_scale in (1.0, 1000.0):
             key = torch.full((22, 49, 4, 64), -1000.0, dtype=torch.float16, device=t4_device)
@@ -165,4 +198,4 @@ def test_paged_attention_large_scores_on_t4(t4_device: torch.device) -> None:
             if reverse:
                 key, value = key.flip(1), value.flip(1)
             query = torch.full((1, 32, 1, 64), query_scale, dtype=torch.float16, device=t4_device)
-            _check_attention(query, key, value, layer=0)
+            _check_attention(query, key, value, forbid_dense_kv_history, layer=0)
