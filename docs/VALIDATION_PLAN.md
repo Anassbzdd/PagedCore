@@ -9,10 +9,13 @@ This is the public evidence contract and phase map. [STATUS.md](STATUS.md) recor
 
 The owner-approved November 11 [numerical policy](NUMERICAL_POLICY.md) removes
 required HF parity/token agreement/fidelity. It keeps independent FP64 attention,
-component checks and the unchanged blocking contiguous FP32 integrated comparison.
-The November 10 T4 logit/KV failures remain unresolved; P5.3 stays open.
+component checks and the blocking contiguous FP32 integrated comparison. The
+owner-authorized November 16 revision freezes integrated logit `2e-2` and K/V
+`1e-2` absolute/relative tolerances under `fp32-paged-v3-fp16-drift`; attention
+remains `2e-3`. The prior T4 failures remain failures of their original policy;
+The [complete v3 T4 review](validation/2026-11-16-v3-complete-t4-review.md) closes P5.3/P5.4: 830 CPU and ten GPU passes, all 45 comparisons complete, zero failures/errors/skips.
 Quality against the same checkpoint in vLLM is a separate planned held-out gate,
-not a replacement numerical oracle. No new T4 validation is claimed.
+not a replacement numerical oracle. The earlier truncated long-layout fixture is corrected; actual 37/73/111/145-token prefixes now pass all three cached steps. Generation, workspace and broader release validation remain open.
 
 ## Build order
 
@@ -47,9 +50,7 @@ to their original source/contracts; new independent coverage gaps remain open.
 
 P4 remains complete at its recorded allocator boundary. P5.1 prompt writes and
 P5.2 standalone attention retain [October 30](validation/2026-10-30-p52-t4-review.md)
-and [October 31](validation/2026-10-31-p52-t4-review.md) T4 evidence. P5.3 integrated
-accuracy fails on T4; P5.4 integrated guard evidence, P5.6 paged generation and
-P5.7 workspace/safe reuse remain open. See [STATUS.md](STATUS.md).
+and [October 31](validation/2026-10-31-p52-t4-review.md) T4 evidence. The [complete November 16 v3 run](validation/2026-11-16-v3-complete-t4-review.md) closes P5.3 integrated accuracy and P5.4 guarded traversal for the frozen suite. P5.6 paged generation and P5.7 workspace/safe reuse remain open. See [STATUS.md](STATUS.md).
 The [superseded plan snapshot](validation/2026-11-11-superseded-validation-plan.md)
 preserves previous diagnostic instructions and conclusions. They are optional
 forensic reproduction, not additional active release requirements.
@@ -67,15 +68,18 @@ attention cases, two KV storage/allocator cases and four integrated decode cases
 (`single`, `mixed`, `fragmented`, `held_out`). Prefill now compares with owned dense
 prefill; its historical HF run remains attributed to its original revision.
 Integrated cases use 1/15/16/17/49 and 37/73/111/145 prefixes, three cached steps,
-row reversal, logit `5e-3` and K/V `2e-3` absolute/relative tolerances and exact owned
+row reversal, logit `2e-2` and K/V `1e-2` absolute/relative tolerances and exact owned
 argmax. Fragmentation injects a staged logit failure, rolls back and retries.
 Check unchanged history, poisoned unrelated pages, reservations, stable storage
 and zero cleanup. Only serving decode runs under the no-full-history guard.
 
-Required policy is `fp32-paged-v2-independent`; missing/duplicate/non-finite or
+Required policy is `fp32-paged-v3-fp16-drift`; explicit frozen tolerances and
+completed K/V measurements are required. Missing/duplicate/non-finite or
 failing owned comparisons reject export. HF fields and tolerance-envelope files
-are not required. Old v1 evidence stays unchanged. The notebook keeps failures and
-raw logits even when export rejects the run. The shell collector additionally
+are not required. Old v1/v2 evidence stays unchanged. The notebook keeps failures,
+raw logits and per-page K/V even when export rejects the run. Numerical mismatches
+do not stop subsequent rows; structural failures still stop the affected case.
+The shell collector additionally
 requires no-pool/pool-pressure workspace, without certifying maximum-active
 paged/service memory. See [export regressions](../tests/unit/test_t4_evidence.py).
 
@@ -98,7 +102,8 @@ reuse. Universal token identity with HF/vLLM is not a requirement.
 
 Historical dense HF envelopes remain in original archives, including the
 [October 20 review](../results/validation/2026-10-20-t4/review.json). Current
-collection does not require/export them. Integrated thresholds stay unchanged.
+collection does not require/export them. Current integrated thresholds and their
+calibration are recorded in the [November 16 decision](validation/2026-11-16-integrated-tolerance.md).
 
 ### Dense workspace
 
@@ -224,13 +229,12 @@ evidence is retained.
 
 ### Oracle harness
 
-One next focused T4 entry point:
-[paged_decode_accuracy.ipynb](../notebooks/paged_decode_accuracy.ipynb), fresh Kaggle
-session, Internet/T4 enabled, Run All, download the final ZIP even on failure.
-It embeds exact working source, runs owned checkpoint/tokenizer smoke and CPU/GPU
-checks, and retains hashes, environment, commands, raw logits and failures. Passing
-establishes only tested mathematics/paging, not P5.6/P5.7, model-coverage gaps,
-held-out quality or serving/performance.
+The [focused T4 procedure](../results/README.md#retaining-a-new-run) identifies
+the notebook for replaying the November 16 source and the command to package
+changed source. The notebook runs the owned checkpoint/tokenizer smoke and CPU/GPU
+checks, and retains hashes, environment, commands, raw logits and failures.
+Its acceptance applies to the tested mathematics and paging cases. P5.6/P5.7,
+model-coverage gaps, held-out quality and serving/performance have separate gates.
 
 `bash scripts/validate_t4.sh` remains the broader clean-checkout collector including
 dense workspace. Its checkpoint smoke uses `scripts.verify_owned_checkpoint`,
@@ -255,7 +259,7 @@ consumed cache positions. HF stopping runs only with explicit diagnostics enable
 
 ### Numerical comparisons
 
-Follow [the policy](NUMERICAL_POLICY.md), preserving thresholds and failures.
+Follow [the versioned policy](NUMERICAL_POLICY.md), preserving historical failures.
 A comparator redesign needs measured causes and independent replacement evidence.
 
 ## Test strategy
@@ -282,10 +286,10 @@ this is not evidence of recovery from an actual CUDA device failure.
 Use an independent CPU ownership/accounting model for randomized operations. Cover partial failures/rollback and per-request ownership as well as aggregate counts. Test bounded mailbox publication while the event loop is stalled, coalesced wakeups/lost-wakeup races, closed-loop publication, final-token/terminal races and duplicate cleanup signals. Complete lifecycle correctness with the fake model before adding HTTP.
 
 **GPU correctness tests:** Use independent FP64 attention on identical operands,
-owned contiguous FP32 integration at unchanged thresholds, poisoned/shuffled pages,
+owned contiguous FP32 integration at frozen versioned thresholds, poisoned/shuffled pages,
 rollback/retry, exact old slots, new writes, stable storage, zero ownership and the
 no-full-history guard. Exact owned-reference greedy choices remain required on the
-finite paging suite. The integrated T4 failure remains blocking. Independent model
+finite paging suite. Current frozen-suite T4 integration passes under v3; historical failures retain their original policy. Independent model
 coverage and cached-decode quality must also close before release. HF comparisons
 are optional and deselected by default.
 

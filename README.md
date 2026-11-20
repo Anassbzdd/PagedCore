@@ -6,23 +6,19 @@ The v0.1.0 scope is intentionally narrow: a pinned TinyLlama checkpoint, a Llama
 
 ## Status
 
-As of 2026-10-27, Phase 4 is complete: the owned dense TinyLlama decoder and
-reservation-aware GPU KV allocator have reviewed T4 correctness evidence. The
-[October 27 review](docs/validation/2026-10-27-phase4-review.md) records 554 CPU
-and 12 GPU passes with zero skips at clean commit `986392e`; newer allocator
-property tests and collector guards are validated separately on CPU.
+As of November 16, 2026, **P5.3 batched paged decode and P5.4 guarded block-table
+traversal are complete** under the frozen v3 numerical policy. The
+[reviewed T4 run](docs/validation/2026-11-16-v3-complete-t4-review.md) passes
+830 CPU tests, all ten required GPU tests and all 45 cached-decode comparisons,
+with matching greedy choices and zero failures/errors/skips. Actual prompt
+lengths include 37/73/111/145; source hashes and raw logit/KV tensors are retained.
+Historical v2 failures keep their original conclusions.
 
-The current gate is **Phase 5: block-table decode attention**. Prompt writes into
-paged storage have retained T4 evidence. The
-[October 31 review](docs/validation/2026-10-31-p52-t4-review.md) closes standalone
-paged attention at clean `3401406`: two runs each pass 617 CPU and 15 GPU tests
-with zero skips. The newer batched one-token paged decode and staged attention
-reads have synthetic CPU coverage; the revised independent-accuracy contract
-still requires a new T4 run. The [self-contained Kaggle notebook](notebooks/paged_decode_accuracy.ipynb)
-collects owned-reference accuracy without required HF execution. The November 10 integrated T4 comparison still fails; P5.3 remains open. Independent component coverage and held-out model quality are additional release gaps. Continuous batching, the worker and HTTP/SSE service
-remain planned. Pool/batched/service memory safety and performance
-comparisons are also pending. See [current status](docs/STATUS.md) for evidence
-boundaries and [the phase map](docs/VALIDATION_PLAN.md#build-order) for next steps.
+The current gate is **P5.6 end-to-end paged generation**, then **P5.7 batched
+workspace and CUDA page-reuse ordering**. Continuous batching, the worker,
+HTTP/SSE, deployment, model-quality evaluation and performance comparisons remain
+planned. This finite paging-suite pass does not establish those capabilities.
+See [current status](docs/STATUS.md) and [the phase map](docs/VALIDATION_PLAN.md#build-order).
 
 ## Development setup
 
@@ -57,11 +53,14 @@ Create `results/local/` first. The version-3 manifest records owned-forward smok
 pinned model/tokenizer identity, environment and source/lock provenance. It requires
 one CUDA-visible T4 and does not compare against an external model. Retain actual
 setup/commands and reports under the [evidence contract](docs/VALIDATION_PLAN.md#evidence-attribution).
-The older `pagedcore verify` and `pagedcore oracle` commands remain optional HF
-diagnostics. For the next required T4 run use the self-contained
-[paging accuracy notebook](notebooks/paged_decode_accuracy.ipynb), enable Internet
-and T4 GPU, Run All and retain the ZIP even on failure. It does not evaluate model
-quality, end-to-end paged generation, workspace or the service.
+The `pagedcore verify` and `pagedcore oracle` commands are optional HF diagnostics.
+
+## Reproduce T4 paging accuracy
+
+The [corrected v3 notebook](notebooks/paged_decode_v3_fixture_fix.ipynb) embeds
+the source from the reviewed November 16 T4 run. For a run on changed source,
+build a fresh notebook from your checkout. See the
+[T4 run and evidence instructions](results/README.md#retaining-a-new-run).
 
 ## Project documents
 

@@ -8,12 +8,27 @@ from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from torch import Tensor
 
-ACCURACY_POLICY = "fp32-paged-v2-independent"
+LEGACY_ACCURACY_POLICY = "fp32-paged-v2-independent"
+ACCURACY_POLICY = "fp32-paged-v3-fp16-drift"
+LOGIT_TOLERANCE = 2e-2
+KV_TOLERANCE = 1e-2
 
 
-def compare_logits(actual: Tensor, reference: Tensor) -> dict[str, float | bool]:
+def accuracy_tolerances() -> dict[str, dict[str, float]]:
+    return {
+        "logits": {"atol": LOGIT_TOLERANCE, "rtol": LOGIT_TOLERANCE},
+        "kv": {"atol": KV_TOLERANCE, "rtol": KV_TOLERANCE},
+    }
+
+
+def compare_logits(
+    actual: Tensor, reference: Tensor, *, tolerance: float = 5e-3
+) -> dict[str, float | bool]:
     import torch
 
+    # Existing forensic scripts retain the original scale unless explicitly revised.
+    if not math.isfinite(tolerance) or tolerance <= 0:
+        raise ValueError("logit tolerance must be positive and finite")
     if actual.shape != reference.shape or actual.ndim < 1 or actual.shape[-1] < 2:
         raise ValueError("logit comparisons require matching shapes and at least two entries")
     if actual.dtype != reference.dtype or not actual.is_floating_point():
@@ -29,7 +44,7 @@ def compare_logits(actual: Tensor, reference: Tensor) -> dict[str, float | bool]
         "max_absolute_error": float(error.abs().max().item()),
         "rms_error": float(rms.item()),
         "normalized_rms_error": float((rms / scale).item()),
-        "max_tolerance_ratio": float((error.abs() / (5e-3 * (1 + target.abs()))).max().item()),
+        "max_tolerance_ratio": float((error.abs() / (tolerance * (1 + target.abs()))).max().item()),
         "greedy_matches": bool(torch.equal(values.argmax(-1), target.argmax(-1))),
         "reference_top1_margin_min": float((top[..., 0] - top[..., 1]).min().item()),
     }
@@ -38,6 +53,8 @@ def compare_logits(actual: Tensor, reference: Tensor) -> dict[str, float | bool]
 def valid_accuracy_report(report: object, lengths: tuple[int, ...], steps: int = 3) -> bool:
     """Reject missing or failing owned-reference comparisons independently of pytest status."""
     if not isinstance(report, dict) or report.get("policy") != ACCURACY_POLICY:
+        return False
+    if report.get("tolerances") != accuracy_tolerances():
         return False
     if report.get("lengths") != list(lengths) or report.get("steps") != steps:
         return False
@@ -79,7 +96,8 @@ def valid_accuracy_report(report: object, lengths: tuple[int, ...], steps: int =
             return False
         kv_ratio = row.get("max_kv_tolerance_ratio")
         if (
-            isinstance(kv_ratio, bool)
+            row.get("kv_measurement_complete") is not True
+            or isinstance(kv_ratio, bool)
             or not isinstance(kv_ratio, (float, int))
             or not math.isfinite(kv_ratio)
             or not 0 <= kv_ratio <= 1

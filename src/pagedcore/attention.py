@@ -3,12 +3,27 @@
 from __future__ import annotations
 
 from itertools import chain
+from typing import Protocol
 
 import torch
 from torch import Tensor
 
 from pagedcore.engine_types import RequestId
 from pagedcore.kv_cache import KVAllocator
+
+
+class DecodeAttention(Protocol):
+    """One-request decode attention; called after the layer's K/V write."""
+
+    def __call__(
+        self,
+        query: Tensor,
+        allocator: KVAllocator,
+        request_id: RequestId,
+        *,
+        layer_index: int,
+        eager_rounding: bool = False,
+    ) -> Tensor: ...
 
 
 @torch.inference_mode()

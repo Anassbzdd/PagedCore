@@ -8,6 +8,8 @@ There are no serving benchmarks or vLLM comparison results yet.
 
 | Scope | Retained evidence | Boundary |
 |---|---|---|
+| Complete November 16 v3 paging accuracy | [Review](../docs/validation/2026-11-16-v3-complete-t4-review.md), [audit](validation/2026-11-16/v3-accuracy-complete-t4-review.json), [raw ZIP](validation/2026-11-16/pagedcore-accuracy-wt4lkx62.zip) | 830 CPU / ten T4 GPU passes, zero failures/errors/skips. All 45 numerical/greedy comparisons pass at actual requested lengths. P5.3/P5.4 complete under v3; generation, workspace/ordering, quality and release remain open |
+| November 16 v3 paging accuracy | [Review](../docs/validation/2026-11-16-v3-accuracy-t4-review.md), [audit](validation/2026-11-16/v3-accuracy-t4-review.json), [raw ZIP](validation/2026-11-16/pagedcore-accuracy-036a7n6u.zip) | 829 CPU / nine GPU passes. Single/mixed/fragmented pass; long-layout fixture truncates to 49 tokens and stops. All 37 retained logit/KV pairs pass numerical limits; incomplete historical run superseded by the complete v3 result above |
 | Normalize-before-values T4 accuracy | [Review](../docs/validation/2026-11-13-normalize-first-accuracy-t4-review.md), [audit](validation/2026-11-13/normalize-first-accuracy-t4-review.json), [raw ZIP](validation/2026-11-13/pagedcore-accuracy-p6ts13rg.zip) | 767 CPU / six GPU passes; two-token logits exact, but all four integrated cases still fail at longer histories; only six of 45 rows, P5.3 remains open |
 | Common-input attention replay | [Review](../docs/validation/2026-11-13-common-input-t4-review.md), [audit](validation/2026-11-13/common-input-t4-review.json), [raw ZIP](validation/2026-11-13/pagedcore-common-input-twucs6i0.zip) | 44 cases, exact native replay; both archived attention paths meet attention tolerance. Two-token history only; does not validate newer normalize-first changes or close P5.3 |
 | November 12 independent accuracy T4 run | [November 13 review](../docs/validation/2026-11-13-accuracy-t4-review.md), [structured audit](validation/2026-11-13/accuracy-t4-review.json), [raw ZIP](validation/2026-11-13/pagedcore-accuracy-zh7r_l2j.zip) | 764 CPU / six GPU passes; four integrated failures. Raw logits exactly reproduce earlier failed rows; K/V fields unfinished, P5.3 stays open |
@@ -30,10 +32,21 @@ records intact so claims can be audited.
 
 ## Retaining a new run
 
-After a justified implementation change, use [the accuracy notebook](../notebooks/paged_decode_accuracy.ipynb):
-fresh Kaggle session, Internet/T4 enabled, Run All, download the ZIP even on failure.
-It retains exact source, setup/commands, target identity, raw logits and reports.
-Required policy `fp32-paged-v2-independent` uses ten GPU cases (RNG, owned paged
+To reproduce the November 16 run, use the
+[corrected v3 accuracy notebook](../notebooks/paged_decode_v3_fixture_fix.ipynb).
+It embeds the exact reviewed source. To validate a change, run this command from
+the repository root with the development extras installed:
+
+```bash
+uv run --no-sync python -m scripts.build_numerical_notebook --accuracy
+```
+
+Upload the generated `results/local/paged_decode_accuracy.ipynb` to a fresh
+Kaggle session, enable Internet and T4, select Run All, and download the ZIP
+even on failure. Use the same Kaggle steps for the November 16 replay.
+The ZIP retains exact source, setup and commands, target identity, raw logits,
+per-page K/V and reports.
+Required policy `fp32-paged-v3-fp16-drift` uses ten GPU cases (RNG, owned paged
 prefill, two FP64 attention, two KV allocator/storage and four integrated cases).
 HF parity, token agreement and fidelity collection are optional only. Model quality
 and full-distribution evaluation remain planned; see [the policy](../docs/NUMERICAL_POLICY.md).

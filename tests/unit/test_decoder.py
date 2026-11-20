@@ -356,6 +356,47 @@ def test_paged_decode_failure_preserves_entire_batch_and_allows_retry(
     assert allocator.capacity() == CapacityCounts(6, 6, 0, 0, 0, 0)
 
 
+def test_explicit_attention_backend_is_used_and_failure_rolls_back(paged_weights):
+    pool = torch.full((22, 2, 2, 16, 4, 64), torch.nan, dtype=torch.float16)
+    allocator, request = KVAllocator(pool), RequestId("external")
+    allocator.create(KVReservation(request, 2))
+    prefill_paged(torch.arange(16)[None] % 31, paged_weights, allocator, request)
+    before, counts = pool.clone(), allocator.capacity()
+    calls = []
+
+    def failing(query, cache, request_id, *, layer_index, eager_rounding=False):
+        calls.append(layer_index)
+        assert cache.paged_layer_view(request_id, layer_index=layer_index).length == 17
+        assert cache.cached_length(request_id) == 16
+        if layer_index == 2:
+            raise RuntimeError("external failure")
+        return decoder_module.paged_attention(
+            query, cache, request_id, layer_index=layer_index, eager_rounding=eager_rounding
+        )
+
+    tokens = torch.tensor([[3]])
+    with pytest.raises(RuntimeError, match="external failure"):
+        decode_paged(tokens, paged_weights, allocator, (request,), attention_backend=failing)
+    assert calls == [0, 1, 2]
+    assert allocator.capacity() == counts and allocator.cached_length(request) == 16
+    torch.testing.assert_close(pool[:, :, 0], before[:, :, 0], atol=0, rtol=0)
+    calls.clear()
+
+    def successful(query, cache, request_id, *, layer_index, eager_rounding=False):
+        calls.append(layer_index)
+        return decoder_module.paged_attention(
+            query, cache, request_id, layer_index=layer_index, eager_rounding=eager_rounding
+        )
+
+    logits = decode_paged(
+        tokens, paged_weights, allocator, (request,), attention_backend=successful
+    )
+    assert calls == list(range(22)) and torch.isfinite(logits).all()
+    assert allocator.cached_length(request) == 17
+    allocator.release_all(request)
+    assert allocator.capacity() == CapacityCounts(2, 2, 0, 0, 0, 0)
+
+
 def test_paged_decode_at_last_context_position(
     paged_weights: TinyLlamaWeights, forbid_dense_kv_history: Callable[[Tensor], TorchDispatchMode]
 ) -> None:

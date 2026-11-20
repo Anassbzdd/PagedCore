@@ -2,6 +2,7 @@ import base64
 import hashlib
 import io
 import json
+import re
 import subprocess
 import sys
 import tempfile
@@ -189,18 +190,50 @@ def test_hypothesis_dispatch_requires_a_measured_supported_family(length, family
     assert evidence.choose_reducer("baseline", length, family)[0] == "baseline"
 
 
+def test_accuracy_notebook_cli_defaults_to_local_output(tmp_path, monkeypatch):
+    historical = tmp_path / "notebooks/paged_decode_accuracy.ipynb"
+    historical.parent.mkdir()
+    historical.write_bytes(b"retained notebook")
+    monkeypatch.setattr(notebook, "ROOT", tmp_path)
+
+    def write_notebook(output, **options):
+        assert options["accuracy"] is True
+        output.parent.mkdir(parents=True, exist_ok=True)
+        output.write_bytes(b"fresh notebook")
+
+    monkeypatch.setattr(notebook, "build", write_notebook)
+    notebook.main(["--accuracy"])
+
+    generated = tmp_path / "results/local/paged_decode_accuracy.ipynb"
+    assert generated.read_bytes() == b"fresh notebook"
+    assert historical.read_bytes() == b"retained notebook"
+
+    explicit = tmp_path / "custom.ipynb"
+    notebook.main(["--accuracy", "--output", str(explicit)])
+    assert explicit.read_bytes() == b"fresh notebook"
+
+
 @pytest.mark.parametrize(
-    "accuracy,two_token,layer_trace",
+    "accuracy,two_token,layer_trace,prompt_tokens,scalar_control",
     [
-        (False, False, False),
-        (True, False, False),
-        (False, True, False),
-        (False, False, True),
+        (False, False, False, 1, False),
+        (True, False, False, 1, False),
+        (False, True, False, 1, False),
+        (False, False, True, 1, False),
+        (False, False, True, 15, False),
+        (False, False, True, 15, True),
     ],
 )
 @pytest.mark.parametrize("kaggle_available", [False, True])
 def test_notebook_source_identity_and_archive_survive_setup_failure(
-    tmp_path, monkeypatch, accuracy, two_token, layer_trace, kaggle_available
+    tmp_path,
+    monkeypatch,
+    accuracy,
+    two_token,
+    layer_trace,
+    prompt_tokens,
+    scalar_control,
+    kaggle_available,
 ):
     source_root = tmp_path / "input"
     source_root.mkdir()
@@ -217,6 +250,36 @@ def test_notebook_source_identity_and_archive_survive_setup_failure(
         target = source_root / name
         target.parent.mkdir(parents=True, exist_ok=True)
         target.write_text("source fixture\n")
+    if prompt_tokens == 15:
+        runtime_name = "src/pagedcore/attention.py"
+        runtime = source_root / runtime_name
+        runtime.parent.mkdir(parents=True)
+        runtime.write_text("# runtime fixture\n")
+        snapshot = io.BytesIO()
+        with ZipFile(snapshot, "w") as archive:
+            archive.writestr(
+                "source-identity.json",
+                json.dumps(
+                    {"sha256": {runtime_name: hashlib.sha256(runtime.read_bytes()).hexdigest()}}
+                ),
+            )
+        prior = source_root / "results/validation/2026-11-13/pagedcore-accuracy-p6ts13rg.zip"
+        prior.parent.mkdir(parents=True)
+        with ZipFile(prior, "w") as archive:
+            archive.writestr("source-snapshot.zip", snapshot.getvalue())
+            archive.writestr("evidence/raw-logits/single/step-1-request-0.pt", b"fixture")
+        if scalar_control:
+            prior_trace = (
+                source_root / "results/validation/2026-11-13/pagedcore-layer-trace-iq8cr7k9.zip"
+            )
+            names = ["layer-trace/trace.json", "layer-trace/raw/layer-01.pt"]
+            with ZipFile(prior_trace, "w") as archive:
+                for name in names:
+                    archive.writestr("evidence/" + name, b"fixture")
+                archive.writestr(
+                    "evidence/checksums.json",
+                    json.dumps({name: hashlib.sha256(b"fixture").hexdigest() for name in names}),
+                )
     monkeypatch.setattr(notebook, "ROOT", source_root)
     monkeypatch.setattr(
         subprocess,
@@ -224,9 +287,20 @@ def test_notebook_source_identity_and_archive_survive_setup_failure(
         lambda command, **kw: "base-commit" if "rev-parse" in command else " M source\n",
     )
     path = tmp_path / "evidence.ipynb"
-    notebook.build(path, accuracy=accuracy, two_token=two_token, layer_trace=layer_trace)
+    notebook.build(
+        path,
+        accuracy=accuracy,
+        two_token=two_token,
+        layer_trace=layer_trace,
+        prompt_tokens=prompt_tokens,
+        scalar_control=scalar_control,
+    )
     cells = json.loads(path.read_text())["cells"]
-    code = "".join(cells[-1]["source"])
+    code = "\n".join("".join(cell["source"]) for cell in cells if cell["cell_type"] == "code")
+    if prompt_tokens == 15:
+        assert len(cells) == 5
+        assert re.search(r'"--prompt-tokens",\s*"15"', code)
+        assert "prior-failure-controls.json" in code
     if accuracy:
         assert "scripts.export_paged_accuracy" in code
         assert "synthetic-controls" not in code
@@ -236,11 +310,14 @@ def test_notebook_source_identity_and_archive_survive_setup_failure(
         assert "scripts.export_paged_accuracy" not in code
         assert "synthetic-controls" not in code
     if layer_trace:
-        assert "scripts.trace_two_token_decode" in code
-        assert "scripts.probe_two_token_decode" not in code
+        assert ("scripts.trace_two_token_decode" in code) == (not scalar_control)
+        assert ("scripts.probe_two_token_decode" in code) == (prompt_tokens == 15)
         assert "gpu-regressions" not in code
         assert "scripts.export_paged_accuracy" not in code
         assert "synthetic-controls" not in code
+    if scalar_control:
+        assert "scripts.intervene_decode_scalar" in code
+        assert "remaining_first_fp16_difference" in code
     compile(code, str(path), "exec")
 
     # Only the setup subprocess is simulated; all extraction, hashes and archive writes execute.
@@ -276,7 +353,9 @@ def test_notebook_source_identity_and_archive_survive_setup_failure(
     monkeypatch.chdir(tmp_path)
     exec(code, {})
     prefix = (
-        "pagedcore-layer-trace"
+        "pagedcore-scalar-control"
+        if scalar_control
+        else "pagedcore-layer-trace"
         if layer_trace
         else "pagedcore-two-token"
         if two_token
@@ -284,7 +363,8 @@ def test_notebook_source_identity_and_archive_survive_setup_failure(
     )
     archive_path = next(output.glob(f"{prefix}-*.zip"))
     with ZipFile(archive_path) as archive:
-        assert "evidence/notebook-failure.txt" in archive.namelist()
+        failure = "setup-failure.txt" if prompt_tokens == 15 else "notebook-failure.txt"
+        assert "evidence/" + failure in archive.namelist()
         assert json.loads(archive.read("evidence/commands.json"))[0]["returncode"] == 1
         checks = json.loads(archive.read("evidence/checksums.json"))
         for name, digest in checks.items():

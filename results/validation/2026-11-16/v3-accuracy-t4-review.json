@@ -1,0 +1,512 @@
+{
+  "status": "rejected_incomplete_fixture",
+  "archive": "results/validation/2026-11-16/pagedcore-accuracy-036a7n6u.zip",
+  "archive_sha256": "2626325110387b72dc71dc963f99d61f1a8620bcc03ea282c0cbe54c71d83bc7",
+  "snapshot_sha256": "ef89b70612999b616d07894cdff2f67b568d99c77e6e568f167a507c800c8b1e",
+  "evidence_hashes_verified": 94,
+  "source_hashes_verified": 123,
+  "source_after_unchanged": true,
+  "runtime_matches_working_tree": true,
+  "target": {
+    "name": "Tesla T4",
+    "torch": "2.7.1+cu126",
+    "capability": [
+      7,
+      5
+    ],
+    "visible_devices": 1
+  },
+  "commands": [
+    {
+      "name": "setup-uv",
+      "returncode": 0
+    },
+    {
+      "name": "setup-frozen",
+      "returncode": 0
+    },
+    {
+      "name": "resolved-dependencies",
+      "returncode": 0
+    },
+    {
+      "name": "gpu-inventory",
+      "returncode": 0
+    },
+    {
+      "name": "target",
+      "returncode": 0
+    },
+    {
+      "name": "checkpoint-verify",
+      "returncode": 0
+    },
+    {
+      "name": "lint",
+      "returncode": 0
+    },
+    {
+      "name": "format",
+      "returncode": 0
+    },
+    {
+      "name": "types",
+      "returncode": 0
+    },
+    {
+      "name": "cpu-tests",
+      "returncode": 0
+    },
+    {
+      "name": "gpu-regressions",
+      "returncode": 1
+    },
+    {
+      "name": "accuracy-export",
+      "returncode": 1
+    }
+  ],
+  "tests": {
+    "cpu": {
+      "selected": 829,
+      "passed": 829,
+      "failures": [],
+      "errors": [],
+      "skips": []
+    },
+    "gpu": {
+      "selected": 10,
+      "passed": 9,
+      "failures": [
+        "test_pinned_paged_decode_accuracy_on_t4[held_out]"
+      ],
+      "errors": [],
+      "skips": []
+    }
+  },
+  "raw_logit_pairs_recomputed": 37,
+  "raw_kv_pairs_recomputed": 37,
+  "logit_metric_fields_recomputed": 222,
+  "max_logit_metric_recomputation_difference": 8.673617379884035e-19,
+  "max_kv_ratio_recomputation_difference": 3.2482588174787e-08,
+  "base_fixture_tokens": 49,
+  "diagnosis": "The 49-ID fixture is sliced at longer requested lengths; actual held_out prefixes are 37/49/49/49, triggering the unchanged capacity assertion (188 actual slots versus 370 expected).",
+  "cases": {
+    "single": {
+      "test_passed": true,
+      "requested_lengths": [
+        15
+      ],
+      "actual_first_step_prompt_lengths": [
+        15
+      ],
+      "expected_rows": 3,
+      "observed_rows": 3,
+      "max_logit_ratio": 0.6054784152766861,
+      "max_kv_ratio": 0.5447117566954153,
+      "rows": [
+        {
+          "step": 1,
+          "request": 0,
+          "attended_tokens": 16,
+          "logit_ratio": 0.3259688518652662,
+          "kv_ratio": 0.2836711778263696,
+          "greedy_matches": true,
+          "kv_elements": 180224
+        },
+        {
+          "step": 2,
+          "request": 0,
+          "attended_tokens": 17,
+          "logit_ratio": 0.34308612834165886,
+          "kv_ratio": 0.3454995128531815,
+          "greedy_matches": true,
+          "kv_elements": 191488
+        },
+        {
+          "step": 3,
+          "request": 0,
+          "attended_tokens": 18,
+          "logit_ratio": 0.6054784152766861,
+          "kv_ratio": 0.5447117566954153,
+          "greedy_matches": true,
+          "kv_elements": 202752
+        }
+      ]
+    },
+    "mixed": {
+      "test_passed": true,
+      "requested_lengths": [
+        1,
+        15,
+        16,
+        17,
+        49
+      ],
+      "actual_first_step_prompt_lengths": [
+        1,
+        15,
+        16,
+        17,
+        49
+      ],
+      "expected_rows": 15,
+      "observed_rows": 15,
+      "max_logit_ratio": 0.6899281796075326,
+      "max_kv_ratio": 0.6288011545201525,
+      "rows": [
+        {
+          "step": 1,
+          "request": 0,
+          "attended_tokens": 2,
+          "logit_ratio": 0.0,
+          "kv_ratio": 0.0,
+          "greedy_matches": true,
+          "kv_elements": 22528
+        },
+        {
+          "step": 1,
+          "request": 1,
+          "attended_tokens": 16,
+          "logit_ratio": 0.3259688518652662,
+          "kv_ratio": 0.2836711778263696,
+          "greedy_matches": true,
+          "kv_elements": 180224
+        },
+        {
+          "step": 1,
+          "request": 2,
+          "attended_tokens": 17,
+          "logit_ratio": 0.34635366557629405,
+          "kv_ratio": 0.3958407184213636,
+          "greedy_matches": true,
+          "kv_elements": 191488
+        },
+        {
+          "step": 1,
+          "request": 3,
+          "attended_tokens": 18,
+          "logit_ratio": 0.37378114842903576,
+          "kv_ratio": 0.34827513735851323,
+          "greedy_matches": true,
+          "kv_elements": 202752
+        },
+        {
+          "step": 1,
+          "request": 4,
+          "attended_tokens": 50,
+          "logit_ratio": 0.38025583496022614,
+          "kv_ratio": 0.3247807729782397,
+          "greedy_matches": true,
+          "kv_elements": 563200
+        },
+        {
+          "step": 2,
+          "request": 4,
+          "attended_tokens": 51,
+          "logit_ratio": 0.6899281796075326,
+          "kv_ratio": 0.5372195179864656,
+          "greedy_matches": true,
+          "kv_elements": 574464
+        },
+        {
+          "step": 2,
+          "request": 3,
+          "attended_tokens": 19,
+          "logit_ratio": 0.46097472992728444,
+          "kv_ratio": 0.6288011545201525,
+          "greedy_matches": true,
+          "kv_elements": 214016
+        },
+        {
+          "step": 2,
+          "request": 2,
+          "attended_tokens": 18,
+          "logit_ratio": 0.5678607752288395,
+          "kv_ratio": 0.3958407184213636,
+          "greedy_matches": true,
+          "kv_elements": 202752
+        },
+        {
+          "step": 2,
+          "request": 1,
+          "attended_tokens": 17,
+          "logit_ratio": 0.34308612834165886,
+          "kv_ratio": 0.3454995128531815,
+          "greedy_matches": true,
+          "kv_elements": 191488
+        },
+        {
+          "step": 2,
+          "request": 0,
+          "attended_tokens": 3,
+          "logit_ratio": 0.0,
+          "kv_ratio": 0.0,
+          "greedy_matches": true,
+          "kv_elements": 33792
+        },
+        {
+          "step": 3,
+          "request": 0,
+          "attended_tokens": 4,
+          "logit_ratio": 0.45445048056832427,
+          "kv_ratio": 0.2312272385687034,
+          "greedy_matches": true,
+          "kv_elements": 45056
+        },
+        {
+          "step": 3,
+          "request": 1,
+          "attended_tokens": 18,
+          "logit_ratio": 0.6054784152766861,
+          "kv_ratio": 0.5447117566954153,
+          "greedy_matches": true,
+          "kv_elements": 202752
+        },
+        {
+          "step": 3,
+          "request": 2,
+          "attended_tokens": 19,
+          "logit_ratio": 0.5177919051865489,
+          "kv_ratio": 0.48402710551790895,
+          "greedy_matches": true,
+          "kv_elements": 214016
+        },
+        {
+          "step": 3,
+          "request": 3,
+          "attended_tokens": 20,
+          "logit_ratio": 0.39430659742258123,
+          "kv_ratio": 0.6288011545201525,
+          "greedy_matches": true,
+          "kv_elements": 225280
+        },
+        {
+          "step": 3,
+          "request": 4,
+          "attended_tokens": 52,
+          "logit_ratio": 0.5634492895639392,
+          "kv_ratio": 0.5372195179864656,
+          "greedy_matches": true,
+          "kv_elements": 585728
+        }
+      ]
+    },
+    "fragmented": {
+      "test_passed": true,
+      "requested_lengths": [
+        1,
+        15,
+        16,
+        17,
+        49
+      ],
+      "actual_first_step_prompt_lengths": [
+        1,
+        15,
+        16,
+        17,
+        49
+      ],
+      "expected_rows": 15,
+      "observed_rows": 15,
+      "max_logit_ratio": 0.6899281796075326,
+      "max_kv_ratio": 0.6288011545201525,
+      "rows": [
+        {
+          "step": 1,
+          "request": 0,
+          "attended_tokens": 2,
+          "logit_ratio": 0.0,
+          "kv_ratio": 0.0,
+          "greedy_matches": true,
+          "kv_elements": 22528
+        },
+        {
+          "step": 1,
+          "request": 1,
+          "attended_tokens": 16,
+          "logit_ratio": 0.3259688518652662,
+          "kv_ratio": 0.2836711778263696,
+          "greedy_matches": true,
+          "kv_elements": 180224
+        },
+        {
+          "step": 1,
+          "request": 2,
+          "attended_tokens": 17,
+          "logit_ratio": 0.34635366557629405,
+          "kv_ratio": 0.3958407184213636,
+          "greedy_matches": true,
+          "kv_elements": 191488
+        },
+        {
+          "step": 1,
+          "request": 3,
+          "attended_tokens": 18,
+          "logit_ratio": 0.37378114842903576,
+          "kv_ratio": 0.34827513735851323,
+          "greedy_matches": true,
+          "kv_elements": 202752
+        },
+        {
+          "step": 1,
+          "request": 4,
+          "attended_tokens": 50,
+          "logit_ratio": 0.38025583496022614,
+          "kv_ratio": 0.3247807729782397,
+          "greedy_matches": true,
+          "kv_elements": 563200
+        },
+        {
+          "step": 2,
+          "request": 4,
+          "attended_tokens": 51,
+          "logit_ratio": 0.6899281796075326,
+          "kv_ratio": 0.5372195179864656,
+          "greedy_matches": true,
+          "kv_elements": 574464
+        },
+        {
+          "step": 2,
+          "request": 3,
+          "attended_tokens": 19,
+          "logit_ratio": 0.46097472992728444,
+          "kv_ratio": 0.6288011545201525,
+          "greedy_matches": true,
+          "kv_elements": 214016
+        },
+        {
+          "step": 2,
+          "request": 2,
+          "attended_tokens": 18,
+          "logit_ratio": 0.5678607752288395,
+          "kv_ratio": 0.3958407184213636,
+          "greedy_matches": true,
+          "kv_elements": 202752
+        },
+        {
+          "step": 2,
+          "request": 1,
+          "attended_tokens": 17,
+          "logit_ratio": 0.34308612834165886,
+          "kv_ratio": 0.3454995128531815,
+          "greedy_matches": true,
+          "kv_elements": 191488
+        },
+        {
+          "step": 2,
+          "request": 0,
+          "attended_tokens": 3,
+          "logit_ratio": 0.0,
+          "kv_ratio": 0.0,
+          "greedy_matches": true,
+          "kv_elements": 33792
+        },
+        {
+          "step": 3,
+          "request": 0,
+          "attended_tokens": 4,
+          "logit_ratio": 0.45445048056832427,
+          "kv_ratio": 0.2312272385687034,
+          "greedy_matches": true,
+          "kv_elements": 45056
+        },
+        {
+          "step": 3,
+          "request": 1,
+          "attended_tokens": 18,
+          "logit_ratio": 0.6054784152766861,
+          "kv_ratio": 0.5447117566954153,
+          "greedy_matches": true,
+          "kv_elements": 202752
+        },
+        {
+          "step": 3,
+          "request": 2,
+          "attended_tokens": 19,
+          "logit_ratio": 0.5177919051865489,
+          "kv_ratio": 0.48402710551790895,
+          "greedy_matches": true,
+          "kv_elements": 214016
+        },
+        {
+          "step": 3,
+          "request": 3,
+          "attended_tokens": 20,
+          "logit_ratio": 0.39430659742258123,
+          "kv_ratio": 0.6288011545201525,
+          "greedy_matches": true,
+          "kv_elements": 225280
+        },
+        {
+          "step": 3,
+          "request": 4,
+          "attended_tokens": 52,
+          "logit_ratio": 0.5634492895639392,
+          "kv_ratio": 0.5372195179864656,
+          "greedy_matches": true,
+          "kv_elements": 585728
+        }
+      ]
+    },
+    "held_out": {
+      "test_passed": false,
+      "requested_lengths": [
+        37,
+        73,
+        111,
+        145
+      ],
+      "actual_first_step_prompt_lengths": [
+        37,
+        49,
+        49,
+        49
+      ],
+      "expected_rows": 12,
+      "observed_rows": 4,
+      "max_logit_ratio": 0.47734689231236244,
+      "max_kv_ratio": 0.3289473684210526,
+      "rows": [
+        {
+          "step": 1,
+          "request": 0,
+          "attended_tokens": 38,
+          "logit_ratio": 0.47734689231236244,
+          "kv_ratio": 0.3289473684210526,
+          "greedy_matches": true,
+          "kv_elements": 428032
+        },
+        {
+          "step": 1,
+          "request": 1,
+          "attended_tokens": 50,
+          "logit_ratio": 0.38025583496022614,
+          "kv_ratio": 0.3247807729782397,
+          "greedy_matches": true,
+          "kv_elements": 563200
+        },
+        {
+          "step": 1,
+          "request": 2,
+          "attended_tokens": 50,
+          "logit_ratio": 0.38025583496022614,
+          "kv_ratio": 0.3247807729782397,
+          "greedy_matches": true,
+          "kv_elements": 563200
+        },
+        {
+          "step": 1,
+          "request": 3,
+          "attended_tokens": 50,
+          "logit_ratio": 0.38025583496022614,
+          "kv_ratio": 0.3247807729782397,
+          "greedy_matches": true,
+          "kv_elements": 563200
+        }
+      ]
+    }
+  },
+  "gate": "P5.3 remains open until corrected actual 37/73/111/145 prefixes pass all three steps on T4"
+}

@@ -14,7 +14,7 @@ from pathlib import Path
 import torch
 
 from pagedcore import decoder
-from pagedcore.accuracy import ACCURACY_POLICY, compare_logits
+from pagedcore.accuracy import LEGACY_ACCURACY_POLICY, compare_logits
 from pagedcore.cli import collect_environment_diagnostics, collect_validation_provenance
 from pagedcore.config import MODEL_ID, MODEL_REVISION
 from pagedcore.determinism import seed_everything
@@ -27,7 +27,7 @@ MIXED_LENGTHS = (1, 15, 16, 17, 49)
 
 
 @torch.inference_mode()
-def run_case(weights, lengths, guard, directory):
+def run_case(weights, lengths, guard, directory, *, attention_backend=None):
     directory.mkdir(parents=True, exist_ok=True)
     fixture = ROOT / "tests/fixtures/reference_prompts.json"
     public_ids = next(
@@ -44,7 +44,10 @@ def run_case(weights, lengths, guard, directory):
     allocator = KVAllocator(pool)
     requests = tuple(RequestId(str(row)) for row in range(len(lengths)))
     live, caches, prefill_logits = [], {}, {}
-    result = {"lengths": list(lengths), "decode_steps": 1, "attended_tokens": 2}
+    result = {"lengths": list(lengths), "decode_steps": 1, "attended_tokens": lengths[0] + 1}
+    result["attention_backend"] = (
+        "pagedcore" if attention_backend is None else type(attention_backend).__name__
+    )
     try:
         with reference_math() as settings:
             result["math_settings"] = settings
@@ -64,9 +67,11 @@ def run_case(weights, lengths, guard, directory):
             pointer = pool.untyped_storage().data_ptr()
             before = allocator.capacity()
             with guard(pool):
-                actual = decoder.decode_paged(tokens, weights, allocator, requests)
+                actual = decoder.decode_paged(
+                    tokens, weights, allocator, requests, attention_backend=attention_backend
+                )
             assert pool.untyped_storage().data_ptr() == pointer
-            assert allocator.cached_length(requests[0]) == 2
+            assert allocator.cached_length(requests[0]) == lengths[0] + 1
             assert allocator.capacity().reserved_blocks == before.reserved_blocks
             assert allocator.capacity().active_slots == before.active_slots
             assert allocator.capacity().live_cached_token_slots == sum(lengths) + len(lengths)
@@ -107,7 +112,7 @@ def run_case(weights, lengths, guard, directory):
                         )
             result["max_kv_tolerance_ratio"] = kv_ratio
             raw = {
-                "prompt_ids": torch.tensor(public_ids[:1]),
+                "prompt_ids": torch.tensor(public_ids[: lengths[0]]),
                 "decode_input": tokens[:1].cpu(),
                 "prefill_logits": prefill_logits[requests[0]].cpu(),
                 "paged": actual,
@@ -151,15 +156,21 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--device", default="cuda:0", choices=("cuda:0", "cpu"))
     parser.add_argument("--output-dir", type=Path, required=True)
+    parser.add_argument("--prompt-tokens", type=int, choices=(1, 15), default=1)
+    parser.add_argument("--single-only", action="store_true")
+    parser.add_argument(
+        "--attention-backend", choices=("pagedcore", "flashinfer"), default="pagedcore"
+    )
     args = parser.parse_args()
     args.output_dir.mkdir(parents=True, exist_ok=True)
     report = {
-        "scope": "Two-token diagnostic; does not replace acceptance or close a gate",
-        "policy": ACCURACY_POLICY,
+        "scope": f"{args.prompt_tokens}-token prefill diagnostic; not gate acceptance",
+        "policy": LEGACY_ACCURACY_POLICY,
         "model_id": MODEL_ID,
         "model_revision": MODEL_REVISION,
         "observed_at_utc": datetime.now(UTC).isoformat(),
         "device": args.device,
+        "attention_backend": args.attention_backend,
         "cases": {},
     }
     try:
@@ -185,10 +196,22 @@ def main():
         with reference_math():
             weights = load_weights(device=args.device)
         guard = runpy.run_path(str(ROOT / "tests/conftest.py"))["_BlockwiseKVGuard"]
-        for name, lengths in (("single", (1,)), ("mixed", MIXED_LENGTHS)):
+        attention_backend = None
+        if args.attention_backend == "flashinfer":
+            from pagedcore.flashinfer_backend import FlashInferAttention
+
+            attention_backend = FlashInferAttention(device=args.device)
+        cases = [("single", (args.prompt_tokens,))]
+        if not args.single_only:
+            if args.prompt_tokens != 1:
+                raise ValueError("15-token probe is standalone; use --single-only")
+            cases.append(("mixed", MIXED_LENGTHS))
+        for name, lengths in cases:
             seed_everything(0)
-            report["cases"][name] = run_case(weights, lengths, guard, args.output_dir / name)
-        if not any("error" in case for case in report["cases"].values()):
+            report["cases"][name] = run_case(
+                weights, lengths, guard, args.output_dir / name, attention_backend=attention_backend
+            )
+        if not args.single_only and not any("error" in case for case in report["cases"].values()):
             controls = compare_cases(args.output_dir)
             controls["math_settings_exact"] = (
                 report["cases"]["single"]["math_settings"]

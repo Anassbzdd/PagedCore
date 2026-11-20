@@ -38,15 +38,13 @@ CPU CI does not certify T4 execution or the later clean wheel/sdist installation
 
 On a clean Linux/T4 checkout with Git and `uv` available, run
 `bash scripts/validate_t4.sh` to retain setup/command logs, device identity, CPU and
-GPU reports, and owned-reference accuracy reports in one local ZIP. This broader collector
-also records dense workspace. The next focused T4 action is the
-[self-contained accuracy notebook](notebooks/paged_decode_accuracy.ipynb):
-enable Internet/T4, Run All, then retain its ZIP even on failure. Review the bundle before
-publishing it under `results/validation/`; see the [evidence contract](docs/VALIDATION_PLAN.md#oracle-harness).
+GPU reports, and owned-reference accuracy reports in one local ZIP. This broader
+collector also records dense workspace. For a focused paging run and instructions
+for publishing the resulting bundle, see [retaining a new run](results/README.md#retaining-a-new-run).
 
 ## Selecting test suites
 
-The seven registered markers are `unit` (isolated components and synthetic contracts),
+The core suite markers are `unit` (isolated components and synthetic contracts),
 `integration` (cross-component checks), `gpu` (actual T4/CUDA execution), `service`
 (HTTP/SSE), `slow` (long-running checks), and `benchmark` (benchmark-harness checks).
 Use explicit module or test marks. Mark every hardware-dependent test `gpu`,

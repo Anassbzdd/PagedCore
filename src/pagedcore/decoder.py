@@ -8,7 +8,7 @@ import torch
 import torch.nn.functional as F
 from torch import Tensor
 
-from pagedcore.attention import paged_attention
+from pagedcore.attention import DecodeAttention, paged_attention
 from pagedcore.dense import (
     apply_rope,
     dense_attention,
@@ -159,7 +159,14 @@ def decode_paged(
     weights: TinyLlamaWeights,
     allocator: KVAllocator,
     request_ids: tuple[RequestId, ...],
+    *,
+    attention_backend: DecodeAttention | None = None,
 ) -> Tensor:
+    """Decode with an explicit optional kernel; backend errors abort the append.
+
+    The existing implementation remains the default pending T4 acceptance of
+    the experimental external backend. Selection never falls back silently.
+    """
     if (
         input_ids.dtype != torch.int64
         or input_ids.ndim != 2
@@ -185,7 +192,7 @@ def decode_paged(
                 query, key, value = project_qkv(rms_norm(residual, layer.input_norm), layer)
                 query, key = apply_rope(query, key, positions[row : row + 1])
                 allocator.write_decode_layer(request, index, key[0, :, 0], value[0, :, 0])
-                attention = paged_attention(
+                attention = (paged_attention if attention_backend is None else attention_backend)(
                     query, allocator, request, layer_index=index, eager_rounding=False
                 )
                 residual = residual + output_projection(attention, layer)

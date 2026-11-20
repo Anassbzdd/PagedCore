@@ -1,0 +1,137 @@
+{
+  "archive": "pagedcore-flashinfer-7behvy1m.zip",
+  "archive_sha256": "9211c219924908fffeb6ec010f8b649f9f05f80498de65be9e29fc23a3336c2f",
+  "source_snapshot_sha256": "f3eaa51ecfd13bc1ed9f333f3a320f91d0e27bc3f93f41d54ee24544fba2b576",
+  "verified_evidence_files": 30,
+  "verified_source_files": 119,
+  "source_runtime_sha256": {
+    "src/pagedcore/__init__.py": "42b1e9884f56caa6de42f8177eedcc2f9b81ae2df2f9db28e45114117e8f3d29",
+    "src/pagedcore/accuracy.py": "e5561ededa3cd1e76fbeaa51d915e89605af90a157f67ad8deeb5d9f4ee1205c",
+    "src/pagedcore/attention.py": "cccfe2a6c521158c5da043f6010bca2fc39befac2327bb6dff4e7f3274836f2b",
+    "src/pagedcore/cli.py": "14394f9024e362da5093959764b56478bc80e9e45d82a610e171566ba424f82b",
+    "src/pagedcore/config.py": "9ad8fceb558dafef9274d6c83bfe9bcf904a97e3df3fa2cec4d08551e490dccb",
+    "src/pagedcore/decoder.py": "f32fc243fb9848279947ac085443acf7310159c5987f5beedd981dc9ce9746b6",
+    "src/pagedcore/dense.py": "f323cc6bdbd7d6e6f4b69223db6460832f85707cc9b879dd0accec2fbf0ecf93",
+    "src/pagedcore/determinism.py": "2fdcba5697c59b4f68942fb7d3a14baff46cc4d0d70470c7f23e5c56a437afa2",
+    "src/pagedcore/engine_types.py": "db31cb04b5dd4e127d37f1b3a4b88bc20f2272520893a150428197713c6cae40",
+    "src/pagedcore/flashinfer_backend.py": "ea3186ad3b14bad8dc8c107624026c43a6ee06381f8a8c744ef286446ce55467",
+    "src/pagedcore/kv_cache.py": "159fbac33af4f326d95530584e407554b64293a927b5656a30198e9ba8070b41",
+    "src/pagedcore/measurements.py": "760946d8dac98f4a9bfcc182a2426a5b92af62aa23fb859d239895d42ca5c3f0",
+    "src/pagedcore/oracle.py": "6fbc7fe7fdd01eb7cb23055ad3189fad00b733bc1dcd727e091306dcf34f9eb8",
+    "src/pagedcore/verification.py": "4e6b77ea1e88b81ae96047b59b4e5fa859c4237251d9e674a6ee27c2fbd75044",
+    "src/pagedcore/weights.py": "1a0b9f34003ab9ca99ccd00e2f193253071d45b480adce7ed809e65ffa72ec5b"
+  },
+  "target": {
+    "torch": "2.7.1+cu126",
+    "name": "Tesla T4",
+    "capability": [
+      7,
+      5
+    ],
+    "visible_devices": 1
+  },
+  "candidate": {
+    "torch": "2.7.1+cu126",
+    "flashinfer": "0.2.5",
+    "ninja": "1.11.1.4",
+    "cuda": "12.6",
+    "source_sha256": "990aa090ef781783e76b836696ece4efd23956f72b5696d622fc619a61162aef"
+  },
+  "nvcc": "nvcc: NVIDIA (R) Cuda compiler driver\nCopyright (c) 2005-2025 NVIDIA Corporation\nBuilt on Wed_Aug_20_01:58:59_PM_PDT_2025\nCuda compilation tools, release 13.0, V13.0.88\nBuild cuda_13.0.r13.0/compiler.36424714_0",
+  "test_counts": {
+    "cpu": {
+      "selected": 808,
+      "passed": 808,
+      "failure": 0,
+      "error": 0,
+      "skipped": 0
+    },
+    "native": {
+      "selected": 8,
+      "passed": 0,
+      "failure": 8,
+      "error": 0,
+      "skipped": 0
+    }
+  },
+  "failures": [
+    {
+      "case": "test_flashinfer_reads_fragmented_pages_against_fp64[1-1]",
+      "kind": "native_build_failure"
+    },
+    {
+      "case": "test_flashinfer_reads_fragmented_pages_against_fp64[15-1]",
+      "kind": "missing_library_after_failed_build"
+    },
+    {
+      "case": "test_flashinfer_reads_fragmented_pages_against_fp64[16-1]",
+      "kind": "missing_library_after_failed_build"
+    },
+    {
+      "case": "test_flashinfer_reads_fragmented_pages_against_fp64[17-1]",
+      "kind": "missing_library_after_failed_build"
+    },
+    {
+      "case": "test_flashinfer_reads_fragmented_pages_against_fp64[49-1]",
+      "kind": "missing_library_after_failed_build"
+    },
+    {
+      "case": "test_flashinfer_reads_fragmented_pages_against_fp64[2048-1]",
+      "kind": "missing_library_after_failed_build"
+    },
+    {
+      "case": "test_flashinfer_reads_fragmented_pages_against_fp64[49-32]",
+      "kind": "missing_library_after_failed_build"
+    },
+    {
+      "case": "test_flashinfer_staged_page_and_worker_stream_ownership",
+      "kind": "missing_library_after_failed_build"
+    }
+  ],
+  "completed_commands": {
+    "setup-uv": 0,
+    "setup-frozen": 0,
+    "resolved-dependencies": 0,
+    "gpu-inventory": 0,
+    "target": 0,
+    "checkpoint-verify": 0,
+    "nvcc": 0,
+    "compiler": 0,
+    "setup-ninja": 0,
+    "download-flashinfer": 0,
+    "setup-flashinfer": 0,
+    "candidate-dependencies": 0,
+    "candidate-dependency-check": 0,
+    "candidate-identity": 0,
+    "lint": 0,
+    "format": 0,
+    "types": 0,
+    "cpu-tests": 0,
+    "native-kernel-tests": 1
+  },
+  "first_failed_command": "native-kernel-tests",
+  "unexecuted": [
+    "focused-15-plus-1-pagedcore",
+    "focused-15-plus-1-flashinfer",
+    "prior-failure-control",
+    "gpu-regressions",
+    "candidate-cached-trajectory"
+  ],
+  "observed_cause": "NVCC 13.0 static global template stub default; unresolved BatchDecodeWithPagedKVCacheKernel reference at native link",
+  "recovery": "Set NVCC_APPEND_FLAGS=--static-global-template-stub=false for actual NVCC 13+, isolate FlashInfer cache, run native build/load smoke before unchanged kernel tests",
+  "scope": "Toolchain failure before native attention execution; no numerical acceptance result; P5.3 remains open",
+  "local_validation": {
+    "cpu_passed": 820,
+    "skipped": 0,
+    "scope": "CPU-only Windows collector checks, distinct from frozen replay source",
+    "ruff_check": "passed",
+    "ruff_format": "passed",
+    "strict_mypy": "passed"
+  },
+  "recovery_notebook": {
+    "file": "notebooks/flashinfer_cuda13_recovery.ipynb",
+    "sha256": "7370848d0e8d42c20597445e8642fe026261d81d051f0eb78ed281aa9f8b650e",
+    "source_snapshot_unchanged": true,
+    "native_recovery_executed": false
+  }
+}

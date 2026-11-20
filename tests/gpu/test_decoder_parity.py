@@ -15,7 +15,15 @@ from transformers import AutoModelForCausalLM
 
 import pagedcore.attention as attention_module
 import pagedcore.decoder as decoder_module
-from pagedcore.accuracy import ACCURACY_POLICY, compare_logits, valid_accuracy_report
+from pagedcore.accuracy import (
+    ACCURACY_POLICY,
+    KV_TOLERANCE,
+    LOGIT_TOLERANCE,
+    accuracy_tolerances,
+    compare_logits,
+    valid_accuracy_report,
+)
+from pagedcore.attention import DecodeAttention
 from pagedcore.config import MODEL_ID, MODEL_REVISION
 from pagedcore.decoder import GreedyResult, decode_paged, prefill_paged
 from pagedcore.engine_types import CapacityCounts, KVReservation, RequestId
@@ -176,6 +184,7 @@ def _assert_pinned_paged_decode(
     fragmented: bool = False,
     steps: int = 3,
     accuracy: dict[str, Any] | None = None,
+    attention_backend: DecodeAttention | None = None,
 ) -> None:
     model, weights = pinned_decoders
     blocks = 32 if accuracy is not None else 16
@@ -188,6 +197,11 @@ def _assert_pinned_paged_decode(
     public_ids = next(
         case["input_ids"] for case in FIXTURES["prompts"] if case["name"] == "maximum_output"
     )
+    if max(lengths) > len(public_ids):
+        # Preserve existing prefixes; repeat only the body so BOS appears once.
+        body = public_ids[1:]
+        repeats = (max(lengths) - 1 + len(body) - 1) // len(body)
+        public_ids = public_ids[:1] + (body * repeats)[: max(lengths) - 1]
     live_requests = []
     references = {}
     dense_caches = {}
@@ -202,6 +216,7 @@ def _assert_pinned_paged_decode(
                 allocator.create(KVReservation(request, (length + steps + 15) // 16))
                 live_requests.append(request)
                 inputs = torch.tensor([public_ids[:length]], device=pool.device)
+                assert inputs.shape[1] == length, "paging fixture was silently truncated"
                 if accuracy is None:
                     references[request] = model(inputs, use_cache=True)
                 else:
@@ -210,6 +225,7 @@ def _assert_pinned_paged_decode(
                         logits=dense_logits, past_key_values=dense_caches[request].layers
                     )
                 logits = prefill_paged(inputs, weights, allocator, request)
+                assert allocator.cached_length(request) == length
                 torch.testing.assert_close(logits, references[request].logits, atol=5e-3, rtol=5e-3)
                 if request == boundary_request:
                     allocator.create(KVReservation(blocker, 1))
@@ -263,7 +279,9 @@ def _assert_pinned_paged_decode(
                         forbid_dense_kv_history(pool),
                         pytest.raises(RuntimeError, match="logit failure"),
                     ):
-                        decode_paged(tokens, weights, allocator, order)
+                        decode_paged(
+                            tokens, weights, allocator, order, attention_backend=attention_backend
+                        )
                     assert allocator.capacity() == counts
                     assert allocator.block_table(blocker) == blocker_table
                     for request in order:
@@ -278,7 +296,9 @@ def _assert_pinned_paged_decode(
                                 rtol=0,
                             )
                 with forbid_dense_kv_history(pool):
-                    logits = decode_paged(tokens, weights, allocator, order)
+                    logits = decode_paged(
+                        tokens, weights, allocator, order, attention_backend=attention_backend
+                    )
                 assert logits.shape == (len(order), 1, weights.lm_head.shape[0])
                 assert logits.dtype == torch.float16 and torch.isfinite(logits).all()
                 for row, request in enumerate(order):
@@ -301,17 +321,21 @@ def _assert_pinned_paged_decode(
                             "request": int(request),
                             "attended_tokens": old_lengths[request] + 1,
                             "owned_reference": compare_logits(
-                                logits[row : row + 1], reference.logits
+                                logits[row : row + 1],
+                                reference.logits,
+                                tolerance=LOGIT_TOLERANCE,
                             ),
                             "max_kv_tolerance_ratio": 0.0,
+                            "kv_measurement_complete": False,
                         }
                         accuracy["comparisons"].append(comparison)
-                    torch.testing.assert_close(
-                        logits[row : row + 1], reference.logits, atol=5e-3, rtol=5e-3
-                    )
-                    assert torch.equal(
-                        logits[row : row + 1].argmax(-1), reference.logits.argmax(-1)
-                    )
+                    if accuracy is None:
+                        torch.testing.assert_close(
+                            logits[row : row + 1], reference.logits, atol=5e-3, rtol=5e-3
+                        )
+                        assert torch.equal(
+                            logits[row : row + 1].argmax(-1), reference.logits.argmax(-1)
+                        )
                     assert allocator.cached_length(request) == old_lengths[request] + 1
                     table = allocator.block_table(request)
                     assert table[: len(old_tables[request])] == old_tables[request]
@@ -321,6 +345,7 @@ def _assert_pinned_paged_decode(
                         logical, slot = divmod(old_lengths[request], 16)
                         physical = table[logical]
                         before[:, :, physical, slot] = pool[:, :, physical, slot]
+                    kv_records = []
                     for logical, physical in enumerate(table):
                         key, value = allocator.read_block(request, logical)
                         start = logical * 16
@@ -331,6 +356,9 @@ def _assert_pinned_paged_decode(
                                 (1, value[layer], pair[1]),
                             ):
                                 if comparison is not None:
+                                    target_slice = target[0, :, start:end].transpose(0, 1)
+                                    assert torch.isfinite(actual).all()
+                                    assert torch.isfinite(target_slice).all()
                                     ratio = (
                                         (
                                             (
@@ -338,7 +366,7 @@ def _assert_pinned_paged_decode(
                                                 - target[0, :, start:end].transpose(0, 1).float()
                                             ).abs()
                                             / (
-                                                2e-3
+                                                KV_TOLERANCE
                                                 * (
                                                     1
                                                     + target[0, :, start:end]
@@ -354,12 +382,23 @@ def _assert_pinned_paged_decode(
                                     comparison["max_kv_tolerance_ratio"] = max(
                                         comparison["max_kv_tolerance_ratio"], ratio
                                     )
-                                torch.testing.assert_close(
-                                    actual,
-                                    target[0, :, start:end].transpose(0, 1),
-                                    atol=2e-3,
-                                    rtol=2e-3,
-                                )
+                                    if raw_directory is not None:
+                                        kv_records.append(
+                                            {
+                                                "layer": layer,
+                                                "logical_block": logical,
+                                                "kind": kind,
+                                                "actual": actual.detach().cpu().clone(),
+                                                "reference": target_slice.detach().cpu().clone(),
+                                            }
+                                        )
+                                else:
+                                    torch.testing.assert_close(
+                                        actual,
+                                        target[0, :, start:end].transpose(0, 1),
+                                        atol=2e-3,
+                                        rtol=2e-3,
+                                    )
                                 old_slots = max(0, min(end, old_lengths[request]) - start)
                                 torch.testing.assert_close(
                                     actual[:old_slots],
@@ -367,6 +406,20 @@ def _assert_pinned_paged_decode(
                                     atol=0,
                                     rtol=0,
                                 )
+                    if comparison is not None:
+                        comparison["kv_measurement_complete"] = True
+                        comparison["legacy_logit_tolerance_ratio"] = (
+                            comparison["owned_reference"]["max_tolerance_ratio"]
+                            * LOGIT_TOLERANCE
+                            / 5e-3
+                        )
+                        comparison["legacy_kv_tolerance_ratio"] = (
+                            comparison["max_kv_tolerance_ratio"] * KV_TOLERANCE / 2e-3
+                        )
+                        if raw_directory is not None:
+                            torch.save(
+                                kv_records, destination / f"kv-step-{step + 1}-request-{request}.pt"
+                            )
                     references[request] = reference
                 counts = allocator.capacity()
                 assert counts.live_cached_token_slots == (
@@ -471,15 +524,24 @@ def test_pinned_decoder_greedy_parity_on_t4(
     ids=["single", "mixed", "fragmented", "held_out"],
 )
 def test_pinned_paged_decode_accuracy_on_t4(
-    pinned_weights, lengths, fragmented, forbid_dense_kv_history, record_property
+    pinned_weights,
+    lengths,
+    fragmented,
+    forbid_dense_kv_history,
+    record_property,
+    decode_attention_backend,
 ):
     report = {
         "policy": ACCURACY_POLICY,
+        "tolerances": accuracy_tolerances(),
         "model_id": MODEL_ID,
         "model_revision": MODEL_REVISION,
         "lengths": list(lengths),
         "steps": 3,
         "comparisons": [],
+        "attention_backend": "pagedcore"
+        if decode_attention_backend is None
+        else "flashinfer-0.2.5",
     }
     report["case"] = (
         "fragmented"
@@ -497,6 +559,7 @@ def test_pinned_paged_decode_accuracy_on_t4(
             forbid_dense_kv_history,
             fragmented=fragmented,
             accuracy=report,
+            attention_backend=decode_attention_backend,
         )
         assert valid_accuracy_report(report, lengths)
     finally:

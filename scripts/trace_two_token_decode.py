@@ -1,4 +1,4 @@
-"""Trace actual two-token decode operations without replacing their arithmetic."""
+"""Trace a one-page cached decode without replacing its arithmetic."""
 
 from __future__ import annotations
 
@@ -38,6 +38,7 @@ STAGES = (
     "v_read",
     "query_key_dot",
     "scaled_scores",
+    "probabilities",
     "precast_attention",
     "attention_output",
     "output_projection",
@@ -153,6 +154,7 @@ def capture_forward(trace, allocator=None):
         result = originals["apply_rope"](query, key, positions)
         trace.put("q_rotated", result[0])
         trace.put("k_rotated", result[1])
+        trace.layers[trace.layer]["absolute_positions"] = positions.detach().cpu().tolist()
         # RoPE never rotates V; retain the unchanged operand explicitly.
         trace.layers[trace.layer]["v_unrotated"] = trace.layers[trace.layer]["v_projected"]
         return result
@@ -204,7 +206,8 @@ def capture_forward(trace, allocator=None):
             def read(request, *, layer_index):
                 assert layer_index == trace.layer
                 for logical, pair in enumerate(original_read(request, layer_index=layer_index)):
-                    assert logical == 0 and pair[0].shape == (2, 4, 64)
+                    length = pair[0].shape[0]
+                    assert logical == 0 and 2 <= length <= 16
                     for name, value in zip(("k_read", "v_read"), pair, strict=True):
                         if name in trace.layers[layer_index]:
                             # Two-pass attention must reread the same staged slots.
@@ -218,8 +221,8 @@ def capture_forward(trace, allocator=None):
                             "physical_block": int(allocator.block_table(request)[logical]),
                             "shares_pool_storage": value.untyped_storage().data_ptr()
                             == allocator._pool.untyped_storage().data_ptr(),
-                            "history_positions": [0],
-                            "appended_position": 1,
+                            "history_positions": list(range(length - 1)),
+                            "appended_position": length - 1,
                         }
                     yield pair
 
@@ -233,12 +236,19 @@ def attention_stages(trace, layer, *, paged):
     scales = [e for e in events if e.get("scalar") == 0.125]
     divisions = [e for e in events if e["operation"] == "aten.div.Tensor"]
     accumulations = [e for e in events if e["operation"] == "aten.add_.Tensor"]
+    softmaxes = [e for e in events if e["operation"].split(".")[1] in ("softmax", "_softmax")]
     result = {}
     if products:
         result["query_key_dot"] = products[0]["output"]
     if scales:
         result["scaled_scores"] = scales[0]["output"]
-    if paged and divisions:
+    if softmaxes:
+        result["probabilities"] = softmaxes[-1]["output"]
+    # Normalize-first uses softmax followed by P@V and an in-place accumulation.
+    # Older online traces end with a division of the weighted values.
+    if paged and softmaxes and accumulations:
+        result["precast_attention"] = accumulations[-1]["output"]
+    elif paged and divisions:
         result["precast_attention"] = divisions[-1]["output"]
     elif paged and accumulations:
         result["precast_attention"] = accumulations[-1]["output"]
@@ -276,8 +286,8 @@ def compare_traces(reference, paged):
             a, e = actual[stage]["value"], expected[stage]["value"]
             if stage in ("k_read", "v_read"):
                 a = a.permute(1, 0, 2).unsqueeze(0)
-            elif stage in ("query_key_dot", "scaled_scores"):
-                a, e = a.reshape(4, 8, 2), e.reshape(4, 8, 2)
+            elif stage in ("query_key_dot", "scaled_scores", "probabilities"):
+                a, e = a.reshape(4, 8, -1), e.reshape(4, 8, -1)
             elif stage == "precast_attention":
                 a, e = a.reshape(1, 32, 1, 64), e.reshape(1, 32, 1, 64)
             row = {
@@ -288,13 +298,15 @@ def compare_traces(reference, paged):
                 "paged_layout": actual[stage]["layout"],
                 "reference_layout": expected[stage]["layout"],
                 "layout_equal": actual[stage]["layout"] == expected[stage]["layout"],
+                "dtype": str(a.dtype),
             }
             if stage in ("k_read", "v_read"):
                 row["pool_read"] = actual[stage]["pool_read"]
-                row["history"] = difference(a[:, :, :1], e[:, :, :1])
-                row["appended"] = difference(a[:, :, 1:], e[:, :, 1:])
+                row["history"] = difference(a[:, :, :-1], e[:, :, :-1])
+                row["appended"] = difference(a[:, :, -1:], e[:, :, -1:])
                 written = actual["k_rotated" if stage == "k_read" else "v_projected"]["value"]
-                row["appended_matches_local_projection"] = torch.equal(a[:, :, 1:], written)
+                row["appended_matches_local_projection"] = torch.equal(a[:, :, -1:], written)
+                row["absolute_positions"] = actual["absolute_positions"]
             comparisons.append(row)
     kv = [row for row in comparisons if row["operation"] in ("k_read", "v_read")]
     return {
@@ -303,6 +315,12 @@ def compare_traces(reference, paged):
         "missing": missing,
         "comparisons": comparisons,
         "first_difference": next((row for row in comparisons if not row["exact"]), None),
+        "first_fp32_difference": next(
+            (r for r in comparisons if not r["exact"] and r["dtype"] == "torch.float32"), None
+        ),
+        "first_fp16_difference": next(
+            (r for r in comparisons if not r["exact"] and r["dtype"] == "torch.float16"), None
+        ),
         "kv_measurement": {
             "status": "complete" if len(kv) == 44 else "partial" if kv else "not_measured",
             "measured_pairs": len(kv),
@@ -340,31 +358,34 @@ def investigate_first_product(reference, paged, first, device, directory):
     r, p = products["reference"], products["paged"]
     rq, rk = r["operands"]
     pq, pk = p["operands"]
+    length = pk.shape[-1]
     controls = {
         "query_values_exact": torch.equal(rq.reshape(4, 8, 64), pq),
-        "key_values_exact": torch.equal(rk.reshape(4, 8, 64, 2), pk[:, None].expand(4, 8, 64, 2)),
+        "key_values_exact": torch.equal(
+            rk.reshape(4, 8, 64, length), pk[:, None].expand(4, 8, 64, length)
+        ),
     }
     # This small dense calculation is an isolated diagnostic, never a serving fallback.
     dense_geometry = torch.matmul(pq.reshape(1, 32, 1, 64), pk.repeat_interleave(8, dim=0)[None])
     outputs = {"dense_geometry_from_paged": dense_geometry.detach().cpu()}
     result = {"status": "measured", "layer": layer, "operand_controls": controls, "replays": {}}
     for name, product in products.items():
-        target = product["event"]["output"]["value"].reshape(4, 8, 2)
+        target = product["event"]["output"]["value"].reshape(4, 8, length)
         other = products["paged" if name == "reference" else "reference"]["event"]["output"][
             "value"
         ]
         result["replays"][name] = {}
         for variant in ("native", "packed"):
-            actual = product[variant].detach().cpu().reshape(4, 8, 2)
+            actual = product[variant].detach().cpu().reshape(4, 8, length)
             result["replays"][name][variant] = {
                 "against_recorded_own_product": difference(actual, target),
-                "against_recorded_other_product": difference(actual, other.reshape(4, 8, 2)),
+                "against_recorded_other_product": difference(actual, other.reshape(4, 8, length)),
             }
             outputs[f"{name}_{variant}"] = actual
     result["dense_geometry_from_paged"] = {
         name: difference(
-            dense_geometry.cpu().reshape(4, 8, 2),
-            product["event"]["output"]["value"].reshape(4, 8, 2),
+            dense_geometry.cpu().reshape(4, 8, length),
+            product["event"]["output"]["value"].reshape(4, 8, length),
         )
         for name, product in products.items()
     }
@@ -376,25 +397,44 @@ def investigate_first_product(reference, paged, first, device, directory):
 
 
 @torch.inference_mode()
-def trace_case(weights, guard, directory):
+def trace_case(weights, guard, directory, *, prompt_tokens=1, baseline_dir=None):
+    if type(prompt_tokens) is not int or not 1 <= prompt_tokens <= 15:
+        raise ValueError("one-page trace requires 1 through 15 prompt tokens")
     directory.mkdir(parents=True, exist_ok=True)
-    baseline_report = run_case(weights, (1,), guard, directory / "baseline")
+    if baseline_dir is None:
+        baseline_dir = directory / "baseline"
+        baseline_report = run_case(weights, (prompt_tokens,), guard, baseline_dir)
+    else:
+        baseline_report = json.loads((baseline_dir / "report.json").read_text())
+        assert baseline_report["lengths"] == [prompt_tokens]
     assert "error" not in baseline_report, baseline_report.get("error")
-    baseline = torch.load(directory / "baseline/target.pt", weights_only=True)
+    baseline = torch.load(baseline_dir / "target.pt", weights_only=True)
     pool = torch.full(
         (22, 2, 32, 16, 4, 64), torch.nan, dtype=torch.float16, device=weights.embedding.device
     )
     allocator = KVAllocator(pool)
     request = RequestId("0")
     reference, paged = ForwardTrace(), ForwardTrace()
-    report = {"scope": "Standalone two-token layer trace; no acceptance or repair claim"}
+    report = {
+        "scope": "Standalone one-page layer trace; no acceptance or repair claim",
+        "prompt_tokens": prompt_tokens,
+        "decode_steps": 1,
+        "attended_tokens": prompt_tokens + 1,
+        "baseline": baseline_report,
+    }
     try:
         with reference_math() as settings:
             report["math_settings"] = settings
-            allocator.create(KVReservation(request, 1))
+            allocator.create(KVReservation(request, (prompt_tokens + 3 + 15) // 16))
             prompt = baseline["prompt_ids"][None].to(pool.device)
             prefill, cache = decoder.prefill(prompt, weights)
             decoder.prefill_paged(prompt, weights, allocator, request)
+            history = {
+                (layer, name): value.detach().cpu().clone()
+                for layer in range(22)
+                for pair in allocator.iter_layer_blocks(request, layer_index=layer)
+                for name, value in zip(("k_read", "v_read"), pair, strict=True)
+            }
             tokens = prefill[:, -1:].argmax(-1)
             assert torch.equal(tokens.cpu(), baseline["decode_input"])
             pointer = pool.untyped_storage().data_ptr()
@@ -403,7 +443,15 @@ def trace_case(weights, guard, directory):
             with guard(pool), capture_forward(paged, allocator):
                 paged_logits = decoder.decode_paged(tokens, weights, allocator, (request,))
             assert pool.untyped_storage().data_ptr() == pointer
-            assert allocator.cached_length(request) == 2
+            assert allocator.cached_length(request) == prompt_tokens + 1
+            report["old_history_unchanged"] = all(
+                torch.equal(paged.layers[layer][name]["value"][:-1], old)
+                for (layer, name), old in history.items()
+            )
+            report["absolute_positions_correct"] = all(
+                values["absolute_positions"] == [[prompt_tokens]] for values in paged.layers
+            )
+            assert report["old_history_unchanged"] and report["absolute_positions_correct"]
             report["instrumentation_controls"] = {
                 "reference_logits_exact": torch.equal(
                     reference_logits.cpu(), baseline["owned_reference"]
@@ -456,6 +504,8 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--device", choices=("cpu", "cuda:0"), default="cuda:0")
     parser.add_argument("--output-dir", type=Path, required=True)
+    parser.add_argument("--prompt-tokens", type=int, choices=range(1, 16), default=1)
+    parser.add_argument("--baseline-dir", type=Path)
     args = parser.parse_args()
     args.output_dir.mkdir(parents=True, exist_ok=True)
     report = {}
@@ -478,7 +528,18 @@ def main():
         with reference_math():
             weights = load_weights(device=args.device)
         guard = runpy.run_path(str(ROOT / "tests/conftest.py"))["_BlockwiseKVGuard"]
-        report["trace"] = trace_case(weights, guard, args.output_dir)
+        report["trace"] = trace_case(
+            weights,
+            guard,
+            args.output_dir,
+            prompt_tokens=args.prompt_tokens,
+            baseline_dir=args.baseline_dir,
+        )
+        if args.prompt_tokens == 15 and report["trace"].get("first_difference_valid"):
+            from scripts.replay_one_page import replay_first_layers
+
+            with reference_math():
+                report["common_input_replay"] = replay_first_layers(args.output_dir, args.device)
     except Exception:
         report["error"] = traceback.format_exc()
     finally:
@@ -504,6 +565,7 @@ def main():
         "error" in report
         or "error" in report.get("trace", {})
         or not report.get("trace", {}).get("complete")
+        or not report.get("common_input_replay", {}).get("all_native_replays_exact", True)
     )
 
 

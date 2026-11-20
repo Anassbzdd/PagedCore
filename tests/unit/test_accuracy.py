@@ -3,7 +3,12 @@ from copy import deepcopy
 import pytest
 import torch
 
-from pagedcore.accuracy import ACCURACY_POLICY, compare_logits, valid_accuracy_report
+from pagedcore.accuracy import (
+    ACCURACY_POLICY,
+    accuracy_tolerances,
+    compare_logits,
+    valid_accuracy_report,
+)
 from pagedcore.dense import dense_attention_fp32
 
 pytestmark = pytest.mark.unit
@@ -40,6 +45,7 @@ def report():
     metrics = compare_logits(torch.tensor([[0.0, 1.0]]), torch.tensor([[0.0, 1.0]]))
     return {
         "policy": ACCURACY_POLICY,
+        "tolerances": accuracy_tolerances(),
         "lengths": [15],
         "steps": 3,
         "comparisons": [
@@ -49,6 +55,7 @@ def report():
                 "attended_tokens": 15 + step,
                 "owned_reference": metrics.copy(),
                 "max_kv_tolerance_ratio": 0.0,
+                "kv_measurement_complete": True,
             }
             for step in range(1, 4)
         ],
@@ -75,6 +82,9 @@ def test_hf_is_unnecessary_while_owned_accuracy_remains_a_hard_gate():
         "own_greedy",
         "kv",
         "step",
+        "legacy_policy",
+        "wrong_tolerances",
+        "unmeasured_kv",
     ],
 )
 def test_accuracy_report_rejects_incomplete_or_invalid_evidence(fault):
@@ -94,6 +104,12 @@ def test_accuracy_report_rejects_incomplete_or_invalid_evidence(fault):
         first["owned_reference"]["greedy_matches"] = False
     elif fault == "kv":
         first["max_kv_tolerance_ratio"] = 1.1
+    elif fault == "legacy_policy":
+        data["policy"] = "fp32-paged-v2-independent"
+    elif fault == "wrong_tolerances":
+        data["tolerances"]["logits"]["atol"] = 1.0
+    elif fault == "unmeasured_kv":
+        first["kv_measurement_complete"] = False
     else:
         first["step"] = True
     assert not valid_accuracy_report(data, (15,))
@@ -103,3 +119,20 @@ def test_accuracy_report_rejects_incomplete_or_invalid_evidence(fault):
 def test_logit_measurements_reject_nonfinite_values(bad):
     with pytest.raises(ValueError, match="finite"):
         compare_logits(torch.tensor([[bad, 0.0]]), torch.zeros(1, 2))
+
+
+def test_integrated_drift_budget_keeps_legacy_diagnostic_scale():
+    actual = torch.tensor([[0.015, 1.0]])
+    reference = torch.tensor([[0.0, 1.0]])
+    legacy = compare_logits(actual, reference)
+    revised = compare_logits(actual, reference, tolerance=0.02)
+    assert legacy["max_tolerance_ratio"] > 1
+    assert revised["max_tolerance_ratio"] < 1
+    assert revised["greedy_matches"]
+    assert revised["max_absolute_error"] == legacy["max_absolute_error"]
+
+
+@pytest.mark.parametrize("tolerance", [0.0, -0.01, float("nan"), float("inf")])
+def test_logit_measurements_reject_invalid_tolerances(tolerance):
+    with pytest.raises(ValueError, match="tolerance"):
+        compare_logits(torch.zeros(1, 2), torch.zeros(1, 2), tolerance=tolerance)

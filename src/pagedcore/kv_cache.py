@@ -60,6 +60,25 @@ class _TokenAppend:
     written_layers: int = 0
 
 
+@dataclass(frozen=True, slots=True)
+class PagedLayerView:
+    """Borrowed NHD pools and logical page order for one readable layer.
+
+    Only indexed pages and valid slots may be read. Treat pools as read-only;
+    consume immediately on the allocator's worker/stream, before any mutation.
+    This is metadata plus aliases, never a contiguous copy of request history.
+    """
+
+    key: Tensor
+    value: Tensor
+    blocks: BlockTable
+    length: int
+
+    @property
+    def last_page_tokens(self) -> int:
+        return (self.length - 1) % 16 + 1
+
+
 class KVAllocator:
     """Assign blocks within an existing pool; construct and use on the model worker.
 
@@ -249,6 +268,30 @@ class KVAllocator:
         self, request_id: RequestId, *, layer_index: int
     ) -> Iterator[tuple[Tensor, Tensor]]:
         """Borrow valid [slots, 4, 64] pages, including a completed staged layer."""
+        sequence = self._readable_layer(request_id, layer_index)
+        for logical_block, physical_block in enumerate(sequence.blocks):
+            self._check_worker()
+            valid = min(16, sequence.length - logical_block * 16)
+            yield (
+                self._pool[layer_index, 0, physical_block, :valid],
+                self._pool[layer_index, 1, physical_block, :valid],
+            )
+
+    def paged_layer_view(self, request_id: RequestId, *, layer_index: int) -> PagedLayerView:
+        """Borrow native-kernel inputs, including this layer's staged append.
+
+        Committed block_table/cached_length deliberately remain unchanged until
+        decode succeeds. The view instead describes the readable tentative layer.
+        """
+        sequence = self._readable_layer(request_id, layer_index)
+        return PagedLayerView(
+            self._pool[layer_index, 0],
+            self._pool[layer_index, 1],
+            sequence.blocks,
+            sequence.length,
+        )
+
+    def _readable_layer(self, request_id: RequestId, layer_index: int) -> _SequenceCache:
         self._check_worker()
         self._assert_accounting()
         if type(layer_index) is not int or not 0 <= layer_index < 22:
@@ -261,13 +304,7 @@ class KVAllocator:
             sequence = append.sequence
         if sequence.length == 0:
             raise ValueError("attention requires a nonempty cache")
-        for logical_block, physical_block in enumerate(sequence.blocks):
-            self._check_worker()
-            valid = min(16, sequence.length - logical_block * 16)
-            yield (
-                self._pool[layer_index, 0, physical_block, :valid],
-                self._pool[layer_index, 1, physical_block, :valid],
-            )
+        return sequence
 
     def read_block(self, request_id: RequestId, logical_block: int) -> tuple[Tensor, Tensor]:
         """Borrow K/V views [22, valid slots, 4, 64] for one logical block."""

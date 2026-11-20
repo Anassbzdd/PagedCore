@@ -5,9 +5,9 @@ Purpose: Record the architecture, memory rules, and technical decisions that imp
 This is the required target architecture. Owned weights, dense math components,
 single-sequence contiguous prefill/decode, prompt writes into paged storage, the
 KV pool, its reservation-aware allocator, single-query paged attention and
-batched one-token paged decode exist. Phase 4 allocator validation is complete;
-the current gate is Phase 5 block-table decode attention. Batched paged decode
-has synthetic CPU coverage; T4 decoder evidence, the worker and HTTP remain pending.
+batched one-token paged decode exist. The frozen paging suite passes on T4 under
+the v3 policy. The next gates are paged generation, batched workspace and CUDA
+page-reuse ordering. The worker and HTTP service remain planned.
 [STATUS.md](STATUS.md) distinguishes delivered code from evidence and planned work.
 
 ## Core design decision
@@ -95,6 +95,18 @@ integrated workspace evidence.
 
 ### Blockwise decode attention
 
+The November 14 experimental external-kernel path is explicit:
+`decode_paged(..., attention_backend=FlashInferAttention(device="cuda:0"))`.
+The default below remains unchanged pending T4 acceptance. The adapter hands
+FlashInfer borrowed NHD K/V pools plus int32 logical page metadata; it performs
+no full-history gather. `paged_layer_view` exposes only a written staged layer's
+tentative block table/length, while committed tables/lengths remain unchanged
+until final logits succeed. RoPE stays in PagedCore (`pos_encoding_mode="NONE"`
+in the kernel). Backend errors propagate through the existing append rollback.
+The backend is bound to its construction worker/stream and never falls back.
+Kernel math, JIT/toolchain compatibility and workspace at maximum active load
+remain unvalidated. See [candidate details](validation/2026-11-14-flashinfer-backend.md).
+
 [`attention.paged_attention`](../src/pagedcore/attention.py) accepts a rotated FP16
 `[1, 32, 1, 64]` query, an allocator, a request ID and a layer index. The caller
 must have written the current token's layer, so all exposed slots are causally visible.
@@ -113,10 +125,10 @@ K/V conversions remain page-sized, with no full-history K/V copy. Synthetic
 [CPU tests](../tests/unit/test_attention.py) cover boundary lengths through 2,048,
 head mapping, large scores, autocast and read-only ownership. During batched
 decode, the primitive reads a completed staged layer through `iter_layer_blocks`;
-other layers' unpublished slots cannot be read. The previous online primitive has
-[T4 evidence at `3401406`](validation/2026-10-31-p52-t4-review.md). The newer
-staged-layer iterator, integrated pinned-checkpoint/T4 decoder parity, T4 decode
-traces and workspace evidence remain pending.
+other layers' unpublished slots cannot be read. The staged iterator and
+normalize-before-values path passed the
+[November 16 T4 paging suite](validation/2026-11-16-v3-complete-t4-review.md).
+Batched workspace and CUDA page-reuse ordering remain open.
 
 Integrated decode uses the FP32 normalize-before-values path above. Scores, scaling,
 normalization and weighted values remain FP32 until the final attention output
@@ -134,17 +146,15 @@ be rerun as optional diagnostics.
 The [numerical policy](NUMERICAL_POLICY.md) separates mathematics, paging, model
 implementation, quality, distribution fidelity and serving evidence. Paged logits and all-layer K/V must meet the existing tolerances
 against the independent FP32 reference, with exact greedy choices on the frozen
-suite. The unresolved integrated FP32 failure remains blocking. HF reports are
-optional; independent model coverage gaps and quality evaluation remain release work. The November 2026
-kernel-order diagnostics are historical experiments, not serving algorithms.
-Their opt-in `eager_rounding=True` path remains available for forensic replay.
+suite. The November 16 run passed under the frozen v3 limits. HF reports are
+optional. Independent model coverage gaps and quality evaluation remain release
+work. The opt-in `eager_rounding=True` path supports historical kernel-order replays.
 
 The [decode test guard](../tests/conftest.py) follows KV storage aliases and
 copies during `decode_paged`, rejecting temporary K/V storage larger than one
 16-token page. It permits pool views and one-page conversions and stops ancestry
-tracking at attention reductions. CPU shortcut injections and required T4
-integration tests keep this rule in force. The arithmetic revision is not
-T4 acceptance evidence; complete results are tracked in [STATUS.md](STATUS.md).
+tracking at attention reductions. CPU shortcut injections and all required
+integrated T4 comparisons exercise this rule. See [STATUS.md](STATUS.md).
 
 ### Batched one-token paged decode
 
@@ -381,6 +391,11 @@ For this model, eight query heads share each KV head. Apply RoPE using the token
 Before optimizing performance, pass independent model and paging checks under the
 [numerical policy](NUMERICAL_POLICY.md). Model quality against vLLM is separate
 planned evaluation, not numerical reproduction of its implementation.
+
+The November 16 integrated drift budget is `atol=rtol=2e-2` for logits and
+`1e-2` for accumulated K/V differences against the contiguous reference.
+Independent attention stays `2e-3`, and storage preservation stays exact.
+This changes validation limits only; decoder arithmetic and pool layout stay the same.
 
 This implementation will use many small PyTorch operations, which may create significant overhead and limit performance. Measure and report this limitation.
 

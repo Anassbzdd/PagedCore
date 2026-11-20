@@ -80,6 +80,7 @@ where = ["src"]
 target-version = "py311"
 line-length = 100
 src = ["src", "tests"]
+extend-exclude = ["results"]
 
 [tool.ruff.lint]
 select = ["B", "E4", "E7", "E9", "F", "I", "RUF", "SIM", "UP"]
@@ -98,6 +99,7 @@ markers = [
     "unit: isolated component and synthetic contract tests",
     "integration: cross-component tests",
     "gpu: tests that require an NVIDIA T4 and CUDA runtime",
+    "flashinfer: experimental native backend; selected with --decode-backend=flashinfer",
     "service: HTTP and SSE service tests",
     "slow: long-running tests, including extended property and soak tests",
     "benchmark: benchmark-harness tests excluded from routine CPU checks",

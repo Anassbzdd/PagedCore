@@ -1,0 +1,56 @@
+{
+  "date": "2026-11-14",
+  "scope": "Independent synthetic component/orchestration math on CPU only; no real-checkpoint, T4, quality or acceptance result",
+  "gate": "P5.3 remains open",
+  "environment": {
+    "python": "3.11.15",
+    "torch": "2.7.1+cpu",
+    "cuda_available": false
+  },
+  "tests": {
+    "passed": 20,
+    "new": 10,
+    "existing_norm_rope": 10,
+    "junit": "independent-decoder-math-cpu.xml",
+    "sha256": "b57abdfe3e9215e03d87df265387ed4ecf99273174ef6e599da575f1f463192f"
+  },
+  "commands": {
+    "python -m pytest tests/unit/test_independent_decoder_math.py tests/unit/test_independent_components.py -xq": "passed",
+    "python -m ruff check .": "passed",
+    "python -m ruff format --check .": "passed",
+    "python -m mypy --strict src/pagedcore": "passed",
+    "git diff --check": "passed"
+  },
+  "injected_errors": [
+    {
+      "injected_error": "swap gate/up projections",
+      "detected": true
+    },
+    {
+      "injected_error": "tie output head to input embedding",
+      "detected": true
+    },
+    {
+      "injected_error": "drop MLP residual contribution",
+      "detected": true
+    },
+    {
+      "injected_error": "normalize pre-attention residual instead of updated hidden state",
+      "detected": true
+    }
+  ],
+  "reference": "Python binary64 math.fsum, explicit SiLU and direct binary16 rounding; no dense/decoder/Transformers helpers used for expected results",
+  "limitations": [
+    "Sparse synthetic weights, MLP width 3",
+    "One active block at index 0 or 21 among 22 layers",
+    "Only one cached step after 1/3-token prompt",
+    "No general checkpoint oracle or long-trajectory evidence",
+    "Runtime, comparator, limits and thresholds unchanged"
+  ],
+  "source_sha256": {
+    "tests/unit/test_independent_decoder_math.py": "969f8372745501c84a5abdbe3511e59d1d210ad6dc78d5462aaca5b4d5f21e83",
+    "tests/unit/test_independent_components.py": "0670bd50baee48cf47b91373b9f0b9e89ab42d2c7773180d941396403dc42d7b",
+    "src/pagedcore/dense.py": "f323cc6bdbd7d6e6f4b69223db6460832f85707cc9b879dd0accec2fbf0ecf93",
+    "src/pagedcore/decoder.py": "95254ffac22988f86a9071287874c05c4e38861b221594f91f68cfe0346ddf95"
+  }
+}

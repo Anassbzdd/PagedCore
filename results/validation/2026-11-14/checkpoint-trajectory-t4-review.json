@@ -1,0 +1,3858 @@
+{
+  "date": "2026-11-14",
+  "scope": "One fixed 32-step checkpoint trajectory and staged local component diagnostics; no quality or release acceptance",
+  "archive_sha256": "5cc2bc7361066075786265d8b681a29ff98debd4c644a8d6cdf648c067373c88",
+  "evidence_hashes_verified": 482,
+  "source_hashes_verified": 112,
+  "snapshot_sha256": "b7a3b052bbb0f4f3860ffc8a44c41718478071f4f941f2b8e15efba0af6d811d",
+  "base_revision": "5ded0a31f2182584827aecc7cfbc0d6b7da3868c",
+  "source_differences_before_review": [],
+  "commands": [
+    {
+      "name": "setup-uv",
+      "returncode": 0
+    },
+    {
+      "name": "setup-frozen",
+      "returncode": 0
+    },
+    {
+      "name": "resolved-dependencies",
+      "returncode": 0
+    },
+    {
+      "name": "gpu-inventory",
+      "returncode": 0
+    },
+    {
+      "name": "target",
+      "returncode": 0
+    },
+    {
+      "name": "checkpoint-verify",
+      "returncode": 0
+    },
+    {
+      "name": "cpu-component-checks",
+      "returncode": 0
+    },
+    {
+      "name": "checkpoint-trajectory",
+      "returncode": 0
+    }
+  ],
+  "target": {
+    "torch": "2.7.1+cu126",
+    "name": "Tesla T4",
+    "uuid": "b97e08ce-e8c7-ba17-ae37-59d9563c0ce7",
+    "capability": [
+      7,
+      5
+    ],
+    "visible_devices": 1,
+    "total_memory": 15636037632,
+    "environment": {
+      "python": "3.11.15",
+      "package": {
+        "name": "pagedcore",
+        "version": "0.1.0"
+      },
+      "dependencies": {
+        "torch": "2.7.1+cu126",
+        "transformers": "4.52.4"
+      },
+      "cuda": {
+        "available": true,
+        "runtime": "12.6"
+      },
+      "driver": "580.178.04",
+      "gpu": [
+        {
+          "name": "Tesla T4",
+          "memory_mib": 15360
+        },
+        {
+          "name": "Tesla T4",
+          "memory_mib": 15360
+        }
+      ],
+      "model": {
+        "id": "TinyLlama/TinyLlama-1.1B-Chat-v1.0",
+        "revision": "af8e934848d8dd00074cc2cd8a40a9b05c3b011e"
+      },
+      "settings": {
+        "model_id": "TinyLlama/TinyLlama-1.1B-Chat-v1.0",
+        "model_revision": "af8e934848d8dd00074cc2cd8a40a9b05c3b011e",
+        "context_limit": 2048,
+        "min_new_tokens": 1,
+        "default_max_new_tokens": 128,
+        "max_new_tokens": 256,
+        "block_tokens": 16,
+        "kv_pool_mib": 8192,
+        "workspace_margin_mib": 1536,
+        "max_pending_requests": 64,
+        "max_active_sequences": 32,
+        "token_queue_size": 32,
+        "bind_address": "localhost",
+        "log_level": "INFO"
+      }
+    }
+  },
+  "cached_steps": 32,
+  "attended_lengths": [
+    16,
+    47
+  ],
+  "all_64_native_logit_tensors_exact_between_runs": true,
+  "logit_metric_fields_recomputed": 384,
+  "logit_failing_steps": 32,
+  "kv_failing_steps_reported": 32,
+  "maximum_logit_ratio": 2.682215743440233,
+  "maximum_kv_ratio_reported": 3.9908779931584952,
+  "all_reference_argmax_choices_agree_on_fixed_histories": true,
+  "component_records_checked": 402,
+  "component_metric_fields_recomputed": 804,
+  "component_groups": {
+    "rms_norm": {
+      "count": 264,
+      "max_absolute_error": 0.00048828125,
+      "max_scaled_error_diagnostic": 0.15664160401002505
+    },
+    "swiglu": {
+      "count": 132,
+      "max_absolute_error": 0.0018506868011627375,
+      "max_scaled_error_diagnostic": 0.17122039785651266
+    },
+    "final_logits": {
+      "count": 6,
+      "max_absolute_error": 0.00745741042192094,
+      "max_scaled_error_diagnostic": 0.08654844666688374
+    }
+  },
+  "max_rms_recompute_difference": 2.168404344971009e-19,
+  "rows": [
+    {
+      "step": 0,
+      "attended_tokens": 16,
+      "logits": {
+        "max_absolute_error": 0.015625,
+        "rms_error": 0.002958351227131742,
+        "normalized_rms_error": 0.0005349745430931553,
+        "max_tolerance_ratio": 1.3038754074610648,
+        "greedy_matches": true,
+        "reference_top1_margin_min": 1.84375
+      },
+      "kv_tolerance_ratio": 1.418355889131848,
+      "instrumentation_logits_exact": true,
+      "failing_logit_elements": 13
+    },
+    {
+      "step": 1,
+      "attended_tokens": 17,
+      "logits": {
+        "max_absolute_error": 0.015625,
+        "rms_error": 0.0029239891170255647,
+        "normalized_rms_error": 0.0005678246336028328,
+        "max_tolerance_ratio": 1.3723445133666354,
+        "greedy_matches": true,
+        "reference_top1_margin_min": 0.2109375
+      },
+      "kv_tolerance_ratio": 1.7274975642659072,
+      "instrumentation_logits_exact": true,
+      "failing_logit_elements": 34
+    },
+    {
+      "step": 2,
+      "attended_tokens": 18,
+      "logits": {
+        "max_absolute_error": 0.015625,
+        "rms_error": 0.004741205850053142,
+        "normalized_rms_error": 0.0008842654651162047,
+        "max_tolerance_ratio": 1.934805467928496,
+        "greedy_matches": true,
+        "reference_top1_margin_min": 2.5
+      },
+      "kv_tolerance_ratio": 2.2577283779089963,
+      "instrumentation_logits_exact": true,
+      "failing_logit_elements": 38
+    },
+    {
+      "step": 3,
+      "attended_tokens": 19,
+      "logits": {
+        "max_absolute_error": 0.015625,
+        "rms_error": 0.0036362288281921802,
+        "normalized_rms_error": 0.0006658643025707143,
+        "max_tolerance_ratio": 1.7104259723281403,
+        "greedy_matches": true,
+        "reference_top1_margin_min": 2.1640625
+      },
+      "kv_tolerance_ratio": 2.2577283779089963,
+      "instrumentation_logits_exact": true,
+      "failing_logit_elements": 71
+    },
+    {
+      "step": 4,
+      "attended_tokens": 20,
+      "logits": {
+        "max_absolute_error": 0.015625,
+        "rms_error": 0.0032239779605709607,
+        "normalized_rms_error": 0.000619561157503237,
+        "max_tolerance_ratio": 1.3569543912551827,
+        "greedy_matches": true,
+        "reference_top1_margin_min": 0.125
+      },
+      "kv_tolerance_ratio": 2.3848072879634574,
+      "instrumentation_logits_exact": true,
+      "failing_logit_elements": 18
+    },
+    {
+      "step": 5,
+      "attended_tokens": 21,
+      "logits": {
+        "max_absolute_error": 0.015625,
+        "rms_error": 0.004222091416732336,
+        "normalized_rms_error": 0.0007867438290461043,
+        "max_tolerance_ratio": 1.7699381198354875,
+        "greedy_matches": true,
+        "reference_top1_margin_min": 0.3984375
+      },
+      "kv_tolerance_ratio": 2.3848072879634574,
+      "instrumentation_logits_exact": true,
+      "failing_logit_elements": 40
+    },
+    {
+      "step": 6,
+      "attended_tokens": 22,
+      "logits": {
+        "max_absolute_error": 0.015625,
+        "rms_error": 0.002995406388260035,
+        "normalized_rms_error": 0.0008216811994111316,
+        "max_tolerance_ratio": 2.106625867953395,
+        "greedy_matches": true,
+        "reference_top1_margin_min": 7.046875
+      },
+      "kv_tolerance_ratio": 2.3848072879634574,
+      "instrumentation_logits_exact": true,
+      "failing_logit_elements": 100
+    },
+    {
+      "step": 7,
+      "attended_tokens": 23,
+      "logits": {
+        "max_absolute_error": 0.015625,
+        "rms_error": 0.0033081739984410566,
+        "normalized_rms_error": 0.0006218693127841696,
+        "max_tolerance_ratio": 1.5094761558673897,
+        "greedy_matches": true,
+        "reference_top1_margin_min": 0.5703125
+      },
+      "kv_tolerance_ratio": 2.3848072879634574,
+      "instrumentation_logits_exact": true,
+      "failing_logit_elements": 25
+    },
+    {
+      "step": 8,
+      "attended_tokens": 24,
+      "logits": {
+        "max_absolute_error": 0.015625,
+        "rms_error": 0.003632481669184446,
+        "normalized_rms_error": 0.0007063849461979458,
+        "max_tolerance_ratio": 2.0596510973550926,
+        "greedy_matches": true,
+        "reference_top1_margin_min": 0.796875
+      },
+      "kv_tolerance_ratio": 2.3848072879634574,
+      "instrumentation_logits_exact": true,
+      "failing_logit_elements": 63
+    },
+    {
+      "step": 9,
+      "attended_tokens": 25,
+      "logits": {
+        "max_absolute_error": 0.015625,
+        "rms_error": 0.00349351323871627,
+        "normalized_rms_error": 0.0006577605438791165,
+        "max_tolerance_ratio": 1.8208281352105982,
+        "greedy_matches": true,
+        "reference_top1_margin_min": 0.3359375
+      },
+      "kv_tolerance_ratio": 2.417653264564529,
+      "instrumentation_logits_exact": true,
+      "failing_logit_elements": 46
+    },
+    {
+      "step": 10,
+      "attended_tokens": 26,
+      "logits": {
+        "max_absolute_error": 0.01171875,
+        "rms_error": 0.002994878030846999,
+        "normalized_rms_error": 0.0005643879572149241,
+        "max_tolerance_ratio": 1.2699672586566126,
+        "greedy_matches": true,
+        "reference_top1_margin_min": 0.265625
+      },
+      "kv_tolerance_ratio": 2.417653264564529,
+      "instrumentation_logits_exact": true,
+      "failing_logit_elements": 19
+    },
+    {
+      "step": 11,
+      "attended_tokens": 27,
+      "logits": {
+        "max_absolute_error": 0.013671875,
+        "rms_error": 0.003136998054266652,
+        "normalized_rms_error": 0.0006275002164547047,
+        "max_tolerance_ratio": 1.5184381778741864,
+        "greedy_matches": true,
+        "reference_top1_margin_min": 0.2890625
+      },
+      "kv_tolerance_ratio": 2.417653264564529,
+      "instrumentation_logits_exact": true,
+      "failing_logit_elements": 51
+    },
+    {
+      "step": 12,
+      "attended_tokens": 28,
+      "logits": {
+        "max_absolute_error": 0.015625,
+        "rms_error": 0.0034945351283539867,
+        "normalized_rms_error": 0.0007335058286965483,
+        "max_tolerance_ratio": 2.19700016384408,
+        "greedy_matches": true,
+        "reference_top1_margin_min": 0.1875
+      },
+      "kv_tolerance_ratio": 2.417653264564529,
+      "instrumentation_logits_exact": true,
+      "failing_logit_elements": 94
+    },
+    {
+      "step": 13,
+      "attended_tokens": 29,
+      "logits": {
+        "max_absolute_error": 0.015625,
+        "rms_error": 0.003854600073786461,
+        "normalized_rms_error": 0.0007504601675070465,
+        "max_tolerance_ratio": 1.5805705474171163,
+        "greedy_matches": true,
+        "reference_top1_margin_min": 0.890625
+      },
+      "kv_tolerance_ratio": 3.1021897810218975,
+      "instrumentation_logits_exact": true,
+      "failing_logit_elements": 50
+    },
+    {
+      "step": 14,
+      "attended_tokens": 30,
+      "logits": {
+        "max_absolute_error": 0.0185546875,
+        "rms_error": 0.0039307371238422465,
+        "normalized_rms_error": 0.000732863108961433,
+        "max_tolerance_ratio": 2.2603744284358553,
+        "greedy_matches": true,
+        "reference_top1_margin_min": 0.671875
+      },
+      "kv_tolerance_ratio": 3.1021897810218975,
+      "instrumentation_logits_exact": true,
+      "failing_logit_elements": 165
+    },
+    {
+      "step": 15,
+      "attended_tokens": 31,
+      "logits": {
+        "max_absolute_error": 0.015625,
+        "rms_error": 0.003134030133203926,
+        "normalized_rms_error": 0.000623783780411547,
+        "max_tolerance_ratio": 1.7769562171106572,
+        "greedy_matches": true,
+        "reference_top1_margin_min": 0.84375
+      },
+      "kv_tolerance_ratio": 3.1021897810218975,
+      "instrumentation_logits_exact": true,
+      "failing_logit_elements": 44
+    },
+    {
+      "step": 16,
+      "attended_tokens": 32,
+      "logits": {
+        "max_absolute_error": 0.0234375,
+        "rms_error": 0.004423598834260009,
+        "normalized_rms_error": 0.0010444258627100524,
+        "max_tolerance_ratio": 2.564789721213585,
+        "greedy_matches": true,
+        "reference_top1_margin_min": 3.9375
+      },
+      "kv_tolerance_ratio": 3.1021897810218975,
+      "instrumentation_logits_exact": true,
+      "failing_logit_elements": 364
+    },
+    {
+      "step": 17,
+      "attended_tokens": 33,
+      "logits": {
+        "max_absolute_error": 0.015625,
+        "rms_error": 0.0034188004953129617,
+        "normalized_rms_error": 0.000766337463598109,
+        "max_tolerance_ratio": 2.178575459984197,
+        "greedy_matches": true,
+        "reference_top1_margin_min": 0.21875
+      },
+      "kv_tolerance_ratio": 3.1021897810218975,
+      "instrumentation_logits_exact": true,
+      "failing_logit_elements": 141
+    },
+    {
+      "step": 18,
+      "attended_tokens": 34,
+      "logits": {
+        "max_absolute_error": 0.017578125,
+        "rms_error": 0.00405216710722888,
+        "normalized_rms_error": 0.000809006767663357,
+        "max_tolerance_ratio": 2.682215743440233,
+        "greedy_matches": true,
+        "reference_top1_margin_min": 1.6015625
+      },
+      "kv_tolerance_ratio": 3.1021897810218975,
+      "instrumentation_logits_exact": true,
+      "failing_logit_elements": 268
+    },
+    {
+      "step": 19,
+      "attended_tokens": 35,
+      "logits": {
+        "max_absolute_error": 0.01953125,
+        "rms_error": 0.003976857247144653,
+        "normalized_rms_error": 0.0007332431773177393,
+        "max_tolerance_ratio": 2.4707486084289445,
+        "greedy_matches": true,
+        "reference_top1_margin_min": 1.734375
+      },
+      "kv_tolerance_ratio": 3.9908779931584952,
+      "instrumentation_logits_exact": true,
+      "failing_logit_elements": 130
+    },
+    {
+      "step": 20,
+      "attended_tokens": 36,
+      "logits": {
+        "max_absolute_error": 0.015625,
+        "rms_error": 0.0035179195000168135,
+        "normalized_rms_error": 0.0006975285500059311,
+        "max_tolerance_ratio": 2.195514871385662,
+        "greedy_matches": true,
+        "reference_top1_margin_min": 1.9296875
+      },
+      "kv_tolerance_ratio": 3.9908779931584952,
+      "instrumentation_logits_exact": true,
+      "failing_logit_elements": 121
+    },
+    {
+      "step": 21,
+      "attended_tokens": 37,
+      "logits": {
+        "max_absolute_error": 0.015625,
+        "rms_error": 0.0032478768244265654,
+        "normalized_rms_error": 0.0005987413590381101,
+        "max_tolerance_ratio": 1.539396394571602,
+        "greedy_matches": true,
+        "reference_top1_margin_min": 0.6328125
+      },
+      "kv_tolerance_ratio": 3.9908779931584952,
+      "instrumentation_logits_exact": true,
+      "failing_logit_elements": 46
+    },
+    {
+      "step": 22,
+      "attended_tokens": 38,
+      "logits": {
+        "max_absolute_error": 0.015625,
+        "rms_error": 0.003568776145391547,
+        "normalized_rms_error": 0.0007080068526556371,
+        "max_tolerance_ratio": 1.902465166130761,
+        "greedy_matches": true,
+        "reference_top1_margin_min": 1.4765625
+      },
+      "kv_tolerance_ratio": 3.9908779931584952,
+      "instrumentation_logits_exact": true,
+      "failing_logit_elements": 78
+    },
+    {
+      "step": 23,
+      "attended_tokens": 39,
+      "logits": {
+        "max_absolute_error": 0.015625,
+        "rms_error": 0.003514831351012837,
+        "normalized_rms_error": 0.0006837304037919177,
+        "max_tolerance_ratio": 1.7922015015742312,
+        "greedy_matches": true,
+        "reference_top1_margin_min": 0.890625
+      },
+      "kv_tolerance_ratio": 3.9908779931584952,
+      "instrumentation_logits_exact": true,
+      "failing_logit_elements": 77
+    },
+    {
+      "step": 24,
+      "attended_tokens": 40,
+      "logits": {
+        "max_absolute_error": 0.015625,
+        "rms_error": 0.003461778303413208,
+        "normalized_rms_error": 0.0006867583768388073,
+        "max_tolerance_ratio": 2.0566589373928825,
+        "greedy_matches": true,
+        "reference_top1_margin_min": 2.265625
+      },
+      "kv_tolerance_ratio": 3.9908779931584952,
+      "instrumentation_logits_exact": true,
+      "failing_logit_elements": 133
+    },
+    {
+      "step": 25,
+      "attended_tokens": 41,
+      "logits": {
+        "max_absolute_error": 0.015625,
+        "rms_error": 0.003503587176372374,
+        "normalized_rms_error": 0.0006811179824885381,
+        "max_tolerance_ratio": 1.9985347985347985,
+        "greedy_matches": true,
+        "reference_top1_margin_min": 1.0859375
+      },
+      "kv_tolerance_ratio": 3.9908779931584952,
+      "instrumentation_logits_exact": true,
+      "failing_logit_elements": 48
+    },
+    {
+      "step": 26,
+      "attended_tokens": 42,
+      "logits": {
+        "max_absolute_error": 0.015625,
+        "rms_error": 0.0032554857249625663,
+        "normalized_rms_error": 0.0007159516241055556,
+        "max_tolerance_ratio": 1.840736294517807,
+        "greedy_matches": true,
+        "reference_top1_margin_min": 5.890625
+      },
+      "kv_tolerance_ratio": 3.9908779931584952,
+      "instrumentation_logits_exact": true,
+      "failing_logit_elements": 87
+    },
+    {
+      "step": 27,
+      "attended_tokens": 43,
+      "logits": {
+        "max_absolute_error": 0.015625,
+        "rms_error": 0.0034653026822077104,
+        "normalized_rms_error": 0.0006367884732710392,
+        "max_tolerance_ratio": 2.0396912899669237,
+        "greedy_matches": true,
+        "reference_top1_margin_min": 2.15625
+      },
+      "kv_tolerance_ratio": 3.9908779931584952,
+      "instrumentation_logits_exact": true,
+      "failing_logit_elements": 77
+    },
+    {
+      "step": 28,
+      "attended_tokens": 44,
+      "logits": {
+        "max_absolute_error": 0.015625,
+        "rms_error": 0.003404350018470317,
+        "normalized_rms_error": 0.000672114435571068,
+        "max_tolerance_ratio": 1.5059368664929047,
+        "greedy_matches": true,
+        "reference_top1_margin_min": 0.609375
+      },
+      "kv_tolerance_ratio": 3.9908779931584952,
+      "instrumentation_logits_exact": true,
+      "failing_logit_elements": 65
+    },
+    {
+      "step": 29,
+      "attended_tokens": 45,
+      "logits": {
+        "max_absolute_error": 0.015625,
+        "rms_error": 0.003661186258623314,
+        "normalized_rms_error": 0.0007137475263723235,
+        "max_tolerance_ratio": 1.6421525193455018,
+        "greedy_matches": true,
+        "reference_top1_margin_min": 0.578125
+      },
+      "kv_tolerance_ratio": 3.9908779931584952,
+      "instrumentation_logits_exact": true,
+      "failing_logit_elements": 49
+    },
+    {
+      "step": 30,
+      "attended_tokens": 46,
+      "logits": {
+        "max_absolute_error": 0.015625,
+        "rms_error": 0.003446648469137463,
+        "normalized_rms_error": 0.0006782981102904847,
+        "max_tolerance_ratio": 2.1877999040307103,
+        "greedy_matches": true,
+        "reference_top1_margin_min": 0.5625
+      },
+      "kv_tolerance_ratio": 3.9908779931584952,
+      "instrumentation_logits_exact": true,
+      "failing_logit_elements": 124
+    },
+    {
+      "step": 31,
+      "attended_tokens": 47,
+      "logits": {
+        "max_absolute_error": 0.015625,
+        "rms_error": 0.003375428321321534,
+        "normalized_rms_error": 0.000638301683686671,
+        "max_tolerance_ratio": 1.9683692142889024,
+        "greedy_matches": true,
+        "reference_top1_margin_min": 0.40625
+      },
+      "kv_tolerance_ratio": 3.9908779931584952,
+      "instrumentation_logits_exact": true,
+      "failing_logit_elements": 63
+    }
+  ],
+  "component_rows": [
+    {
+      "label": "reference-step-0",
+      "component": "rms_norm",
+      "max_absolute_error": 0.0,
+      "rms_error": 0.0,
+      "note": "Local staged-FP16 definition with FP64 reductions; diagnostic, not a new acceptance rule",
+      "scaled_error_diagnostic": 0.0
+    },
+    {
+      "label": "reference-step-0",
+      "component": "rms_norm",
+      "max_absolute_error": 0.0,
+      "rms_error": 0.0,
+      "note": "Local staged-FP16 definition with FP64 reductions; diagnostic, not a new acceptance rule",
+      "scaled_error_diagnostic": 0.0
+    },
+    {
+      "label": "reference-step-0",
+      "component": "swiglu",
+      "max_absolute_error": 1.3131372952557285e-05,
+      "rms_error": 9.266101357304389e-07,
+      "note": "Local staged-FP16 definition with FP64 reductions; diagnostic, not a new acceptance rule",
+      "scaled_error_diagnostic": 0.006263405612426347
+    },
+    {
+      "label": "reference-step-0",
+      "component": "rms_norm",
+      "max_absolute_error": 0.0,
+      "rms_error": 0.0,
+      "note": "Local staged-FP16 definition with FP64 reductions; diagnostic, not a new acceptance rule",
+      "scaled_error_diagnostic": 0.0
+    },
+    {
+      "label": "reference-step-0",
+      "component": "rms_norm",
+      "max_absolute_error": 6.103515625e-05,
+      "rms_error": 1.3486991523486091e-06,
+      "note": "Local staged-FP16 definition with FP64 reductions; diagnostic, not a new acceptance rule",
+      "scaled_error_diagnostic": 0.027495188342040146
+    },
+    {
+      "label": "reference-step-0",
+      "component": "swiglu",
+      "max_absolute_error": 2.730673458017918e-05,
+      "rms_error": 4.033036767076951e-06,
+      "note": "Local staged-FP16 definition with FP64 reductions; diagnostic, not a new acceptance rule",
+      "scaled_error_diagnostic": 0.012707554644263985
+    },
+    {
+      "label": "reference-step-0",
+      "component": "rms_norm",
+      "max_absolute_error": 0.0,
+      "rms_error": 0.0,
+      "note": "Local staged-FP16 definition with FP64 reductions; diagnostic, not a new acceptance rule",
+      "scaled_error_diagnostic": 0.0
+    },
+    {
+      "label": "reference-step-0",
+      "component": "rms_norm",
+      "max_absolute_error": 0.0,
+      "rms_error": 0.0,
+      "note": "Local staged-FP16 definition with FP64 reductions; diagnostic, not a new acceptance rule",
+      "scaled_error_diagnostic": 0.0
+    },
+    {
+      "label": "reference-step-0",
+      "component": "swiglu",
+      "max_absolute_error": 1.4036729737654241e-05,
+      "rms_error": 2.418410740847128e-06,
+      "note": "Local staged-FP16 definition with FP64 reductions; diagnostic, not a new acceptance rule",
+      "scaled_error_diagnostic": 0.006739366441928006
+    },
+    {
+      "label": "reference-step-0",
+      "component": "rms_norm",
+      "max_absolute_error": 0.0,
+      "rms_error": 0.0,
+      "note": "Local staged-FP16 definition with FP64 reductions; diagnostic, not a new acceptance rule",
+      "scaled_error_diagnostic": 0.0
+    },
+    {
+      "label": "reference-step-0",
+      "component": "rms_norm",
+      "max_absolute_error": 0.0,
+      "rms_error": 0.0,
+      "note": "Local staged-FP16 definition with FP64 reductions; diagnostic, not a new acceptance rule",
+      "scaled_error_diagnostic": 0.0
+    },
+    {
+      "label": "reference-step-0",
+      "component": "swiglu",
+      "max_absolute_error": 1.746820686321371e-05,
+      "rms_error": 3.6820743728966768e-06,
+      "note": "Local staged-FP16 definition with FP64 reductions; diagnostic, not a new acceptance rule",
+      "scaled_error_diagnostic": 0.007361791001754506
+    },
+    {
+      "label": "reference-step-0",
+      "component": "rms_norm",
+      "max_absolute_error": 0.0,
+      "rms_error": 0.0,
+      "note": "Local staged-FP16 definition with FP64 reductions; diagnostic, not a new acceptance rule",
+      "scaled_error_diagnostic": 0.0
+    },
+    {
+      "label": "reference-step-0",
+      "component": "rms_norm",
+      "max_absolute_error": 0.0,
+      "rms_error": 0.0,
+      "note": "Local staged-FP16 definition with FP64 reductions; diagnostic, not a new acceptance rule",
+      "scaled_error_diagnostic": 0.0
+    },
+    {
+      "label": "reference-step-0",
+      "component": "swiglu",
+      "max_absolute_error": 2.578855856683049e-05,
+      "rms_error": 5.004615663329985e-06,
+      "note": "Local staged-FP16 definition with FP64 reductions; diagnostic, not a new acceptance rule",
+      "scaled_error_diagnostic": 0.012131208581947429
+    },
+    {
+      "label": "reference-step-0",
+      "component": "rms_norm",
+      "max_absolute_error": 0.0,
+      "rms_error": 0.0,
+      "note": "Local staged-FP16 definition with FP64 reductions; diagnostic, not a new acceptance rule",
+      "scaled_error_diagnostic": 0.0
+    },
+    {
+      "label": "reference-step-0",
+      "component": "rms_norm",
+      "max_absolute_error": 0.0,
+      "rms_error": 0.0,
+      "note": "Local staged-FP16 definition with FP64 reductions; diagnostic, not a new acceptance rule",
+      "scaled_error_diagnostic": 0.0
+    },
+    {
+      "label": "reference-step-0",
+      "component": "swiglu",
+      "max_absolute_error": 9.053507869793975e-05,
+      "rms_error": 6.94072024589467e-06,
+      "note": "Local staged-FP16 definition with FP64 reductions; diagnostic, not a new acceptance rule",
+      "scaled_error_diagnostic": 0.034061071289079585
+    },
+    {
+      "label": "reference-step-0",
+      "component": "rms_norm",
+      "max_absolute_error": 0.0,
+      "rms_error": 0.0,
+      "note": "Local staged-FP16 definition with FP64 reductions; diagnostic, not a new acceptance rule",
+      "scaled_error_diagnostic": 0.0
+    },
+    {
+      "label": "reference-step-0",
+      "component": "rms_norm",
+      "max_absolute_error": 0.0,
+      "rms_error": 0.0,
+      "note": "Local staged-FP16 definition with FP64 reductions; diagnostic, not a new acceptance rule",
+      "scaled_error_diagnostic": 0.0
+    },
+    {
+      "label": "reference-step-0",
+      "component": "swiglu",
+      "max_absolute_error": 3.031266625441731e-05,
+      "rms_error": 5.6591319638015665e-06,
+      "note": "Local staged-FP16 definition with FP64 reductions; diagnostic, not a new acceptance rule",
+      "scaled_error_diagnostic": 0.014243104750593453
+    },
+    {
+      "label": "reference-step-0",
+      "component": "rms_norm",
+      "max_absolute_error": 0.0,
+      "rms_error": 0.0,
+      "note": "Local staged-FP16 definition with FP64 reductions; diagnostic, not a new acceptance rule",
+      "scaled_error_diagnostic": 0.0
+    },
+    {
+      "label": "reference-step-0",
+      "component": "rms_norm",
+      "max_absolute_error": 0.0,
+      "rms_error": 0.0,
+      "note": "Local staged-FP16 definition with FP64 reductions; diagnostic, not a new acceptance rule",
+      "scaled_error_diagnostic": 0.0
+    },
+    {
+      "label": "reference-step-0",
+      "component": "swiglu",
+      "max_absolute_error": 6.0486723953090404e-05,
+      "rms_error": 9.11453797785982e-06,
+      "note": "Local staged-FP16 definition with FP64 reductions; diagnostic, not a new acceptance rule",
+      "scaled_error_diagnostic": 0.02684658849510395
+    },
+    {
+      "label": "reference-step-0",
+      "component": "rms_norm",
+      "max_absolute_error": 0.0,
+      "rms_error": 0.0,
+      "note": "Local staged-FP16 definition with FP64 reductions; diagnostic, not a new acceptance rule",
+      "scaled_error_diagnostic": 0.0
+    },
+    {
+      "label": "reference-step-0",
+      "component": "rms_norm",
+      "max_absolute_error": 0.000244140625,
+      "rms_error": 6.03156597169567e-06,
+      "note": "Local staged-FP16 definition with FP64 reductions; diagnostic, not a new acceptance rule",
+      "scaled_error_diagnostic": 0.08802816901408451
+    },
+    {
+      "label": "reference-step-0",
+      "component": "swiglu",
+      "max_absolute_error": 3.049970470669905e-05,
+      "rms_error": 8.036515738483369e-06,
+      "note": "Local staged-FP16 definition with FP64 reductions; diagnostic, not a new acceptance rule",
+      "scaled_error_diagnostic": 0.014311285915065334
+    },
+    {
+      "label": "reference-step-0",
+      "component": "rms_norm",
+      "max_absolute_error": 0.0,
+      "rms_error": 0.0,
+      "note": "Local staged-FP16 definition with FP64 reductions; diagnostic, not a new acceptance rule",
+      "scaled_error_diagnostic": 0.0
+    },
+    {
+      "label": "reference-step-0",
+      "component": "rms_norm",
+      "max_absolute_error": 0.0,
+      "rms_error": 0.0,
+      "note": "Local staged-FP16 definition with FP64 reductions; diagnostic, not a new acceptance rule",
+      "scaled_error_diagnostic": 0.0
+    },
+    {
+      "label": "reference-step-0",
+      "component": "swiglu",
+      "max_absolute_error": 5.874327308674765e-05,
+      "rms_error": 9.737008879453286e-06,
+      "note": "Local staged-FP16 definition with FP64 reductions; diagnostic, not a new acceptance rule",
+      "scaled_error_diagnostic": 0.025409253247242587
+    },
+    {
+      "label": "reference-step-0",
+      "component": "rms_norm",
+      "max_absolute_error": 0.0,
+      "rms_error": 0.0,
+      "note": "Local staged-FP16 definition with FP64 reductions; diagnostic, not a new acceptance rule",
+      "scaled_error_diagnostic": 0.0
+    },
+    {
+      "label": "reference-step-0",
+      "component": "rms_norm",
+      "max_absolute_error": 0.0,
+      "rms_error": 0.0,
+      "note": "Local staged-FP16 definition with FP64 reductions; diagnostic, not a new acceptance rule",
+      "scaled_error_diagnostic": 0.0
+    },
+    {
+      "label": "reference-step-0",
+      "component": "swiglu",
+      "max_absolute_error": 6.066260755233088e-05,
+      "rms_error": 1.1072919476730953e-05,
+      "note": "Local staged-FP16 definition with FP64 reductions; diagnostic, not a new acceptance rule",
+      "scaled_error_diagnostic": 0.026618899970332854
+    },
+    {
+      "label": "reference-step-0",
+      "component": "rms_norm",
+      "max_absolute_error": 0.0,
+      "rms_error": 0.0,
+      "note": "Local staged-FP16 definition with FP64 reductions; diagnostic, not a new acceptance rule",
+      "scaled_error_diagnostic": 0.0
+    },
+    {
+      "label": "reference-step-0",
+      "component": "rms_norm",
+      "max_absolute_error": 0.0,
+      "rms_error": 0.0,
+      "note": "Local staged-FP16 definition with FP64 reductions; diagnostic, not a new acceptance rule",
+      "scaled_error_diagnostic": 0.0
+    },
+    {
+      "label": "reference-step-0",
+      "component": "swiglu",
+      "max_absolute_error": 6.172644202706579e-05,
+      "rms_error": 1.0805781155632655e-05,
+      "note": "Local staged-FP16 definition with FP64 reductions; diagnostic, not a new acceptance rule",
+      "scaled_error_diagnostic": 0.027399800781174946
+    },
+    {
+      "label": "reference-step-0",
+      "component": "rms_norm",
+      "max_absolute_error": 0.0,
+      "rms_error": 0.0,
+      "note": "Local staged-FP16 definition with FP64 reductions; diagnostic, not a new acceptance rule",
+      "scaled_error_diagnostic": 0.0
+    },
+    {
+      "label": "reference-step-0",
+      "component": "rms_norm",
+      "max_absolute_error": 0.0,
+      "rms_error": 0.0,
+      "note": "Local staged-FP16 definition with FP64 reductions; diagnostic, not a new acceptance rule",
+      "scaled_error_diagnostic": 0.0
+    },
+    {
+      "label": "reference-step-0",
+      "component": "swiglu",
+      "max_absolute_error": 5.746472623968657e-05,
+      "rms_error": 1.1591898575340995e-05,
+      "note": "Local staged-FP16 definition with FP64 reductions; diagnostic, not a new acceptance rule",
+      "scaled_error_diagnostic": 0.025156285243681808
+    },
+    {
+      "label": "reference-step-0",
+      "component": "rms_norm",
+      "max_absolute_error": 0.0,
+      "rms_error": 0.0,
+      "note": "Local staged-FP16 definition with FP64 reductions; diagnostic, not a new acceptance rule",
+      "scaled_error_diagnostic": 0.0
+    },
+    {
+      "label": "reference-step-0",
+      "component": "rms_norm",
+      "max_absolute_error": 0.0,
+      "rms_error": 0.0,
+      "note": "Local staged-FP16 definition with FP64 reductions; diagnostic, not a new acceptance rule",
+      "scaled_error_diagnostic": 0.0
+    },
+    {
+      "label": "reference-step-0",
+      "component": "swiglu",
+      "max_absolute_error": 6.0895640160651965e-05,
+      "rms_error": 1.221946113299383e-05,
+      "note": "Local staged-FP16 definition with FP64 reductions; diagnostic, not a new acceptance rule",
+      "scaled_error_diagnostic": 0.02681556125375911
+    },
+    {
+      "label": "reference-step-0",
+      "component": "rms_norm",
+      "max_absolute_error": 0.0,
+      "rms_error": 0.0,
+      "note": "Local staged-FP16 definition with FP64 reductions; diagnostic, not a new acceptance rule",
+      "scaled_error_diagnostic": 0.0
+    },
+    {
+      "label": "reference-step-0",
+      "component": "rms_norm",
+      "max_absolute_error": 0.0,
+      "rms_error": 0.0,
+      "note": "Local staged-FP16 definition with FP64 reductions; diagnostic, not a new acceptance rule",
+      "scaled_error_diagnostic": 0.0
+    },
+    {
+      "label": "reference-step-0",
+      "component": "swiglu",
+      "max_absolute_error": 0.00022850966138321382,
+      "rms_error": 1.4131770971389876e-05,
+      "note": "Local staged-FP16 definition with FP64 reductions; diagnostic, not a new acceptance rule",
+      "scaled_error_diagnostic": 0.06958992445618713
+    },
+    {
+      "label": "reference-step-0",
+      "component": "rms_norm",
+      "max_absolute_error": 0.0,
+      "rms_error": 0.0,
+      "note": "Local staged-FP16 definition with FP64 reductions; diagnostic, not a new acceptance rule",
+      "scaled_error_diagnostic": 0.0
+    },
+    {
+      "label": "reference-step-0",
+      "component": "rms_norm",
+      "max_absolute_error": 0.0,
+      "rms_error": 0.0,
+      "note": "Local staged-FP16 definition with FP64 reductions; diagnostic, not a new acceptance rule",
+      "scaled_error_diagnostic": 0.0
+    },
+    {
+      "label": "reference-step-0",
+      "component": "swiglu",
+      "max_absolute_error": 0.00010934837047216206,
+      "rms_error": 1.7128303824554155e-05,
+      "note": "Local staged-FP16 definition with FP64 reductions; diagnostic, not a new acceptance rule",
+      "scaled_error_diagnostic": 0.04174541661141984
+    },
+    {
+      "label": "reference-step-0",
+      "component": "rms_norm",
+      "max_absolute_error": 0.0,
+      "rms_error": 0.0,
+      "note": "Local staged-FP16 definition with FP64 reductions; diagnostic, not a new acceptance rule",
+      "scaled_error_diagnostic": 0.0
+    },
+    {
+      "label": "reference-step-0",
+      "component": "rms_norm",
+      "max_absolute_error": 0.0,
+      "rms_error": 0.0,
+      "note": "Local staged-FP16 definition with FP64 reductions; diagnostic, not a new acceptance rule",
+      "scaled_error_diagnostic": 0.0
+    },
+    {
+      "label": "reference-step-0",
+      "component": "swiglu",
+      "max_absolute_error": 0.00020239587325932007,
+      "rms_error": 2.2754587620653087e-05,
+      "note": "Local staged-FP16 definition with FP64 reductions; diagnostic, not a new acceptance rule",
+      "scaled_error_diagnostic": 0.06506323549995416
+    },
+    {
+      "label": "reference-step-0",
+      "component": "rms_norm",
+      "max_absolute_error": 0.0,
+      "rms_error": 0.0,
+      "note": "Local staged-FP16 definition with FP64 reductions; diagnostic, not a new acceptance rule",
+      "scaled_error_diagnostic": 0.0
+    },
+    {
+      "label": "reference-step-0",
+      "component": "rms_norm",
+      "max_absolute_error": 0.0,
+      "rms_error": 0.0,
+      "note": "Local staged-FP16 definition with FP64 reductions; diagnostic, not a new acceptance rule",
+      "scaled_error_diagnostic": 0.0
+    },
+    {
+      "label": "reference-step-0",
+      "component": "swiglu",
+      "max_absolute_error": 0.00017877989283476836,
+      "rms_error": 2.1656876803995078e-05,
+      "note": "Local staged-FP16 definition with FP64 reductions; diagnostic, not a new acceptance rule",
+      "scaled_error_diagnostic": 0.055824998606183986
+    },
+    {
+      "label": "reference-step-0",
+      "component": "rms_norm",
+      "max_absolute_error": 0.0,
+      "rms_error": 0.0,
+      "note": "Local staged-FP16 definition with FP64 reductions; diagnostic, not a new acceptance rule",
+      "scaled_error_diagnostic": 0.0
+    },
+    {
+      "label": "reference-step-0",
+      "component": "rms_norm",
+      "max_absolute_error": 0.0,
+      "rms_error": 0.0,
+      "note": "Local staged-FP16 definition with FP64 reductions; diagnostic, not a new acceptance rule",
+      "scaled_error_diagnostic": 0.0
+    },
+    {
+      "label": "reference-step-0",
+      "component": "swiglu",
+      "max_absolute_error": 0.00018379680273028498,
+      "rms_error": 3.327504014487863e-05,
+      "note": "Local staged-FP16 definition with FP64 reductions; diagnostic, not a new acceptance rule",
+      "scaled_error_diagnostic": 0.06109410022187553
+    },
+    {
+      "label": "reference-step-0",
+      "component": "rms_norm",
+      "max_absolute_error": 0.0,
+      "rms_error": 0.0,
+      "note": "Local staged-FP16 definition with FP64 reductions; diagnostic, not a new acceptance rule",
+      "scaled_error_diagnostic": 0.0
+    },
+    {
+      "label": "reference-step-0",
+      "component": "rms_norm",
+      "max_absolute_error": 0.0,
+      "rms_error": 0.0,
+      "note": "Local staged-FP16 definition with FP64 reductions; diagnostic, not a new acceptance rule",
+      "scaled_error_diagnostic": 0.0
+    },
+    {
+      "label": "reference-step-0",
+      "component": "swiglu",
+      "max_absolute_error": 0.00042506214242621354,
+      "rms_error": 4.9133857110002756e-05,
+      "note": "Local staged-FP16 definition with FP64 reductions; diagnostic, not a new acceptance rule",
+      "scaled_error_diagnostic": 0.1054706298558441
+    },
+    {
+      "label": "reference-step-0",
+      "component": "rms_norm",
+      "max_absolute_error": 0.0,
+      "rms_error": 0.0,
+      "note": "Local staged-FP16 definition with FP64 reductions; diagnostic, not a new acceptance rule",
+      "scaled_error_diagnostic": 0.0
+    },
+    {
+      "label": "reference-step-0",
+      "component": "rms_norm",
+      "max_absolute_error": 0.0,
+      "rms_error": 0.0,
+      "note": "Local staged-FP16 definition with FP64 reductions; diagnostic, not a new acceptance rule",
+      "scaled_error_diagnostic": 0.0
+    },
+    {
+      "label": "reference-step-0",
+      "component": "swiglu",
+      "max_absolute_error": 0.0009717976217871183,
+      "rms_error": 6.735547534651968e-05,
+      "note": "Local staged-FP16 definition with FP64 reductions; diagnostic, not a new acceptance rule",
+      "scaled_error_diagnostic": 0.1294363640400359
+    },
+    {
+      "label": "reference-step-0",
+      "component": "rms_norm",
+      "max_absolute_error": 0.0,
+      "rms_error": 0.0,
+      "note": "Local staged-FP16 definition with FP64 reductions; diagnostic, not a new acceptance rule",
+      "scaled_error_diagnostic": 0.0
+    },
+    {
+      "label": "reference-step-0",
+      "component": "rms_norm",
+      "max_absolute_error": 0.0,
+      "rms_error": 0.0,
+      "note": "Local staged-FP16 definition with FP64 reductions; diagnostic, not a new acceptance rule",
+      "scaled_error_diagnostic": 0.0
+    },
+    {
+      "label": "reference-step-0",
+      "component": "swiglu",
+      "max_absolute_error": 0.0015670776230081174,
+      "rms_error": 9.863694718012582e-05,
+      "note": "Local staged-FP16 definition with FP64 reductions; diagnostic, not a new acceptance rule",
+      "scaled_error_diagnostic": 0.14499477073138717
+    },
+    {
+      "label": "reference-step-0",
+      "component": "final_logits",
+      "max_absolute_error": 0.003907806574716233,
+      "rms_error": 0.0011552633640851402,
+      "note": "Local staged-FP16 definition with FP64 reductions; diagnostic, not a new acceptance rule",
+      "scaled_error_diagnostic": 0.08603047653476803
+    },
+    {
+      "label": "paged-step-0",
+      "component": "rms_norm",
+      "max_absolute_error": 0.0,
+      "rms_error": 0.0,
+      "note": "Local staged-FP16 definition with FP64 reductions; diagnostic, not a new acceptance rule",
+      "scaled_error_diagnostic": 0.0
+    },
+    {
+      "label": "paged-step-0",
+      "component": "rms_norm",
+      "max_absolute_error": 0.0,
+      "rms_error": 0.0,
+      "note": "Local staged-FP16 definition with FP64 reductions; diagnostic, not a new acceptance rule",
+      "scaled_error_diagnostic": 0.0
+    },
+    {
+      "label": "paged-step-0",
+      "component": "swiglu",
+      "max_absolute_error": 1.3131372952557285e-05,
+      "rms_error": 9.266101357304389e-07,
+      "note": "Local staged-FP16 definition with FP64 reductions; diagnostic, not a new acceptance rule",
+      "scaled_error_diagnostic": 0.006263405612426347
+    },
+    {
+      "label": "paged-step-0",
+      "component": "rms_norm",
+      "max_absolute_error": 0.0,
+      "rms_error": 0.0,
+      "note": "Local staged-FP16 definition with FP64 reductions; diagnostic, not a new acceptance rule",
+      "scaled_error_diagnostic": 0.0
+    },
+    {
+      "label": "paged-step-0",
+      "component": "rms_norm",
+      "max_absolute_error": 0.0,
+      "rms_error": 0.0,
+      "note": "Local staged-FP16 definition with FP64 reductions; diagnostic, not a new acceptance rule",
+      "scaled_error_diagnostic": 0.0
+    },
+    {
+      "label": "paged-step-0",
+      "component": "swiglu",
+      "max_absolute_error": 2.6605521554756706e-05,
+      "rms_error": 3.949693142749342e-06,
+      "note": "Local staged-FP16 definition with FP64 reductions; diagnostic, not a new acceptance rule",
+      "scaled_error_diagnostic": 0.012381243852305575
+    },
+    {
+      "label": "paged-step-0",
+      "component": "rms_norm",
+      "max_absolute_error": 0.0,
+      "rms_error": 0.0,
+      "note": "Local staged-FP16 definition with FP64 reductions; diagnostic, not a new acceptance rule",
+      "scaled_error_diagnostic": 0.0
+    },
+    {
+      "label": "paged-step-0",
+      "component": "rms_norm",
+      "max_absolute_error": 0.0,
+      "rms_error": 0.0,
+      "note": "Local staged-FP16 definition with FP64 reductions; diagnostic, not a new acceptance rule",
+      "scaled_error_diagnostic": 0.0
+    },
+    {
+      "label": "paged-step-0",
+      "component": "swiglu",
+      "max_absolute_error": 1.4972967804283144e-05,
+      "rms_error": 2.5085249935017147e-06,
+      "note": "Local staged-FP16 definition with FP64 reductions; diagnostic, not a new acceptance rule",
+      "scaled_error_diagnostic": 0.007222748365458743
+    },
+    {
+      "label": "paged-step-0",
+      "component": "rms_norm",
+      "max_absolute_error": 0.0,
+      "rms_error": 0.0,
+      "note": "Local staged-FP16 definition with FP64 reductions; diagnostic, not a new acceptance rule",
+      "scaled_error_diagnostic": 0.0
+    },
+    {
+      "label": "paged-step-0",
+      "component": "rms_norm",
+      "max_absolute_error": 0.0,
+      "rms_error": 0.0,
+      "note": "Local staged-FP16 definition with FP64 reductions; diagnostic, not a new acceptance rule",
+      "scaled_error_diagnostic": 0.0
+    },
+    {
+      "label": "paged-step-0",
+      "component": "swiglu",
+      "max_absolute_error": 2.3480462175484718e-05,
+      "rms_error": 3.6772322110515506e-06,
+      "note": "Local staged-FP16 definition with FP64 reductions; diagnostic, not a new acceptance rule",
+      "scaled_error_diagnostic": 0.009215958775238729
+    },
+    {
+      "label": "paged-step-0",
+      "component": "rms_norm",
+      "max_absolute_error": 0.0,
+      "rms_error": 0.0,
+      "note": "Local staged-FP16 definition with FP64 reductions; diagnostic, not a new acceptance rule",
+      "scaled_error_diagnostic": 0.0
+    },
+    {
+      "label": "paged-step-0",
+      "component": "rms_norm",
+      "max_absolute_error": 0.0,
+      "rms_error": 0.0,
+      "note": "Local staged-FP16 definition with FP64 reductions; diagnostic, not a new acceptance rule",
+      "scaled_error_diagnostic": 0.0
+    },
+    {
+      "label": "paged-step-0",
+      "component": "swiglu",
+      "max_absolute_error": 3.0410368026423384e-05,
+      "rms_error": 4.838000501993332e-06,
+      "note": "Local staged-FP16 definition with FP64 reductions; diagnostic, not a new acceptance rule",
+      "scaled_error_diagnostic": 0.014281638430280068
+    },
+    {
+      "label": "paged-step-0",
+      "component": "rms_norm",
+      "max_absolute_error": 0.0,
+      "rms_error": 0.0,
+      "note": "Local staged-FP16 definition with FP64 reductions; diagnostic, not a new acceptance rule",
+      "scaled_error_diagnostic": 0.0
+    },
+    {
+      "label": "paged-step-0",
+      "component": "rms_norm",
+      "max_absolute_error": 0.0,
+      "rms_error": 0.0,
+      "note": "Local staged-FP16 definition with FP64 reductions; diagnostic, not a new acceptance rule",
+      "scaled_error_diagnostic": 0.0
+    },
+    {
+      "label": "paged-step-0",
+      "component": "swiglu",
+      "max_absolute_error": 3.0024336410860997e-05,
+      "rms_error": 6.361063023886088e-06,
+      "note": "Local staged-FP16 definition with FP64 reductions; diagnostic, not a new acceptance rule",
+      "scaled_error_diagnostic": 0.014080977682552592
+    },
+    {
+      "label": "paged-step-0",
+      "component": "rms_norm",
+      "max_absolute_error": 0.0,
+      "rms_error": 0.0,
+      "note": "Local staged-FP16 definition with FP64 reductions; diagnostic, not a new acceptance rule",
+      "scaled_error_diagnostic": 0.0
+    },
+    {
+      "label": "paged-step-0",
+      "component": "rms_norm",
+      "max_absolute_error": 0.0,
+      "rms_error": 0.0,
+      "note": "Local staged-FP16 definition with FP64 reductions; diagnostic, not a new acceptance rule",
+      "scaled_error_diagnostic": 0.0
+    },
+    {
+      "label": "paged-step-0",
+      "component": "swiglu",
+      "max_absolute_error": 3.065186160711164e-05,
+      "rms_error": 5.8420858260532915e-06,
+      "note": "Local staged-FP16 definition with FP64 reductions; diagnostic, not a new acceptance rule",
+      "scaled_error_diagnostic": 0.014322795071559659
+    },
+    {
+      "label": "paged-step-0",
+      "component": "rms_norm",
+      "max_absolute_error": 0.0,
+      "rms_error": 0.0,
+      "note": "Local staged-FP16 definition with FP64 reductions; diagnostic, not a new acceptance rule",
+      "scaled_error_diagnostic": 0.0
+    },
+    {
+      "label": "paged-step-0",
+      "component": "rms_norm",
+      "max_absolute_error": 0.0,
+      "rms_error": 0.0,
+      "note": "Local staged-FP16 definition with FP64 reductions; diagnostic, not a new acceptance rule",
+      "scaled_error_diagnostic": 0.0
+    },
+    {
+      "label": "paged-step-0",
+      "component": "swiglu",
+      "max_absolute_error": 5.8127283779185746e-05,
+      "rms_error": 8.818546506642686e-06,
+      "note": "Local staged-FP16 definition with FP64 reductions; diagnostic, not a new acceptance rule",
+      "scaled_error_diagnostic": 0.025788244643252866
+    },
+    {
+      "label": "paged-step-0",
+      "component": "rms_norm",
+      "max_absolute_error": 0.0,
+      "rms_error": 0.0,
+      "note": "Local staged-FP16 definition with FP64 reductions; diagnostic, not a new acceptance rule",
+      "scaled_error_diagnostic": 0.0
+    },
+    {
+      "label": "paged-step-0",
+      "component": "rms_norm",
+      "max_absolute_error": 0.0,
+      "rms_error": 0.0,
+      "note": "Local staged-FP16 definition with FP64 reductions; diagnostic, not a new acceptance rule",
+      "scaled_error_diagnostic": 0.0
+    },
+    {
+      "label": "paged-step-0",
+      "component": "swiglu",
+      "max_absolute_error": 3.0386801086024207e-05,
+      "rms_error": 8.141999948781586e-06,
+      "note": "Local staged-FP16 definition with FP64 reductions; diagnostic, not a new acceptance rule",
+      "scaled_error_diagnostic": 0.014099212386339594
+    },
+    {
+      "label": "paged-step-0",
+      "component": "rms_norm",
+      "max_absolute_error": 0.0,
+      "rms_error": 0.0,
+      "note": "Local staged-FP16 definition with FP64 reductions; diagnostic, not a new acceptance rule",
+      "scaled_error_diagnostic": 0.0
+    },
+    {
+      "label": "paged-step-0",
+      "component": "rms_norm",
+      "max_absolute_error": 0.0,
+      "rms_error": 0.0,
+      "note": "Local staged-FP16 definition with FP64 reductions; diagnostic, not a new acceptance rule",
+      "scaled_error_diagnostic": 0.0
+    },
+    {
+      "label": "paged-step-0",
+      "component": "swiglu",
+      "max_absolute_error": 4.707845778284536e-05,
+      "rms_error": 9.608872533318123e-06,
+      "note": "Local staged-FP16 definition with FP64 reductions; diagnostic, not a new acceptance rule",
+      "scaled_error_diagnostic": 0.020900206217692025
+    },
+    {
+      "label": "paged-step-0",
+      "component": "rms_norm",
+      "max_absolute_error": 0.0,
+      "rms_error": 0.0,
+      "note": "Local staged-FP16 definition with FP64 reductions; diagnostic, not a new acceptance rule",
+      "scaled_error_diagnostic": 0.0
+    },
+    {
+      "label": "paged-step-0",
+      "component": "rms_norm",
+      "max_absolute_error": 0.0,
+      "rms_error": 0.0,
+      "note": "Local staged-FP16 definition with FP64 reductions; diagnostic, not a new acceptance rule",
+      "scaled_error_diagnostic": 0.0
+    },
+    {
+      "label": "paged-step-0",
+      "component": "swiglu",
+      "max_absolute_error": 0.00011579067904676776,
+      "rms_error": 1.1229375778783879e-05,
+      "note": "Local staged-FP16 definition with FP64 reductions; diagnostic, not a new acceptance rule",
+      "scaled_error_diagnostic": 0.034555948927420976
+    },
+    {
+      "label": "paged-step-0",
+      "component": "rms_norm",
+      "max_absolute_error": 0.0,
+      "rms_error": 0.0,
+      "note": "Local staged-FP16 definition with FP64 reductions; diagnostic, not a new acceptance rule",
+      "scaled_error_diagnostic": 0.0
+    },
+    {
+      "label": "paged-step-0",
+      "component": "rms_norm",
+      "max_absolute_error": 0.0,
+      "rms_error": 0.0,
+      "note": "Local staged-FP16 definition with FP64 reductions; diagnostic, not a new acceptance rule",
+      "scaled_error_diagnostic": 0.0
+    },
+    {
+      "label": "paged-step-0",
+      "component": "swiglu",
+      "max_absolute_error": 5.3015381411114504e-05,
+      "rms_error": 9.608051665290522e-06,
+      "note": "Local staged-FP16 definition with FP64 reductions; diagnostic, not a new acceptance rule",
+      "scaled_error_diagnostic": 0.023255960388744903
+    },
+    {
+      "label": "paged-step-0",
+      "component": "rms_norm",
+      "max_absolute_error": 0.0,
+      "rms_error": 0.0,
+      "note": "Local staged-FP16 definition with FP64 reductions; diagnostic, not a new acceptance rule",
+      "scaled_error_diagnostic": 0.0
+    },
+    {
+      "label": "paged-step-0",
+      "component": "rms_norm",
+      "max_absolute_error": 0.0,
+      "rms_error": 0.0,
+      "note": "Local staged-FP16 definition with FP64 reductions; diagnostic, not a new acceptance rule",
+      "scaled_error_diagnostic": 0.0
+    },
+    {
+      "label": "paged-step-0",
+      "component": "swiglu",
+      "max_absolute_error": 6.13703531939791e-05,
+      "rms_error": 1.1336217431974856e-05,
+      "note": "Local staged-FP16 definition with FP64 reductions; diagnostic, not a new acceptance rule",
+      "scaled_error_diagnostic": 0.02686326908333265
+    },
+    {
+      "label": "paged-step-0",
+      "component": "rms_norm",
+      "max_absolute_error": 0.0,
+      "rms_error": 0.0,
+      "note": "Local staged-FP16 definition with FP64 reductions; diagnostic, not a new acceptance rule",
+      "scaled_error_diagnostic": 0.0
+    },
+    {
+      "label": "paged-step-0",
+      "component": "rms_norm",
+      "max_absolute_error": 0.0,
+      "rms_error": 0.0,
+      "note": "Local staged-FP16 definition with FP64 reductions; diagnostic, not a new acceptance rule",
+      "scaled_error_diagnostic": 0.0
+    },
+    {
+      "label": "paged-step-0",
+      "component": "swiglu",
+      "max_absolute_error": 6.0361587657098426e-05,
+      "rms_error": 1.2129881249874411e-05,
+      "note": "Local staged-FP16 definition with FP64 reductions; diagnostic, not a new acceptance rule",
+      "scaled_error_diagnostic": 0.026402446392694588
+    },
+    {
+      "label": "paged-step-0",
+      "component": "rms_norm",
+      "max_absolute_error": 0.0,
+      "rms_error": 0.0,
+      "note": "Local staged-FP16 definition with FP64 reductions; diagnostic, not a new acceptance rule",
+      "scaled_error_diagnostic": 0.0
+    },
+    {
+      "label": "paged-step-0",
+      "component": "rms_norm",
+      "max_absolute_error": 0.0,
+      "rms_error": 0.0,
+      "note": "Local staged-FP16 definition with FP64 reductions; diagnostic, not a new acceptance rule",
+      "scaled_error_diagnostic": 0.0
+    },
+    {
+      "label": "paged-step-0",
+      "component": "swiglu",
+      "max_absolute_error": 0.00012559656784105755,
+      "rms_error": 1.3884229698803063e-05,
+      "note": "Local staged-FP16 definition with FP64 reductions; diagnostic, not a new acceptance rule",
+      "scaled_error_diagnostic": 0.038251352286932445
+    },
+    {
+      "label": "paged-step-0",
+      "component": "rms_norm",
+      "max_absolute_error": 0.0,
+      "rms_error": 0.0,
+      "note": "Local staged-FP16 definition with FP64 reductions; diagnostic, not a new acceptance rule",
+      "scaled_error_diagnostic": 0.0
+    },
+    {
+      "label": "paged-step-0",
+      "component": "rms_norm",
+      "max_absolute_error": 0.0,
+      "rms_error": 0.0,
+      "note": "Local staged-FP16 definition with FP64 reductions; diagnostic, not a new acceptance rule",
+      "scaled_error_diagnostic": 0.0
+    },
+    {
+      "label": "paged-step-0",
+      "component": "swiglu",
+      "max_absolute_error": 0.00011800455845900615,
+      "rms_error": 1.7127869560937958e-05,
+      "note": "Local staged-FP16 definition with FP64 reductions; diagnostic, not a new acceptance rule",
+      "scaled_error_diagnostic": 0.0464442322038986
+    },
+    {
+      "label": "paged-step-0",
+      "component": "rms_norm",
+      "max_absolute_error": 0.0,
+      "rms_error": 0.0,
+      "note": "Local staged-FP16 definition with FP64 reductions; diagnostic, not a new acceptance rule",
+      "scaled_error_diagnostic": 0.0
+    },
+    {
+      "label": "paged-step-0",
+      "component": "rms_norm",
+      "max_absolute_error": 0.0,
+      "rms_error": 0.0,
+      "note": "Local staged-FP16 definition with FP64 reductions; diagnostic, not a new acceptance rule",
+      "scaled_error_diagnostic": 0.0
+    },
+    {
+      "label": "paged-step-0",
+      "component": "swiglu",
+      "max_absolute_error": 0.00014978462962744743,
+      "rms_error": 2.1708372879611383e-05,
+      "note": "Local staged-FP16 definition with FP64 reductions; diagnostic, not a new acceptance rule",
+      "scaled_error_diagnostic": 0.04808595972904415
+    },
+    {
+      "label": "paged-step-0",
+      "component": "rms_norm",
+      "max_absolute_error": 0.0,
+      "rms_error": 0.0,
+      "note": "Local staged-FP16 definition with FP64 reductions; diagnostic, not a new acceptance rule",
+      "scaled_error_diagnostic": 0.0
+    },
+    {
+      "label": "paged-step-0",
+      "component": "rms_norm",
+      "max_absolute_error": 0.0,
+      "rms_error": 0.0,
+      "note": "Local staged-FP16 definition with FP64 reductions; diagnostic, not a new acceptance rule",
+      "scaled_error_diagnostic": 0.0
+    },
+    {
+      "label": "paged-step-0",
+      "component": "swiglu",
+      "max_absolute_error": 0.00022583844993562252,
+      "rms_error": 2.2917516303109472e-05,
+      "note": "Local staged-FP16 definition with FP64 reductions; diagnostic, not a new acceptance rule",
+      "scaled_error_diagnostic": 0.07051560591793829
+    },
+    {
+      "label": "paged-step-0",
+      "component": "rms_norm",
+      "max_absolute_error": 0.000244140625,
+      "rms_error": 5.3947966093944364e-06,
+      "note": "Local staged-FP16 definition with FP64 reductions; diagnostic, not a new acceptance rule",
+      "scaled_error_diagnostic": 0.09165902841429881
+    },
+    {
+      "label": "paged-step-0",
+      "component": "rms_norm",
+      "max_absolute_error": 0.0,
+      "rms_error": 0.0,
+      "note": "Local staged-FP16 definition with FP64 reductions; diagnostic, not a new acceptance rule",
+      "scaled_error_diagnostic": 0.0
+    },
+    {
+      "label": "paged-step-0",
+      "component": "swiglu",
+      "max_absolute_error": 0.00022757554950203485,
+      "rms_error": 3.4353019236773634e-05,
+      "note": "Local staged-FP16 definition with FP64 reductions; diagnostic, not a new acceptance rule",
+      "scaled_error_diagnostic": 0.0740380781343767
+    },
+    {
+      "label": "paged-step-0",
+      "component": "rms_norm",
+      "max_absolute_error": 0.0,
+      "rms_error": 0.0,
+      "note": "Local staged-FP16 definition with FP64 reductions; diagnostic, not a new acceptance rule",
+      "scaled_error_diagnostic": 0.0
+    },
+    {
+      "label": "paged-step-0",
+      "component": "rms_norm",
+      "max_absolute_error": 0.0,
+      "rms_error": 0.0,
+      "note": "Local staged-FP16 definition with FP64 reductions; diagnostic, not a new acceptance rule",
+      "scaled_error_diagnostic": 0.0
+    },
+    {
+      "label": "paged-step-0",
+      "component": "swiglu",
+      "max_absolute_error": 0.0002427677142122775,
+      "rms_error": 4.689915734906393e-05,
+      "note": "Local staged-FP16 definition with FP64 reductions; diagnostic, not a new acceptance rule",
+      "scaled_error_diagnostic": 0.07337163287951014
+    },
+    {
+      "label": "paged-step-0",
+      "component": "rms_norm",
+      "max_absolute_error": 0.0,
+      "rms_error": 0.0,
+      "note": "Local staged-FP16 definition with FP64 reductions; diagnostic, not a new acceptance rule",
+      "scaled_error_diagnostic": 0.0
+    },
+    {
+      "label": "paged-step-0",
+      "component": "rms_norm",
+      "max_absolute_error": 0.0,
+      "rms_error": 0.0,
+      "note": "Local staged-FP16 definition with FP64 reductions; diagnostic, not a new acceptance rule",
+      "scaled_error_diagnostic": 0.0
+    },
+    {
+      "label": "paged-step-0",
+      "component": "swiglu",
+      "max_absolute_error": 0.00037247388945615967,
+      "rms_error": 6.19392070347677e-05,
+      "note": "Local staged-FP16 definition with FP64 reductions; diagnostic, not a new acceptance rule",
+      "scaled_error_diagnostic": 0.07960311092892408
+    },
+    {
+      "label": "paged-step-0",
+      "component": "rms_norm",
+      "max_absolute_error": 0.0,
+      "rms_error": 0.0,
+      "note": "Local staged-FP16 definition with FP64 reductions; diagnostic, not a new acceptance rule",
+      "scaled_error_diagnostic": 0.0
+    },
+    {
+      "label": "paged-step-0",
+      "component": "rms_norm",
+      "max_absolute_error": 0.0,
+      "rms_error": 0.0,
+      "note": "Local staged-FP16 definition with FP64 reductions; diagnostic, not a new acceptance rule",
+      "scaled_error_diagnostic": 0.0
+    },
+    {
+      "label": "paged-step-0",
+      "component": "swiglu",
+      "max_absolute_error": 0.0018506868011627375,
+      "rms_error": 0.00010511704029198672,
+      "note": "Local staged-FP16 definition with FP64 reductions; diagnostic, not a new acceptance rule",
+      "scaled_error_diagnostic": 0.17122039785651266
+    },
+    {
+      "label": "paged-step-0",
+      "component": "final_logits",
+      "max_absolute_error": 0.003905273275449872,
+      "rms_error": 0.0011540140871950746,
+      "note": "Local staged-FP16 definition with FP64 reductions; diagnostic, not a new acceptance rule",
+      "scaled_error_diagnostic": 0.08654844666688374
+    },
+    {
+      "label": "reference-step-15",
+      "component": "rms_norm",
+      "max_absolute_error": 0.0,
+      "rms_error": 0.0,
+      "note": "Local staged-FP16 definition with FP64 reductions; diagnostic, not a new acceptance rule",
+      "scaled_error_diagnostic": 0.0
+    },
+    {
+      "label": "reference-step-15",
+      "component": "rms_norm",
+      "max_absolute_error": 0.0,
+      "rms_error": 0.0,
+      "note": "Local staged-FP16 definition with FP64 reductions; diagnostic, not a new acceptance rule",
+      "scaled_error_diagnostic": 0.0
+    },
+    {
+      "label": "reference-step-15",
+      "component": "swiglu",
+      "max_absolute_error": 5.186795178246939e-05,
+      "rms_error": 1.5286082247264394e-06,
+      "note": "Local staged-FP16 definition with FP64 reductions; diagnostic, not a new acceptance rule",
+      "scaled_error_diagnostic": 0.023041360105747196
+    },
+    {
+      "label": "reference-step-15",
+      "component": "rms_norm",
+      "max_absolute_error": 0.0,
+      "rms_error": 0.0,
+      "note": "Local staged-FP16 definition with FP64 reductions; diagnostic, not a new acceptance rule",
+      "scaled_error_diagnostic": 0.0
+    },
+    {
+      "label": "reference-step-15",
+      "component": "rms_norm",
+      "max_absolute_error": 6.103515625e-05,
+      "rms_error": 1.432992849370397e-06,
+      "note": "Local staged-FP16 definition with FP64 reductions; diagnostic, not a new acceptance rule",
+      "scaled_error_diagnostic": 0.028192839018889203
+    },
+    {
+      "label": "reference-step-15",
+      "component": "swiglu",
+      "max_absolute_error": 7.752858834919607e-06,
+      "rms_error": 4.49992720094726e-07,
+      "note": "Local staged-FP16 definition with FP64 reductions; diagnostic, not a new acceptance rule",
+      "scaled_error_diagnostic": 0.0037110522488762723
+    },
+    {
+      "label": "reference-step-15",
+      "component": "rms_norm",
+      "max_absolute_error": 0.0,
+      "rms_error": 0.0,
+      "note": "Local staged-FP16 definition with FP64 reductions; diagnostic, not a new acceptance rule",
+      "scaled_error_diagnostic": 0.0
+    },
+    {
+      "label": "reference-step-15",
+      "component": "rms_norm",
+      "max_absolute_error": 0.0,
+      "rms_error": 0.0,
+      "note": "Local staged-FP16 definition with FP64 reductions; diagnostic, not a new acceptance rule",
+      "scaled_error_diagnostic": 0.0
+    },
+    {
+      "label": "reference-step-15",
+      "component": "swiglu",
+      "max_absolute_error": 2.1653862532389212e-05,
+      "rms_error": 9.435941546519596e-07,
+      "note": "Local staged-FP16 definition with FP64 reductions; diagnostic, not a new acceptance rule",
+      "scaled_error_diagnostic": 0.009647306206781964
+    },
+    {
+      "label": "reference-step-15",
+      "component": "rms_norm",
+      "max_absolute_error": 0.0,
+      "rms_error": 0.0,
+      "note": "Local staged-FP16 definition with FP64 reductions; diagnostic, not a new acceptance rule",
+      "scaled_error_diagnostic": 0.0
+    },
+    {
+      "label": "reference-step-15",
+      "component": "rms_norm",
+      "max_absolute_error": 0.0,
+      "rms_error": 0.0,
+      "note": "Local staged-FP16 definition with FP64 reductions; diagnostic, not a new acceptance rule",
+      "scaled_error_diagnostic": 0.0
+    },
+    {
+      "label": "reference-step-15",
+      "component": "swiglu",
+      "max_absolute_error": 1.1083577895476537e-05,
+      "rms_error": 1.2709058445229747e-06,
+      "note": "Local staged-FP16 definition with FP64 reductions; diagnostic, not a new acceptance rule",
+      "scaled_error_diagnostic": 0.005296638877298501
+    },
+    {
+      "label": "reference-step-15",
+      "component": "rms_norm",
+      "max_absolute_error": 0.0,
+      "rms_error": 0.0,
+      "note": "Local staged-FP16 definition with FP64 reductions; diagnostic, not a new acceptance rule",
+      "scaled_error_diagnostic": 0.0
+    },
+    {
+      "label": "reference-step-15",
+      "component": "rms_norm",
+      "max_absolute_error": 0.0,
+      "rms_error": 0.0,
+      "note": "Local staged-FP16 definition with FP64 reductions; diagnostic, not a new acceptance rule",
+      "scaled_error_diagnostic": 0.0
+    },
+    {
+      "label": "reference-step-15",
+      "component": "swiglu",
+      "max_absolute_error": 1.0551723949703273e-05,
+      "rms_error": 1.824815755683014e-06,
+      "note": "Local staged-FP16 definition with FP64 reductions; diagnostic, not a new acceptance rule",
+      "scaled_error_diagnostic": 0.004975041728597391
+    },
+    {
+      "label": "reference-step-15",
+      "component": "rms_norm",
+      "max_absolute_error": 0.0,
+      "rms_error": 0.0,
+      "note": "Local staged-FP16 definition with FP64 reductions; diagnostic, not a new acceptance rule",
+      "scaled_error_diagnostic": 0.0
+    },
+    {
+      "label": "reference-step-15",
+      "component": "rms_norm",
+      "max_absolute_error": 0.0,
+      "rms_error": 0.0,
+      "note": "Local staged-FP16 definition with FP64 reductions; diagnostic, not a new acceptance rule",
+      "scaled_error_diagnostic": 0.0
+    },
+    {
+      "label": "reference-step-15",
+      "component": "swiglu",
+      "max_absolute_error": 2.634103793752729e-05,
+      "rms_error": 2.4879504289382884e-06,
+      "note": "Local staged-FP16 definition with FP64 reductions; diagnostic, not a new acceptance rule",
+      "scaled_error_diagnostic": 0.012039983632944853
+    },
+    {
+      "label": "reference-step-15",
+      "component": "rms_norm",
+      "max_absolute_error": 0.0,
+      "rms_error": 0.0,
+      "note": "Local staged-FP16 definition with FP64 reductions; diagnostic, not a new acceptance rule",
+      "scaled_error_diagnostic": 0.0
+    },
+    {
+      "label": "reference-step-15",
+      "component": "rms_norm",
+      "max_absolute_error": 0.0,
+      "rms_error": 0.0,
+      "note": "Local staged-FP16 definition with FP64 reductions; diagnostic, not a new acceptance rule",
+      "scaled_error_diagnostic": 0.0
+    },
+    {
+      "label": "reference-step-15",
+      "component": "swiglu",
+      "max_absolute_error": 4.3610257250747964e-05,
+      "rms_error": 3.0752936200534234e-06,
+      "note": "Local staged-FP16 definition with FP64 reductions; diagnostic, not a new acceptance rule",
+      "scaled_error_diagnostic": 0.017865186131632925
+    },
+    {
+      "label": "reference-step-15",
+      "component": "rms_norm",
+      "max_absolute_error": 0.0,
+      "rms_error": 0.0,
+      "note": "Local staged-FP16 definition with FP64 reductions; diagnostic, not a new acceptance rule",
+      "scaled_error_diagnostic": 0.0
+    },
+    {
+      "label": "reference-step-15",
+      "component": "rms_norm",
+      "max_absolute_error": 0.0,
+      "rms_error": 0.0,
+      "note": "Local staged-FP16 definition with FP64 reductions; diagnostic, not a new acceptance rule",
+      "scaled_error_diagnostic": 0.0
+    },
+    {
+      "label": "reference-step-15",
+      "component": "swiglu",
+      "max_absolute_error": 5.912968615717773e-05,
+      "rms_error": 5.407540320804522e-06,
+      "note": "Local staged-FP16 definition with FP64 reductions; diagnostic, not a new acceptance rule",
+      "scaled_error_diagnostic": 0.025747684729829665
+    },
+    {
+      "label": "reference-step-15",
+      "component": "rms_norm",
+      "max_absolute_error": 0.0,
+      "rms_error": 0.0,
+      "note": "Local staged-FP16 definition with FP64 reductions; diagnostic, not a new acceptance rule",
+      "scaled_error_diagnostic": 0.0
+    },
+    {
+      "label": "reference-step-15",
+      "component": "rms_norm",
+      "max_absolute_error": 0.0,
+      "rms_error": 0.0,
+      "note": "Local staged-FP16 definition with FP64 reductions; diagnostic, not a new acceptance rule",
+      "scaled_error_diagnostic": 0.0
+    },
+    {
+      "label": "reference-step-15",
+      "component": "swiglu",
+      "max_absolute_error": 3.0034019118829747e-05,
+      "rms_error": 5.4930691116792885e-06,
+      "note": "Local staged-FP16 definition with FP64 reductions; diagnostic, not a new acceptance rule",
+      "scaled_error_diagnostic": 0.014034085699145781
+    },
+    {
+      "label": "reference-step-15",
+      "component": "rms_norm",
+      "max_absolute_error": 0.0,
+      "rms_error": 0.0,
+      "note": "Local staged-FP16 definition with FP64 reductions; diagnostic, not a new acceptance rule",
+      "scaled_error_diagnostic": 0.0
+    },
+    {
+      "label": "reference-step-15",
+      "component": "rms_norm",
+      "max_absolute_error": 0.0,
+      "rms_error": 0.0,
+      "note": "Local staged-FP16 definition with FP64 reductions; diagnostic, not a new acceptance rule",
+      "scaled_error_diagnostic": 0.0
+    },
+    {
+      "label": "reference-step-15",
+      "component": "swiglu",
+      "max_absolute_error": 3.06056282965983e-05,
+      "rms_error": 6.547308456365229e-06,
+      "note": "Local staged-FP16 definition with FP64 reductions; diagnostic, not a new acceptance rule",
+      "scaled_error_diagnostic": 0.014288965185033748
+    },
+    {
+      "label": "reference-step-15",
+      "component": "rms_norm",
+      "max_absolute_error": 0.0,
+      "rms_error": 0.0,
+      "note": "Local staged-FP16 definition with FP64 reductions; diagnostic, not a new acceptance rule",
+      "scaled_error_diagnostic": 0.0
+    },
+    {
+      "label": "reference-step-15",
+      "component": "rms_norm",
+      "max_absolute_error": 0.0,
+      "rms_error": 0.0,
+      "note": "Local staged-FP16 definition with FP64 reductions; diagnostic, not a new acceptance rule",
+      "scaled_error_diagnostic": 0.0
+    },
+    {
+      "label": "reference-step-15",
+      "component": "swiglu",
+      "max_absolute_error": 3.0275103995336394e-05,
+      "rms_error": 7.307001565568878e-06,
+      "note": "Local staged-FP16 definition with FP64 reductions; diagnostic, not a new acceptance rule",
+      "scaled_error_diagnostic": 0.01422872025794887
+    },
+    {
+      "label": "reference-step-15",
+      "component": "rms_norm",
+      "max_absolute_error": 0.0,
+      "rms_error": 0.0,
+      "note": "Local staged-FP16 definition with FP64 reductions; diagnostic, not a new acceptance rule",
+      "scaled_error_diagnostic": 0.0
+    },
+    {
+      "label": "reference-step-15",
+      "component": "rms_norm",
+      "max_absolute_error": 0.0,
+      "rms_error": 0.0,
+      "note": "Local staged-FP16 definition with FP64 reductions; diagnostic, not a new acceptance rule",
+      "scaled_error_diagnostic": 0.0
+    },
+    {
+      "label": "reference-step-15",
+      "component": "swiglu",
+      "max_absolute_error": 4.0490968103767955e-05,
+      "rms_error": 8.685453295672015e-06,
+      "note": "Local staged-FP16 definition with FP64 reductions; diagnostic, not a new acceptance rule",
+      "scaled_error_diagnostic": 0.017857119788498365
+    },
+    {
+      "label": "reference-step-15",
+      "component": "rms_norm",
+      "max_absolute_error": 0.0,
+      "rms_error": 0.0,
+      "note": "Local staged-FP16 definition with FP64 reductions; diagnostic, not a new acceptance rule",
+      "scaled_error_diagnostic": 0.0
+    },
+    {
+      "label": "reference-step-15",
+      "component": "rms_norm",
+      "max_absolute_error": 0.0,
+      "rms_error": 0.0,
+      "note": "Local staged-FP16 definition with FP64 reductions; diagnostic, not a new acceptance rule",
+      "scaled_error_diagnostic": 0.0
+    },
+    {
+      "label": "reference-step-15",
+      "component": "swiglu",
+      "max_absolute_error": 5.9111808127454424e-05,
+      "rms_error": 1.1376883187377867e-05,
+      "note": "Local staged-FP16 definition with FP64 reductions; diagnostic, not a new acceptance rule",
+      "scaled_error_diagnostic": 0.02590098119456572
+    },
+    {
+      "label": "reference-step-15",
+      "component": "rms_norm",
+      "max_absolute_error": 0.0,
+      "rms_error": 0.0,
+      "note": "Local staged-FP16 definition with FP64 reductions; diagnostic, not a new acceptance rule",
+      "scaled_error_diagnostic": 0.0
+    },
+    {
+      "label": "reference-step-15",
+      "component": "rms_norm",
+      "max_absolute_error": 0.0,
+      "rms_error": 0.0,
+      "note": "Local staged-FP16 definition with FP64 reductions; diagnostic, not a new acceptance rule",
+      "scaled_error_diagnostic": 0.0
+    },
+    {
+      "label": "reference-step-15",
+      "component": "swiglu",
+      "max_absolute_error": 6.161114833957981e-05,
+      "rms_error": 1.244304599753712e-05,
+      "note": "Local staged-FP16 definition with FP64 reductions; diagnostic, not a new acceptance rule",
+      "scaled_error_diagnostic": 0.026888220177051527
+    },
+    {
+      "label": "reference-step-15",
+      "component": "rms_norm",
+      "max_absolute_error": 0.0,
+      "rms_error": 0.0,
+      "note": "Local staged-FP16 definition with FP64 reductions; diagnostic, not a new acceptance rule",
+      "scaled_error_diagnostic": 0.0
+    },
+    {
+      "label": "reference-step-15",
+      "component": "rms_norm",
+      "max_absolute_error": 0.0,
+      "rms_error": 0.0,
+      "note": "Local staged-FP16 definition with FP64 reductions; diagnostic, not a new acceptance rule",
+      "scaled_error_diagnostic": 0.0
+    },
+    {
+      "label": "reference-step-15",
+      "component": "swiglu",
+      "max_absolute_error": 5.941191144387403e-05,
+      "rms_error": 1.3332917560847186e-05,
+      "note": "Local staged-FP16 definition with FP64 reductions; diagnostic, not a new acceptance rule",
+      "scaled_error_diagnostic": 0.025894371005206595
+    },
+    {
+      "label": "reference-step-15",
+      "component": "rms_norm",
+      "max_absolute_error": 0.0,
+      "rms_error": 0.0,
+      "note": "Local staged-FP16 definition with FP64 reductions; diagnostic, not a new acceptance rule",
+      "scaled_error_diagnostic": 0.0
+    },
+    {
+      "label": "reference-step-15",
+      "component": "rms_norm",
+      "max_absolute_error": 0.0,
+      "rms_error": 0.0,
+      "note": "Local staged-FP16 definition with FP64 reductions; diagnostic, not a new acceptance rule",
+      "scaled_error_diagnostic": 0.0
+    },
+    {
+      "label": "reference-step-15",
+      "component": "swiglu",
+      "max_absolute_error": 0.0001040908731511081,
+      "rms_error": 1.615954968404006e-05,
+      "note": "Local staged-FP16 definition with FP64 reductions; diagnostic, not a new acceptance rule",
+      "scaled_error_diagnostic": 0.04163288237798042
+    },
+    {
+      "label": "reference-step-15",
+      "component": "rms_norm",
+      "max_absolute_error": 0.0,
+      "rms_error": 0.0,
+      "note": "Local staged-FP16 definition with FP64 reductions; diagnostic, not a new acceptance rule",
+      "scaled_error_diagnostic": 0.0
+    },
+    {
+      "label": "reference-step-15",
+      "component": "rms_norm",
+      "max_absolute_error": 0.0,
+      "rms_error": 0.0,
+      "note": "Local staged-FP16 definition with FP64 reductions; diagnostic, not a new acceptance rule",
+      "scaled_error_diagnostic": 0.0
+    },
+    {
+      "label": "reference-step-15",
+      "component": "swiglu",
+      "max_absolute_error": 0.0002130005655089917,
+      "rms_error": 2.4018160809271108e-05,
+      "note": "Local staged-FP16 definition with FP64 reductions; diagnostic, not a new acceptance rule",
+      "scaled_error_diagnostic": 0.07052807798356961
+    },
+    {
+      "label": "reference-step-15",
+      "component": "rms_norm",
+      "max_absolute_error": 0.0,
+      "rms_error": 0.0,
+      "note": "Local staged-FP16 definition with FP64 reductions; diagnostic, not a new acceptance rule",
+      "scaled_error_diagnostic": 0.0
+    },
+    {
+      "label": "reference-step-15",
+      "component": "rms_norm",
+      "max_absolute_error": 0.0,
+      "rms_error": 0.0,
+      "note": "Local staged-FP16 definition with FP64 reductions; diagnostic, not a new acceptance rule",
+      "scaled_error_diagnostic": 0.0
+    },
+    {
+      "label": "reference-step-15",
+      "component": "swiglu",
+      "max_absolute_error": 0.00012199010296853885,
+      "rms_error": 2.0997774365601565e-05,
+      "note": "Local staged-FP16 definition with FP64 reductions; diagnostic, not a new acceptance rule",
+      "scaled_error_diagnostic": 0.047957720824553754
+    },
+    {
+      "label": "reference-step-15",
+      "component": "rms_norm",
+      "max_absolute_error": 0.0,
+      "rms_error": 0.0,
+      "note": "Local staged-FP16 definition with FP64 reductions; diagnostic, not a new acceptance rule",
+      "scaled_error_diagnostic": 0.0
+    },
+    {
+      "label": "reference-step-15",
+      "component": "rms_norm",
+      "max_absolute_error": 0.0,
+      "rms_error": 0.0,
+      "note": "Local staged-FP16 definition with FP64 reductions; diagnostic, not a new acceptance rule",
+      "scaled_error_diagnostic": 0.0
+    },
+    {
+      "label": "reference-step-15",
+      "component": "swiglu",
+      "max_absolute_error": 0.00021691321717298706,
+      "rms_error": 2.9534416867516423e-05,
+      "note": "Local staged-FP16 definition with FP64 reductions; diagnostic, not a new acceptance rule",
+      "scaled_error_diagnostic": 0.06972696477440575
+    },
+    {
+      "label": "reference-step-15",
+      "component": "rms_norm",
+      "max_absolute_error": 0.0,
+      "rms_error": 0.0,
+      "note": "Local staged-FP16 definition with FP64 reductions; diagnostic, not a new acceptance rule",
+      "scaled_error_diagnostic": 0.0
+    },
+    {
+      "label": "reference-step-15",
+      "component": "rms_norm",
+      "max_absolute_error": 0.0,
+      "rms_error": 0.0,
+      "note": "Local staged-FP16 definition with FP64 reductions; diagnostic, not a new acceptance rule",
+      "scaled_error_diagnostic": 0.0
+    },
+    {
+      "label": "reference-step-15",
+      "component": "swiglu",
+      "max_absolute_error": 0.00044370597333909245,
+      "rms_error": 3.812220215022584e-05,
+      "note": "Local staged-FP16 definition with FP64 reductions; diagnostic, not a new acceptance rule",
+      "scaled_error_diagnostic": 0.09125592437593298
+    },
+    {
+      "label": "reference-step-15",
+      "component": "rms_norm",
+      "max_absolute_error": 0.0,
+      "rms_error": 0.0,
+      "note": "Local staged-FP16 definition with FP64 reductions; diagnostic, not a new acceptance rule",
+      "scaled_error_diagnostic": 0.0
+    },
+    {
+      "label": "reference-step-15",
+      "component": "rms_norm",
+      "max_absolute_error": 0.0,
+      "rms_error": 0.0,
+      "note": "Local staged-FP16 definition with FP64 reductions; diagnostic, not a new acceptance rule",
+      "scaled_error_diagnostic": 0.0
+    },
+    {
+      "label": "reference-step-15",
+      "component": "swiglu",
+      "max_absolute_error": 0.0016673648624419002,
+      "rms_error": 6.741884900383173e-05,
+      "note": "Local staged-FP16 definition with FP64 reductions; diagnostic, not a new acceptance rule",
+      "scaled_error_diagnostic": 0.13427651798482748
+    },
+    {
+      "label": "reference-step-15",
+      "component": "rms_norm",
+      "max_absolute_error": 0.0,
+      "rms_error": 0.0,
+      "note": "Local staged-FP16 definition with FP64 reductions; diagnostic, not a new acceptance rule",
+      "scaled_error_diagnostic": 0.0
+    },
+    {
+      "label": "reference-step-15",
+      "component": "rms_norm",
+      "max_absolute_error": 0.0,
+      "rms_error": 0.0,
+      "note": "Local staged-FP16 definition with FP64 reductions; diagnostic, not a new acceptance rule",
+      "scaled_error_diagnostic": 0.0
+    },
+    {
+      "label": "reference-step-15",
+      "component": "swiglu",
+      "max_absolute_error": 0.0016175978964838578,
+      "rms_error": 0.00010374232258744449,
+      "note": "Local staged-FP16 definition with FP64 reductions; diagnostic, not a new acceptance rule",
+      "scaled_error_diagnostic": 0.14913956409258847
+    },
+    {
+      "label": "reference-step-15",
+      "component": "final_logits",
+      "max_absolute_error": 0.006767082217265852,
+      "rms_error": 0.00102186160939075,
+      "note": "Local staged-FP16 definition with FP64 reductions; diagnostic, not a new acceptance rule",
+      "scaled_error_diagnostic": 0.08583100060763643
+    },
+    {
+      "label": "paged-step-15",
+      "component": "rms_norm",
+      "max_absolute_error": 0.0,
+      "rms_error": 0.0,
+      "note": "Local staged-FP16 definition with FP64 reductions; diagnostic, not a new acceptance rule",
+      "scaled_error_diagnostic": 0.0
+    },
+    {
+      "label": "paged-step-15",
+      "component": "rms_norm",
+      "max_absolute_error": 0.0,
+      "rms_error": 0.0,
+      "note": "Local staged-FP16 definition with FP64 reductions; diagnostic, not a new acceptance rule",
+      "scaled_error_diagnostic": 0.0
+    },
+    {
+      "label": "paged-step-15",
+      "component": "swiglu",
+      "max_absolute_error": 5.186795178246939e-05,
+      "rms_error": 1.5286082247264394e-06,
+      "note": "Local staged-FP16 definition with FP64 reductions; diagnostic, not a new acceptance rule",
+      "scaled_error_diagnostic": 0.023041360105747196
+    },
+    {
+      "label": "paged-step-15",
+      "component": "rms_norm",
+      "max_absolute_error": 0.0,
+      "rms_error": 0.0,
+      "note": "Local staged-FP16 definition with FP64 reductions; diagnostic, not a new acceptance rule",
+      "scaled_error_diagnostic": 0.0
+    },
+    {
+      "label": "paged-step-15",
+      "component": "rms_norm",
+      "max_absolute_error": 1.52587890625e-05,
+      "rms_error": 3.47551816394645e-07,
+      "note": "Local staged-FP16 definition with FP64 reductions; diagnostic, not a new acceptance rule",
+      "scaled_error_diagnostic": 0.007422692655987885
+    },
+    {
+      "label": "paged-step-15",
+      "component": "swiglu",
+      "max_absolute_error": 1.1602483766637306e-05,
+      "rms_error": 5.07066456151039e-07,
+      "note": "Local staged-FP16 definition with FP64 reductions; diagnostic, not a new acceptance rule",
+      "scaled_error_diagnostic": 0.005553727432508723
+    },
+    {
+      "label": "paged-step-15",
+      "component": "rms_norm",
+      "max_absolute_error": 0.0,
+      "rms_error": 0.0,
+      "note": "Local staged-FP16 definition with FP64 reductions; diagnostic, not a new acceptance rule",
+      "scaled_error_diagnostic": 0.0
+    },
+    {
+      "label": "paged-step-15",
+      "component": "rms_norm",
+      "max_absolute_error": 0.0,
+      "rms_error": 0.0,
+      "note": "Local staged-FP16 definition with FP64 reductions; diagnostic, not a new acceptance rule",
+      "scaled_error_diagnostic": 0.0
+    },
+    {
+      "label": "paged-step-15",
+      "component": "swiglu",
+      "max_absolute_error": 2.845334593359894e-05,
+      "rms_error": 1.040025678220831e-06,
+      "note": "Local staged-FP16 definition with FP64 reductions; diagnostic, not a new acceptance rule",
+      "scaled_error_diagnostic": 0.012676559543935078
+    },
+    {
+      "label": "paged-step-15",
+      "component": "rms_norm",
+      "max_absolute_error": 0.0,
+      "rms_error": 0.0,
+      "note": "Local staged-FP16 definition with FP64 reductions; diagnostic, not a new acceptance rule",
+      "scaled_error_diagnostic": 0.0
+    },
+    {
+      "label": "paged-step-15",
+      "component": "rms_norm",
+      "max_absolute_error": 0.0,
+      "rms_error": 0.0,
+      "note": "Local staged-FP16 definition with FP64 reductions; diagnostic, not a new acceptance rule",
+      "scaled_error_diagnostic": 0.0
+    },
+    {
+      "label": "paged-step-15",
+      "component": "swiglu",
+      "max_absolute_error": 1.2462191861573046e-05,
+      "rms_error": 1.3430603038907509e-06,
+      "note": "Local staged-FP16 definition with FP64 reductions; diagnostic, not a new acceptance rule",
+      "scaled_error_diagnostic": 0.005955461089067274
+    },
+    {
+      "label": "paged-step-15",
+      "component": "rms_norm",
+      "max_absolute_error": 0.0,
+      "rms_error": 0.0,
+      "note": "Local staged-FP16 definition with FP64 reductions; diagnostic, not a new acceptance rule",
+      "scaled_error_diagnostic": 0.0
+    },
+    {
+      "label": "paged-step-15",
+      "component": "rms_norm",
+      "max_absolute_error": 0.0,
+      "rms_error": 0.0,
+      "note": "Local staged-FP16 definition with FP64 reductions; diagnostic, not a new acceptance rule",
+      "scaled_error_diagnostic": 0.0
+    },
+    {
+      "label": "paged-step-15",
+      "component": "swiglu",
+      "max_absolute_error": 2.9182458774812403e-05,
+      "rms_error": 1.9426528397185755e-06,
+      "note": "Local staged-FP16 definition with FP64 reductions; diagnostic, not a new acceptance rule",
+      "scaled_error_diagnostic": 0.013649399281062891
+    },
+    {
+      "label": "paged-step-15",
+      "component": "rms_norm",
+      "max_absolute_error": 0.0,
+      "rms_error": 0.0,
+      "note": "Local staged-FP16 definition with FP64 reductions; diagnostic, not a new acceptance rule",
+      "scaled_error_diagnostic": 0.0
+    },
+    {
+      "label": "paged-step-15",
+      "component": "rms_norm",
+      "max_absolute_error": 0.0,
+      "rms_error": 0.0,
+      "note": "Local staged-FP16 definition with FP64 reductions; diagnostic, not a new acceptance rule",
+      "scaled_error_diagnostic": 0.0
+    },
+    {
+      "label": "paged-step-15",
+      "component": "swiglu",
+      "max_absolute_error": 2.6404066204577248e-05,
+      "rms_error": 2.4293617341624117e-06,
+      "note": "Local staged-FP16 definition with FP64 reductions; diagnostic, not a new acceptance rule",
+      "scaled_error_diagnostic": 0.01206870118389596
+    },
+    {
+      "label": "paged-step-15",
+      "component": "rms_norm",
+      "max_absolute_error": 0.0,
+      "rms_error": 0.0,
+      "note": "Local staged-FP16 definition with FP64 reductions; diagnostic, not a new acceptance rule",
+      "scaled_error_diagnostic": 0.0
+    },
+    {
+      "label": "paged-step-15",
+      "component": "rms_norm",
+      "max_absolute_error": 0.0,
+      "rms_error": 0.0,
+      "note": "Local staged-FP16 definition with FP64 reductions; diagnostic, not a new acceptance rule",
+      "scaled_error_diagnostic": 0.0
+    },
+    {
+      "label": "paged-step-15",
+      "component": "swiglu",
+      "max_absolute_error": 1.4862481720001597e-05,
+      "rms_error": 3.0345584956521396e-06,
+      "note": "Local staged-FP16 definition with FP64 reductions; diagnostic, not a new acceptance rule",
+      "scaled_error_diagnostic": 0.007203603001107229
+    },
+    {
+      "label": "paged-step-15",
+      "component": "rms_norm",
+      "max_absolute_error": 0.0,
+      "rms_error": 0.0,
+      "note": "Local staged-FP16 definition with FP64 reductions; diagnostic, not a new acceptance rule",
+      "scaled_error_diagnostic": 0.0
+    },
+    {
+      "label": "paged-step-15",
+      "component": "rms_norm",
+      "max_absolute_error": 0.0,
+      "rms_error": 0.0,
+      "note": "Local staged-FP16 definition with FP64 reductions; diagnostic, not a new acceptance rule",
+      "scaled_error_diagnostic": 0.0
+    },
+    {
+      "label": "paged-step-15",
+      "component": "swiglu",
+      "max_absolute_error": 5.1661085876730795e-05,
+      "rms_error": 5.77178840869822e-06,
+      "note": "Local staged-FP16 definition with FP64 reductions; diagnostic, not a new acceptance rule",
+      "scaled_error_diagnostic": 0.022096330035081855
+    },
+    {
+      "label": "paged-step-15",
+      "component": "rms_norm",
+      "max_absolute_error": 0.0,
+      "rms_error": 0.0,
+      "note": "Local staged-FP16 definition with FP64 reductions; diagnostic, not a new acceptance rule",
+      "scaled_error_diagnostic": 0.0
+    },
+    {
+      "label": "paged-step-15",
+      "component": "rms_norm",
+      "max_absolute_error": 0.0,
+      "rms_error": 0.0,
+      "note": "Local staged-FP16 definition with FP64 reductions; diagnostic, not a new acceptance rule",
+      "scaled_error_diagnostic": 0.0
+    },
+    {
+      "label": "paged-step-15",
+      "component": "swiglu",
+      "max_absolute_error": 5.9325888571493124e-05,
+      "rms_error": 5.557783126686415e-06,
+      "note": "Local staged-FP16 definition with FP64 reductions; diagnostic, not a new acceptance rule",
+      "scaled_error_diagnostic": 0.02605183326751095
+    },
+    {
+      "label": "paged-step-15",
+      "component": "rms_norm",
+      "max_absolute_error": 0.0,
+      "rms_error": 0.0,
+      "note": "Local staged-FP16 definition with FP64 reductions; diagnostic, not a new acceptance rule",
+      "scaled_error_diagnostic": 0.0
+    },
+    {
+      "label": "paged-step-15",
+      "component": "rms_norm",
+      "max_absolute_error": 0.0,
+      "rms_error": 0.0,
+      "note": "Local staged-FP16 definition with FP64 reductions; diagnostic, not a new acceptance rule",
+      "scaled_error_diagnostic": 0.0
+    },
+    {
+      "label": "paged-step-15",
+      "component": "swiglu",
+      "max_absolute_error": 3.039489993739153e-05,
+      "rms_error": 6.367309826316076e-06,
+      "note": "Local staged-FP16 definition with FP64 reductions; diagnostic, not a new acceptance rule",
+      "scaled_error_diagnostic": 0.014083717066442816
+    },
+    {
+      "label": "paged-step-15",
+      "component": "rms_norm",
+      "max_absolute_error": 0.000244140625,
+      "rms_error": 7.62939453125e-06,
+      "note": "Local staged-FP16 definition with FP64 reductions; diagnostic, not a new acceptance rule",
+      "scaled_error_diagnostic": 0.10146103896103896
+    },
+    {
+      "label": "paged-step-15",
+      "component": "rms_norm",
+      "max_absolute_error": 0.0,
+      "rms_error": 0.0,
+      "note": "Local staged-FP16 definition with FP64 reductions; diagnostic, not a new acceptance rule",
+      "scaled_error_diagnostic": 0.0
+    },
+    {
+      "label": "paged-step-15",
+      "component": "swiglu",
+      "max_absolute_error": 3.0530539333994966e-05,
+      "rms_error": 7.1386503680237215e-06,
+      "note": "Local staged-FP16 definition with FP64 reductions; diagnostic, not a new acceptance rule",
+      "scaled_error_diagnostic": 0.014166849094808042
+    },
+    {
+      "label": "paged-step-15",
+      "component": "rms_norm",
+      "max_absolute_error": 0.0,
+      "rms_error": 0.0,
+      "note": "Local staged-FP16 definition with FP64 reductions; diagnostic, not a new acceptance rule",
+      "scaled_error_diagnostic": 0.0
+    },
+    {
+      "label": "paged-step-15",
+      "component": "rms_norm",
+      "max_absolute_error": 9.5367431640625e-07,
+      "rms_error": 2.1073424255447017e-08,
+      "note": "Local staged-FP16 definition with FP64 reductions; diagnostic, not a new acceptance rule",
+      "scaled_error_diagnostic": 0.00047634835164416396
+    },
+    {
+      "label": "paged-step-15",
+      "component": "swiglu",
+      "max_absolute_error": 4.7485828744697756e-05,
+      "rms_error": 8.659184764777455e-06,
+      "note": "Local staged-FP16 definition with FP64 reductions; diagnostic, not a new acceptance rule",
+      "scaled_error_diagnostic": 0.020449374371960167
+    },
+    {
+      "label": "paged-step-15",
+      "component": "rms_norm",
+      "max_absolute_error": 0.0,
+      "rms_error": 0.0,
+      "note": "Local staged-FP16 definition with FP64 reductions; diagnostic, not a new acceptance rule",
+      "scaled_error_diagnostic": 0.0
+    },
+    {
+      "label": "paged-step-15",
+      "component": "rms_norm",
+      "max_absolute_error": 0.0,
+      "rms_error": 0.0,
+      "note": "Local staged-FP16 definition with FP64 reductions; diagnostic, not a new acceptance rule",
+      "scaled_error_diagnostic": 0.0
+    },
+    {
+      "label": "paged-step-15",
+      "component": "swiglu",
+      "max_absolute_error": 6.045767190698825e-05,
+      "rms_error": 1.1039063702050913e-05,
+      "note": "Local staged-FP16 definition with FP64 reductions; diagnostic, not a new acceptance rule",
+      "scaled_error_diagnostic": 0.02680462167289206
+    },
+    {
+      "label": "paged-step-15",
+      "component": "rms_norm",
+      "max_absolute_error": 0.0,
+      "rms_error": 0.0,
+      "note": "Local staged-FP16 definition with FP64 reductions; diagnostic, not a new acceptance rule",
+      "scaled_error_diagnostic": 0.0
+    },
+    {
+      "label": "paged-step-15",
+      "component": "rms_norm",
+      "max_absolute_error": 0.0,
+      "rms_error": 0.0,
+      "note": "Local staged-FP16 definition with FP64 reductions; diagnostic, not a new acceptance rule",
+      "scaled_error_diagnostic": 0.0
+    },
+    {
+      "label": "paged-step-15",
+      "component": "swiglu",
+      "max_absolute_error": 6.1014610992060625e-05,
+      "rms_error": 1.2368300161125069e-05,
+      "note": "Local staged-FP16 definition with FP64 reductions; diagnostic, not a new acceptance rule",
+      "scaled_error_diagnostic": 0.026659111647188843
+    },
+    {
+      "label": "paged-step-15",
+      "component": "rms_norm",
+      "max_absolute_error": 0.0,
+      "rms_error": 0.0,
+      "note": "Local staged-FP16 definition with FP64 reductions; diagnostic, not a new acceptance rule",
+      "scaled_error_diagnostic": 0.0
+    },
+    {
+      "label": "paged-step-15",
+      "component": "rms_norm",
+      "max_absolute_error": 0.0,
+      "rms_error": 0.0,
+      "note": "Local staged-FP16 definition with FP64 reductions; diagnostic, not a new acceptance rule",
+      "scaled_error_diagnostic": 0.0
+    },
+    {
+      "label": "paged-step-15",
+      "component": "swiglu",
+      "max_absolute_error": 6.073349157276198e-05,
+      "rms_error": 1.382937036140019e-05,
+      "note": "Local staged-FP16 definition with FP64 reductions; diagnostic, not a new acceptance rule",
+      "scaled_error_diagnostic": 0.026799938797733947
+    },
+    {
+      "label": "paged-step-15",
+      "component": "rms_norm",
+      "max_absolute_error": 0.0,
+      "rms_error": 0.0,
+      "note": "Local staged-FP16 definition with FP64 reductions; diagnostic, not a new acceptance rule",
+      "scaled_error_diagnostic": 0.0
+    },
+    {
+      "label": "paged-step-15",
+      "component": "rms_norm",
+      "max_absolute_error": 0.0,
+      "rms_error": 0.0,
+      "note": "Local staged-FP16 definition with FP64 reductions; diagnostic, not a new acceptance rule",
+      "scaled_error_diagnostic": 0.0
+    },
+    {
+      "label": "paged-step-15",
+      "component": "swiglu",
+      "max_absolute_error": 0.00012178282239005966,
+      "rms_error": 1.637188416743998e-05,
+      "note": "Local staged-FP16 definition with FP64 reductions; diagnostic, not a new acceptance rule",
+      "scaled_error_diagnostic": 0.04870836107759971
+    },
+    {
+      "label": "paged-step-15",
+      "component": "rms_norm",
+      "max_absolute_error": 0.0,
+      "rms_error": 0.0,
+      "note": "Local staged-FP16 definition with FP64 reductions; diagnostic, not a new acceptance rule",
+      "scaled_error_diagnostic": 0.0
+    },
+    {
+      "label": "paged-step-15",
+      "component": "rms_norm",
+      "max_absolute_error": 0.0,
+      "rms_error": 0.0,
+      "note": "Local staged-FP16 definition with FP64 reductions; diagnostic, not a new acceptance rule",
+      "scaled_error_diagnostic": 0.0
+    },
+    {
+      "label": "paged-step-15",
+      "component": "swiglu",
+      "max_absolute_error": 0.000240694582771539,
+      "rms_error": 2.3762728541536253e-05,
+      "note": "Local staged-FP16 definition with FP64 reductions; diagnostic, not a new acceptance rule",
+      "scaled_error_diagnostic": 0.07972527578759885
+    },
+    {
+      "label": "paged-step-15",
+      "component": "rms_norm",
+      "max_absolute_error": 0.0,
+      "rms_error": 0.0,
+      "note": "Local staged-FP16 definition with FP64 reductions; diagnostic, not a new acceptance rule",
+      "scaled_error_diagnostic": 0.0
+    },
+    {
+      "label": "paged-step-15",
+      "component": "rms_norm",
+      "max_absolute_error": 0.0,
+      "rms_error": 0.0,
+      "note": "Local staged-FP16 definition with FP64 reductions; diagnostic, not a new acceptance rule",
+      "scaled_error_diagnostic": 0.0
+    },
+    {
+      "label": "paged-step-15",
+      "component": "swiglu",
+      "max_absolute_error": 0.0002182446166898444,
+      "rms_error": 2.1293727176988303e-05,
+      "note": "Local staged-FP16 definition with FP64 reductions; diagnostic, not a new acceptance rule",
+      "scaled_error_diagnostic": 0.07089175170062674
+    },
+    {
+      "label": "paged-step-15",
+      "component": "rms_norm",
+      "max_absolute_error": 0.0,
+      "rms_error": 0.0,
+      "note": "Local staged-FP16 definition with FP64 reductions; diagnostic, not a new acceptance rule",
+      "scaled_error_diagnostic": 0.0
+    },
+    {
+      "label": "paged-step-15",
+      "component": "rms_norm",
+      "max_absolute_error": 0.0,
+      "rms_error": 0.0,
+      "note": "Local staged-FP16 definition with FP64 reductions; diagnostic, not a new acceptance rule",
+      "scaled_error_diagnostic": 0.0
+    },
+    {
+      "label": "paged-step-15",
+      "component": "swiglu",
+      "max_absolute_error": 0.00019098417439522564,
+      "rms_error": 2.8614747267595266e-05,
+      "note": "Local staged-FP16 definition with FP64 reductions; diagnostic, not a new acceptance rule",
+      "scaled_error_diagnostic": 0.05787071893547352
+    },
+    {
+      "label": "paged-step-15",
+      "component": "rms_norm",
+      "max_absolute_error": 0.0,
+      "rms_error": 0.0,
+      "note": "Local staged-FP16 definition with FP64 reductions; diagnostic, not a new acceptance rule",
+      "scaled_error_diagnostic": 0.0
+    },
+    {
+      "label": "paged-step-15",
+      "component": "rms_norm",
+      "max_absolute_error": 0.0,
+      "rms_error": 0.0,
+      "note": "Local staged-FP16 definition with FP64 reductions; diagnostic, not a new acceptance rule",
+      "scaled_error_diagnostic": 0.0
+    },
+    {
+      "label": "paged-step-15",
+      "component": "swiglu",
+      "max_absolute_error": 0.00047165809451144014,
+      "rms_error": 3.8444790753710565e-05,
+      "note": "Local staged-FP16 definition with FP64 reductions; diagnostic, not a new acceptance rule",
+      "scaled_error_diagnostic": 0.09968513830272287
+    },
+    {
+      "label": "paged-step-15",
+      "component": "rms_norm",
+      "max_absolute_error": 0.0,
+      "rms_error": 0.0,
+      "note": "Local staged-FP16 definition with FP64 reductions; diagnostic, not a new acceptance rule",
+      "scaled_error_diagnostic": 0.0
+    },
+    {
+      "label": "paged-step-15",
+      "component": "rms_norm",
+      "max_absolute_error": 0.0,
+      "rms_error": 0.0,
+      "note": "Local staged-FP16 definition with FP64 reductions; diagnostic, not a new acceptance rule",
+      "scaled_error_diagnostic": 0.0
+    },
+    {
+      "label": "paged-step-15",
+      "component": "swiglu",
+      "max_absolute_error": 0.0008429660287632146,
+      "rms_error": 5.824881432305463e-05,
+      "note": "Local staged-FP16 definition with FP64 reductions; diagnostic, not a new acceptance rule",
+      "scaled_error_diagnostic": 0.11655656969728975
+    },
+    {
+      "label": "paged-step-15",
+      "component": "rms_norm",
+      "max_absolute_error": 0.00048828125,
+      "rms_error": 1.206313194339134e-05,
+      "note": "Local staged-FP16 definition with FP64 reductions; diagnostic, not a new acceptance rule",
+      "scaled_error_diagnostic": 0.15513496742165686
+    },
+    {
+      "label": "paged-step-15",
+      "component": "rms_norm",
+      "max_absolute_error": 0.0,
+      "rms_error": 0.0,
+      "note": "Local staged-FP16 definition with FP64 reductions; diagnostic, not a new acceptance rule",
+      "scaled_error_diagnostic": 0.0
+    },
+    {
+      "label": "paged-step-15",
+      "component": "swiglu",
+      "max_absolute_error": 0.0011794375404861057,
+      "rms_error": 9.859677739053277e-05,
+      "note": "Local staged-FP16 definition with FP64 reductions; diagnostic, not a new acceptance rule",
+      "scaled_error_diagnostic": 0.13349042044306736
+    },
+    {
+      "label": "paged-step-15",
+      "component": "final_logits",
+      "max_absolute_error": 0.00745741042192094,
+      "rms_error": 0.0010294795768759383,
+      "note": "Local staged-FP16 definition with FP64 reductions; diagnostic, not a new acceptance rule",
+      "scaled_error_diagnostic": 0.08617929514701723
+    },
+    {
+      "label": "reference-step-31",
+      "component": "rms_norm",
+      "max_absolute_error": 0.0,
+      "rms_error": 0.0,
+      "note": "Local staged-FP16 definition with FP64 reductions; diagnostic, not a new acceptance rule",
+      "scaled_error_diagnostic": 0.0
+    },
+    {
+      "label": "reference-step-31",
+      "component": "rms_norm",
+      "max_absolute_error": 0.0,
+      "rms_error": 0.0,
+      "note": "Local staged-FP16 definition with FP64 reductions; diagnostic, not a new acceptance rule",
+      "scaled_error_diagnostic": 0.0
+    },
+    {
+      "label": "reference-step-31",
+      "component": "swiglu",
+      "max_absolute_error": 4.034188367540992e-05,
+      "rms_error": 1.8154038051725177e-06,
+      "note": "Local staged-FP16 definition with FP64 reductions; diagnostic, not a new acceptance rule",
+      "scaled_error_diagnostic": 0.01769610235114234
+    },
+    {
+      "label": "reference-step-31",
+      "component": "rms_norm",
+      "max_absolute_error": 0.0,
+      "rms_error": 0.0,
+      "note": "Local staged-FP16 definition with FP64 reductions; diagnostic, not a new acceptance rule",
+      "scaled_error_diagnostic": 0.0
+    },
+    {
+      "label": "reference-step-31",
+      "component": "rms_norm",
+      "max_absolute_error": 0.0,
+      "rms_error": 0.0,
+      "note": "Local staged-FP16 definition with FP64 reductions; diagnostic, not a new acceptance rule",
+      "scaled_error_diagnostic": 0.0
+    },
+    {
+      "label": "reference-step-31",
+      "component": "swiglu",
+      "max_absolute_error": 9.86672262826005e-06,
+      "rms_error": 1.2987432791961152e-06,
+      "note": "Local staged-FP16 definition with FP64 reductions; diagnostic, not a new acceptance rule",
+      "scaled_error_diagnostic": 0.004741118468062986
+    },
+    {
+      "label": "reference-step-31",
+      "component": "rms_norm",
+      "max_absolute_error": 0.0,
+      "rms_error": 0.0,
+      "note": "Local staged-FP16 definition with FP64 reductions; diagnostic, not a new acceptance rule",
+      "scaled_error_diagnostic": 0.0
+    },
+    {
+      "label": "reference-step-31",
+      "component": "rms_norm",
+      "max_absolute_error": 0.0,
+      "rms_error": 0.0,
+      "note": "Local staged-FP16 definition with FP64 reductions; diagnostic, not a new acceptance rule",
+      "scaled_error_diagnostic": 0.0
+    },
+    {
+      "label": "reference-step-31",
+      "component": "swiglu",
+      "max_absolute_error": 1.2937725216488616e-05,
+      "rms_error": 1.9482946543454437e-06,
+      "note": "Local staged-FP16 definition with FP64 reductions; diagnostic, not a new acceptance rule",
+      "scaled_error_diagnostic": 0.005957202080562215
+    },
+    {
+      "label": "reference-step-31",
+      "component": "rms_norm",
+      "max_absolute_error": 0.0,
+      "rms_error": 0.0,
+      "note": "Local staged-FP16 definition with FP64 reductions; diagnostic, not a new acceptance rule",
+      "scaled_error_diagnostic": 0.0
+    },
+    {
+      "label": "reference-step-31",
+      "component": "rms_norm",
+      "max_absolute_error": 0.0,
+      "rms_error": 0.0,
+      "note": "Local staged-FP16 definition with FP64 reductions; diagnostic, not a new acceptance rule",
+      "scaled_error_diagnostic": 0.0
+    },
+    {
+      "label": "reference-step-31",
+      "component": "swiglu",
+      "max_absolute_error": 4.1627785279274576e-05,
+      "rms_error": 2.878856929718363e-06,
+      "note": "Local staged-FP16 definition with FP64 reductions; diagnostic, not a new acceptance rule",
+      "scaled_error_diagnostic": 0.017958846036582453
+    },
+    {
+      "label": "reference-step-31",
+      "component": "rms_norm",
+      "max_absolute_error": 0.0,
+      "rms_error": 0.0,
+      "note": "Local staged-FP16 definition with FP64 reductions; diagnostic, not a new acceptance rule",
+      "scaled_error_diagnostic": 0.0
+    },
+    {
+      "label": "reference-step-31",
+      "component": "rms_norm",
+      "max_absolute_error": 0.0,
+      "rms_error": 0.0,
+      "note": "Local staged-FP16 definition with FP64 reductions; diagnostic, not a new acceptance rule",
+      "scaled_error_diagnostic": 0.0
+    },
+    {
+      "label": "reference-step-31",
+      "component": "swiglu",
+      "max_absolute_error": 2.95172003177413e-05,
+      "rms_error": 2.9529500749042296e-06,
+      "note": "Local staged-FP16 definition with FP64 reductions; diagnostic, not a new acceptance rule",
+      "scaled_error_diagnostic": 0.012830239847876554
+    },
+    {
+      "label": "reference-step-31",
+      "component": "rms_norm",
+      "max_absolute_error": 0.0,
+      "rms_error": 0.0,
+      "note": "Local staged-FP16 definition with FP64 reductions; diagnostic, not a new acceptance rule",
+      "scaled_error_diagnostic": 0.0
+    },
+    {
+      "label": "reference-step-31",
+      "component": "rms_norm",
+      "max_absolute_error": 0.0,
+      "rms_error": 0.0,
+      "note": "Local staged-FP16 definition with FP64 reductions; diagnostic, not a new acceptance rule",
+      "scaled_error_diagnostic": 0.0
+    },
+    {
+      "label": "reference-step-31",
+      "component": "swiglu",
+      "max_absolute_error": 2.6323436173925074e-05,
+      "rms_error": 5.843143942894567e-06,
+      "note": "Local staged-FP16 definition with FP64 reductions; diagnostic, not a new acceptance rule",
+      "scaled_error_diagnostic": 0.01244617594357888
+    },
+    {
+      "label": "reference-step-31",
+      "component": "rms_norm",
+      "max_absolute_error": 0.0,
+      "rms_error": 0.0,
+      "note": "Local staged-FP16 definition with FP64 reductions; diagnostic, not a new acceptance rule",
+      "scaled_error_diagnostic": 0.0
+    },
+    {
+      "label": "reference-step-31",
+      "component": "rms_norm",
+      "max_absolute_error": 0.0,
+      "rms_error": 0.0,
+      "note": "Local staged-FP16 definition with FP64 reductions; diagnostic, not a new acceptance rule",
+      "scaled_error_diagnostic": 0.0
+    },
+    {
+      "label": "reference-step-31",
+      "component": "swiglu",
+      "max_absolute_error": 3.0280016105166396e-05,
+      "rms_error": 4.420390743151534e-06,
+      "note": "Local staged-FP16 definition with FP64 reductions; diagnostic, not a new acceptance rule",
+      "scaled_error_diagnostic": 0.01413371909187964
+    },
+    {
+      "label": "reference-step-31",
+      "component": "rms_norm",
+      "max_absolute_error": 0.0,
+      "rms_error": 0.0,
+      "note": "Local staged-FP16 definition with FP64 reductions; diagnostic, not a new acceptance rule",
+      "scaled_error_diagnostic": 0.0
+    },
+    {
+      "label": "reference-step-31",
+      "component": "rms_norm",
+      "max_absolute_error": 0.0,
+      "rms_error": 0.0,
+      "note": "Local staged-FP16 definition with FP64 reductions; diagnostic, not a new acceptance rule",
+      "scaled_error_diagnostic": 0.0
+    },
+    {
+      "label": "reference-step-31",
+      "component": "swiglu",
+      "max_absolute_error": 5.3203255419020934e-05,
+      "rms_error": 6.92983462374383e-06,
+      "note": "Local staged-FP16 definition with FP64 reductions; diagnostic, not a new acceptance rule",
+      "scaled_error_diagnostic": 0.023562634204776268
+    },
+    {
+      "label": "reference-step-31",
+      "component": "rms_norm",
+      "max_absolute_error": 0.0,
+      "rms_error": 0.0,
+      "note": "Local staged-FP16 definition with FP64 reductions; diagnostic, not a new acceptance rule",
+      "scaled_error_diagnostic": 0.0
+    },
+    {
+      "label": "reference-step-31",
+      "component": "rms_norm",
+      "max_absolute_error": 0.0,
+      "rms_error": 0.0,
+      "note": "Local staged-FP16 definition with FP64 reductions; diagnostic, not a new acceptance rule",
+      "scaled_error_diagnostic": 0.0
+    },
+    {
+      "label": "reference-step-31",
+      "component": "swiglu",
+      "max_absolute_error": 4.3783397813967895e-05,
+      "rms_error": 6.601569767755362e-06,
+      "note": "Local staged-FP16 definition with FP64 reductions; diagnostic, not a new acceptance rule",
+      "scaled_error_diagnostic": 0.019405890819758694
+    },
+    {
+      "label": "reference-step-31",
+      "component": "rms_norm",
+      "max_absolute_error": 0.0,
+      "rms_error": 0.0,
+      "note": "Local staged-FP16 definition with FP64 reductions; diagnostic, not a new acceptance rule",
+      "scaled_error_diagnostic": 0.0
+    },
+    {
+      "label": "reference-step-31",
+      "component": "rms_norm",
+      "max_absolute_error": 0.0,
+      "rms_error": 0.0,
+      "note": "Local staged-FP16 definition with FP64 reductions; diagnostic, not a new acceptance rule",
+      "scaled_error_diagnostic": 0.0
+    },
+    {
+      "label": "reference-step-31",
+      "component": "swiglu",
+      "max_absolute_error": 3.099293311237261e-05,
+      "rms_error": 7.321513164101143e-06,
+      "note": "Local staged-FP16 definition with FP64 reductions; diagnostic, not a new acceptance rule",
+      "scaled_error_diagnostic": 0.014512611360127796
+    },
+    {
+      "label": "reference-step-31",
+      "component": "rms_norm",
+      "max_absolute_error": 0.0,
+      "rms_error": 0.0,
+      "note": "Local staged-FP16 definition with FP64 reductions; diagnostic, not a new acceptance rule",
+      "scaled_error_diagnostic": 0.0
+    },
+    {
+      "label": "reference-step-31",
+      "component": "rms_norm",
+      "max_absolute_error": 0.0,
+      "rms_error": 0.0,
+      "note": "Local staged-FP16 definition with FP64 reductions; diagnostic, not a new acceptance rule",
+      "scaled_error_diagnostic": 0.0
+    },
+    {
+      "label": "reference-step-31",
+      "component": "swiglu",
+      "max_absolute_error": 6.612842389586149e-05,
+      "rms_error": 8.04314662862726e-06,
+      "note": "Local staged-FP16 definition with FP64 reductions; diagnostic, not a new acceptance rule",
+      "scaled_error_diagnostic": 0.02284109046293217
+    },
+    {
+      "label": "reference-step-31",
+      "component": "rms_norm",
+      "max_absolute_error": 0.0,
+      "rms_error": 0.0,
+      "note": "Local staged-FP16 definition with FP64 reductions; diagnostic, not a new acceptance rule",
+      "scaled_error_diagnostic": 0.0
+    },
+    {
+      "label": "reference-step-31",
+      "component": "rms_norm",
+      "max_absolute_error": 0.0,
+      "rms_error": 0.0,
+      "note": "Local staged-FP16 definition with FP64 reductions; diagnostic, not a new acceptance rule",
+      "scaled_error_diagnostic": 0.0
+    },
+    {
+      "label": "reference-step-31",
+      "component": "swiglu",
+      "max_absolute_error": 4.224666304253333e-05,
+      "rms_error": 7.776368540515667e-06,
+      "note": "Local staged-FP16 definition with FP64 reductions; diagnostic, not a new acceptance rule",
+      "scaled_error_diagnostic": 0.018598011106599123
+    },
+    {
+      "label": "reference-step-31",
+      "component": "rms_norm",
+      "max_absolute_error": 0.0,
+      "rms_error": 0.0,
+      "note": "Local staged-FP16 definition with FP64 reductions; diagnostic, not a new acceptance rule",
+      "scaled_error_diagnostic": 0.0
+    },
+    {
+      "label": "reference-step-31",
+      "component": "rms_norm",
+      "max_absolute_error": 0.0,
+      "rms_error": 0.0,
+      "note": "Local staged-FP16 definition with FP64 reductions; diagnostic, not a new acceptance rule",
+      "scaled_error_diagnostic": 0.0
+    },
+    {
+      "label": "reference-step-31",
+      "component": "swiglu",
+      "max_absolute_error": 5.578158271646316e-05,
+      "rms_error": 1.0983162822871632e-05,
+      "note": "Local staged-FP16 definition with FP64 reductions; diagnostic, not a new acceptance rule",
+      "scaled_error_diagnostic": 0.02420983532517164
+    },
+    {
+      "label": "reference-step-31",
+      "component": "rms_norm",
+      "max_absolute_error": 0.0,
+      "rms_error": 0.0,
+      "note": "Local staged-FP16 definition with FP64 reductions; diagnostic, not a new acceptance rule",
+      "scaled_error_diagnostic": 0.0
+    },
+    {
+      "label": "reference-step-31",
+      "component": "rms_norm",
+      "max_absolute_error": 0.0,
+      "rms_error": 0.0,
+      "note": "Local staged-FP16 definition with FP64 reductions; diagnostic, not a new acceptance rule",
+      "scaled_error_diagnostic": 0.0
+    },
+    {
+      "label": "reference-step-31",
+      "component": "swiglu",
+      "max_absolute_error": 6.395799209713005e-05,
+      "rms_error": 1.2277328267524604e-05,
+      "note": "Local staged-FP16 definition with FP64 reductions; diagnostic, not a new acceptance rule",
+      "scaled_error_diagnostic": 0.027743987283908332
+    },
+    {
+      "label": "reference-step-31",
+      "component": "rms_norm",
+      "max_absolute_error": 0.0,
+      "rms_error": 0.0,
+      "note": "Local staged-FP16 definition with FP64 reductions; diagnostic, not a new acceptance rule",
+      "scaled_error_diagnostic": 0.0
+    },
+    {
+      "label": "reference-step-31",
+      "component": "rms_norm",
+      "max_absolute_error": 0.0,
+      "rms_error": 0.0,
+      "note": "Local staged-FP16 definition with FP64 reductions; diagnostic, not a new acceptance rule",
+      "scaled_error_diagnostic": 0.0
+    },
+    {
+      "label": "reference-step-31",
+      "component": "swiglu",
+      "max_absolute_error": 5.986908649902034e-05,
+      "rms_error": 1.3959643594948336e-05,
+      "note": "Local staged-FP16 definition with FP64 reductions; diagnostic, not a new acceptance rule",
+      "scaled_error_diagnostic": 0.026312948864964065
+    },
+    {
+      "label": "reference-step-31",
+      "component": "rms_norm",
+      "max_absolute_error": 0.0,
+      "rms_error": 0.0,
+      "note": "Local staged-FP16 definition with FP64 reductions; diagnostic, not a new acceptance rule",
+      "scaled_error_diagnostic": 0.0
+    },
+    {
+      "label": "reference-step-31",
+      "component": "rms_norm",
+      "max_absolute_error": 0.0,
+      "rms_error": 0.0,
+      "note": "Local staged-FP16 definition with FP64 reductions; diagnostic, not a new acceptance rule",
+      "scaled_error_diagnostic": 0.0
+    },
+    {
+      "label": "reference-step-31",
+      "component": "swiglu",
+      "max_absolute_error": 0.00010790603022314826,
+      "rms_error": 1.6564084421816667e-05,
+      "note": "Local staged-FP16 definition with FP64 reductions; diagnostic, not a new acceptance rule",
+      "scaled_error_diagnostic": 0.04107312198350096
+    },
+    {
+      "label": "reference-step-31",
+      "component": "rms_norm",
+      "max_absolute_error": 0.0,
+      "rms_error": 0.0,
+      "note": "Local staged-FP16 definition with FP64 reductions; diagnostic, not a new acceptance rule",
+      "scaled_error_diagnostic": 0.0
+    },
+    {
+      "label": "reference-step-31",
+      "component": "rms_norm",
+      "max_absolute_error": 0.00048828125,
+      "rms_error": 1.9451215795870913e-05,
+      "note": "Local staged-FP16 definition with FP64 reductions; diagnostic, not a new acceptance rule",
+      "scaled_error_diagnostic": 0.15664160401002505
+    },
+    {
+      "label": "reference-step-31",
+      "component": "swiglu",
+      "max_absolute_error": 0.0001228093055942736,
+      "rms_error": 2.4391494245170236e-05,
+      "note": "Local staged-FP16 definition with FP64 reductions; diagnostic, not a new acceptance rule",
+      "scaled_error_diagnostic": 0.048475149104149906
+    },
+    {
+      "label": "reference-step-31",
+      "component": "rms_norm",
+      "max_absolute_error": 0.0,
+      "rms_error": 0.0,
+      "note": "Local staged-FP16 definition with FP64 reductions; diagnostic, not a new acceptance rule",
+      "scaled_error_diagnostic": 0.0
+    },
+    {
+      "label": "reference-step-31",
+      "component": "rms_norm",
+      "max_absolute_error": 0.0,
+      "rms_error": 0.0,
+      "note": "Local staged-FP16 definition with FP64 reductions; diagnostic, not a new acceptance rule",
+      "scaled_error_diagnostic": 0.0
+    },
+    {
+      "label": "reference-step-31",
+      "component": "swiglu",
+      "max_absolute_error": 0.00011835916484415065,
+      "rms_error": 2.3328033404470834e-05,
+      "note": "Local staged-FP16 definition with FP64 reductions; diagnostic, not a new acceptance rule",
+      "scaled_error_diagnostic": 0.046566185274598174
+    },
+    {
+      "label": "reference-step-31",
+      "component": "rms_norm",
+      "max_absolute_error": 0.0,
+      "rms_error": 0.0,
+      "note": "Local staged-FP16 definition with FP64 reductions; diagnostic, not a new acceptance rule",
+      "scaled_error_diagnostic": 0.0
+    },
+    {
+      "label": "reference-step-31",
+      "component": "rms_norm",
+      "max_absolute_error": 0.0,
+      "rms_error": 0.0,
+      "note": "Local staged-FP16 definition with FP64 reductions; diagnostic, not a new acceptance rule",
+      "scaled_error_diagnostic": 0.0
+    },
+    {
+      "label": "reference-step-31",
+      "component": "swiglu",
+      "max_absolute_error": 0.00021383324980206453,
+      "rms_error": 3.9962368677143096e-05,
+      "note": "Local staged-FP16 definition with FP64 reductions; diagnostic, not a new acceptance rule",
+      "scaled_error_diagnostic": 0.06631060132109838
+    },
+    {
+      "label": "reference-step-31",
+      "component": "rms_norm",
+      "max_absolute_error": 0.0,
+      "rms_error": 0.0,
+      "note": "Local staged-FP16 definition with FP64 reductions; diagnostic, not a new acceptance rule",
+      "scaled_error_diagnostic": 0.0
+    },
+    {
+      "label": "reference-step-31",
+      "component": "rms_norm",
+      "max_absolute_error": 0.0,
+      "rms_error": 0.0,
+      "note": "Local staged-FP16 definition with FP64 reductions; diagnostic, not a new acceptance rule",
+      "scaled_error_diagnostic": 0.0
+    },
+    {
+      "label": "reference-step-31",
+      "component": "swiglu",
+      "max_absolute_error": 0.00024209509473394064,
+      "rms_error": 5.28413085682183e-05,
+      "note": "Local staged-FP16 definition with FP64 reductions; diagnostic, not a new acceptance rule",
+      "scaled_error_diagnostic": 0.07766249238364399
+    },
+    {
+      "label": "reference-step-31",
+      "component": "rms_norm",
+      "max_absolute_error": 0.0,
+      "rms_error": 0.0,
+      "note": "Local staged-FP16 definition with FP64 reductions; diagnostic, not a new acceptance rule",
+      "scaled_error_diagnostic": 0.0
+    },
+    {
+      "label": "reference-step-31",
+      "component": "rms_norm",
+      "max_absolute_error": 0.0,
+      "rms_error": 0.0,
+      "note": "Local staged-FP16 definition with FP64 reductions; diagnostic, not a new acceptance rule",
+      "scaled_error_diagnostic": 0.0
+    },
+    {
+      "label": "reference-step-31",
+      "component": "swiglu",
+      "max_absolute_error": 0.000901458623502549,
+      "rms_error": 8.609138883395371e-05,
+      "note": "Local staged-FP16 definition with FP64 reductions; diagnostic, not a new acceptance rule",
+      "scaled_error_diagnostic": 0.10427111612362684
+    },
+    {
+      "label": "reference-step-31",
+      "component": "rms_norm",
+      "max_absolute_error": 0.0,
+      "rms_error": 0.0,
+      "note": "Local staged-FP16 definition with FP64 reductions; diagnostic, not a new acceptance rule",
+      "scaled_error_diagnostic": 0.0
+    },
+    {
+      "label": "reference-step-31",
+      "component": "rms_norm",
+      "max_absolute_error": 0.0,
+      "rms_error": 0.0,
+      "note": "Local staged-FP16 definition with FP64 reductions; diagnostic, not a new acceptance rule",
+      "scaled_error_diagnostic": 0.0
+    },
+    {
+      "label": "reference-step-31",
+      "component": "swiglu",
+      "max_absolute_error": 0.0009352772200372783,
+      "rms_error": 9.065218864526068e-05,
+      "note": "Local staged-FP16 definition with FP64 reductions; diagnostic, not a new acceptance rule",
+      "scaled_error_diagnostic": 0.11436909797878583
+    },
+    {
+      "label": "reference-step-31",
+      "component": "final_logits",
+      "max_absolute_error": 0.003907525482645724,
+      "rms_error": 0.0010977934200259191,
+      "note": "Local staged-FP16 definition with FP64 reductions; diagnostic, not a new acceptance rule",
+      "scaled_error_diagnostic": 0.08529040474583212
+    },
+    {
+      "label": "paged-step-31",
+      "component": "rms_norm",
+      "max_absolute_error": 0.0,
+      "rms_error": 0.0,
+      "note": "Local staged-FP16 definition with FP64 reductions; diagnostic, not a new acceptance rule",
+      "scaled_error_diagnostic": 0.0
+    },
+    {
+      "label": "paged-step-31",
+      "component": "rms_norm",
+      "max_absolute_error": 0.0,
+      "rms_error": 0.0,
+      "note": "Local staged-FP16 definition with FP64 reductions; diagnostic, not a new acceptance rule",
+      "scaled_error_diagnostic": 0.0
+    },
+    {
+      "label": "paged-step-31",
+      "component": "swiglu",
+      "max_absolute_error": 4.034188367540992e-05,
+      "rms_error": 1.8154038051725177e-06,
+      "note": "Local staged-FP16 definition with FP64 reductions; diagnostic, not a new acceptance rule",
+      "scaled_error_diagnostic": 0.01769610235114234
+    },
+    {
+      "label": "paged-step-31",
+      "component": "rms_norm",
+      "max_absolute_error": 0.0,
+      "rms_error": 0.0,
+      "note": "Local staged-FP16 definition with FP64 reductions; diagnostic, not a new acceptance rule",
+      "scaled_error_diagnostic": 0.0
+    },
+    {
+      "label": "paged-step-31",
+      "component": "rms_norm",
+      "max_absolute_error": 0.0,
+      "rms_error": 0.0,
+      "note": "Local staged-FP16 definition with FP64 reductions; diagnostic, not a new acceptance rule",
+      "scaled_error_diagnostic": 0.0
+    },
+    {
+      "label": "paged-step-31",
+      "component": "swiglu",
+      "max_absolute_error": 1.1450490241315947e-05,
+      "rms_error": 1.305178334776725e-06,
+      "note": "Local staged-FP16 definition with FP64 reductions; diagnostic, not a new acceptance rule",
+      "scaled_error_diagnostic": 0.005502152581592021
+    },
+    {
+      "label": "paged-step-31",
+      "component": "rms_norm",
+      "max_absolute_error": 0.0,
+      "rms_error": 0.0,
+      "note": "Local staged-FP16 definition with FP64 reductions; diagnostic, not a new acceptance rule",
+      "scaled_error_diagnostic": 0.0
+    },
+    {
+      "label": "paged-step-31",
+      "component": "rms_norm",
+      "max_absolute_error": 0.0,
+      "rms_error": 0.0,
+      "note": "Local staged-FP16 definition with FP64 reductions; diagnostic, not a new acceptance rule",
+      "scaled_error_diagnostic": 0.0
+    },
+    {
+      "label": "paged-step-31",
+      "component": "swiglu",
+      "max_absolute_error": 2.4500832083163004e-05,
+      "rms_error": 2.118472185677435e-06,
+      "note": "Local staged-FP16 definition with FP64 reductions; diagnostic, not a new acceptance rule",
+      "scaled_error_diagnostic": 0.01128133819639547
+    },
+    {
+      "label": "paged-step-31",
+      "component": "rms_norm",
+      "max_absolute_error": 0.0,
+      "rms_error": 0.0,
+      "note": "Local staged-FP16 definition with FP64 reductions; diagnostic, not a new acceptance rule",
+      "scaled_error_diagnostic": 0.0
+    },
+    {
+      "label": "paged-step-31",
+      "component": "rms_norm",
+      "max_absolute_error": 0.0,
+      "rms_error": 0.0,
+      "note": "Local staged-FP16 definition with FP64 reductions; diagnostic, not a new acceptance rule",
+      "scaled_error_diagnostic": 0.0
+    },
+    {
+      "label": "paged-step-31",
+      "component": "swiglu",
+      "max_absolute_error": 2.4641806561476187e-05,
+      "rms_error": 2.7670430254439224e-06,
+      "note": "Local staged-FP16 definition with FP64 reductions; diagnostic, not a new acceptance rule",
+      "scaled_error_diagnostic": 0.010630330234296045
+    },
+    {
+      "label": "paged-step-31",
+      "component": "rms_norm",
+      "max_absolute_error": 0.0,
+      "rms_error": 0.0,
+      "note": "Local staged-FP16 definition with FP64 reductions; diagnostic, not a new acceptance rule",
+      "scaled_error_diagnostic": 0.0
+    },
+    {
+      "label": "paged-step-31",
+      "component": "rms_norm",
+      "max_absolute_error": 0.0,
+      "rms_error": 0.0,
+      "note": "Local staged-FP16 definition with FP64 reductions; diagnostic, not a new acceptance rule",
+      "scaled_error_diagnostic": 0.0
+    },
+    {
+      "label": "paged-step-31",
+      "component": "swiglu",
+      "max_absolute_error": 4.6592881119522644e-05,
+      "rms_error": 3.0842494835347676e-06,
+      "note": "Local staged-FP16 definition with FP64 reductions; diagnostic, not a new acceptance rule",
+      "scaled_error_diagnostic": 0.020251715929581828
+    },
+    {
+      "label": "paged-step-31",
+      "component": "rms_norm",
+      "max_absolute_error": 0.0,
+      "rms_error": 0.0,
+      "note": "Local staged-FP16 definition with FP64 reductions; diagnostic, not a new acceptance rule",
+      "scaled_error_diagnostic": 0.0
+    },
+    {
+      "label": "paged-step-31",
+      "component": "rms_norm",
+      "max_absolute_error": 0.0001220703125,
+      "rms_error": 2.800784140699084e-06,
+      "note": "Local staged-FP16 definition with FP64 reductions; diagnostic, not a new acceptance rule",
+      "scaled_error_diagnostic": 0.05269259142164611
+    },
+    {
+      "label": "paged-step-31",
+      "component": "swiglu",
+      "max_absolute_error": 1.8039064912045433e-05,
+      "rms_error": 3.83822990776993e-06,
+      "note": "Local staged-FP16 definition with FP64 reductions; diagnostic, not a new acceptance rule",
+      "scaled_error_diagnostic": 0.00825966008608194
+    },
+    {
+      "label": "paged-step-31",
+      "component": "rms_norm",
+      "max_absolute_error": 0.0,
+      "rms_error": 0.0,
+      "note": "Local staged-FP16 definition with FP64 reductions; diagnostic, not a new acceptance rule",
+      "scaled_error_diagnostic": 0.0
+    },
+    {
+      "label": "paged-step-31",
+      "component": "rms_norm",
+      "max_absolute_error": 0.0,
+      "rms_error": 0.0,
+      "note": "Local staged-FP16 definition with FP64 reductions; diagnostic, not a new acceptance rule",
+      "scaled_error_diagnostic": 0.0
+    },
+    {
+      "label": "paged-step-31",
+      "component": "swiglu",
+      "max_absolute_error": 2.882322822728156e-05,
+      "rms_error": 4.62259118488458e-06,
+      "note": "Local staged-FP16 definition with FP64 reductions; diagnostic, not a new acceptance rule",
+      "scaled_error_diagnostic": 0.013453762520578633
+    },
+    {
+      "label": "paged-step-31",
+      "component": "rms_norm",
+      "max_absolute_error": 0.0,
+      "rms_error": 0.0,
+      "note": "Local staged-FP16 definition with FP64 reductions; diagnostic, not a new acceptance rule",
+      "scaled_error_diagnostic": 0.0
+    },
+    {
+      "label": "paged-step-31",
+      "component": "rms_norm",
+      "max_absolute_error": 0.0,
+      "rms_error": 0.0,
+      "note": "Local staged-FP16 definition with FP64 reductions; diagnostic, not a new acceptance rule",
+      "scaled_error_diagnostic": 0.0
+    },
+    {
+      "label": "paged-step-31",
+      "component": "swiglu",
+      "max_absolute_error": 4.897402300230169e-05,
+      "rms_error": 6.675182139772615e-06,
+      "note": "Local staged-FP16 definition with FP64 reductions; diagnostic, not a new acceptance rule",
+      "scaled_error_diagnostic": 0.0207070600438119
+    },
+    {
+      "label": "paged-step-31",
+      "component": "rms_norm",
+      "max_absolute_error": 0.0,
+      "rms_error": 0.0,
+      "note": "Local staged-FP16 definition with FP64 reductions; diagnostic, not a new acceptance rule",
+      "scaled_error_diagnostic": 0.0
+    },
+    {
+      "label": "paged-step-31",
+      "component": "rms_norm",
+      "max_absolute_error": 0.0,
+      "rms_error": 0.0,
+      "note": "Local staged-FP16 definition with FP64 reductions; diagnostic, not a new acceptance rule",
+      "scaled_error_diagnostic": 0.0
+    },
+    {
+      "label": "paged-step-31",
+      "component": "swiglu",
+      "max_absolute_error": 4.276197159924777e-05,
+      "rms_error": 6.611851219822655e-06,
+      "note": "Local staged-FP16 definition with FP64 reductions; diagnostic, not a new acceptance rule",
+      "scaled_error_diagnostic": 0.018961393675348413
+    },
+    {
+      "label": "paged-step-31",
+      "component": "rms_norm",
+      "max_absolute_error": 0.0,
+      "rms_error": 0.0,
+      "note": "Local staged-FP16 definition with FP64 reductions; diagnostic, not a new acceptance rule",
+      "scaled_error_diagnostic": 0.0
+    },
+    {
+      "label": "paged-step-31",
+      "component": "rms_norm",
+      "max_absolute_error": 0.0,
+      "rms_error": 0.0,
+      "note": "Local staged-FP16 definition with FP64 reductions; diagnostic, not a new acceptance rule",
+      "scaled_error_diagnostic": 0.0
+    },
+    {
+      "label": "paged-step-31",
+      "component": "swiglu",
+      "max_absolute_error": 3.044126523121804e-05,
+      "rms_error": 7.370654680512369e-06,
+      "note": "Local staged-FP16 definition with FP64 reductions; diagnostic, not a new acceptance rule",
+      "scaled_error_diagnostic": 0.014159687658446472
+    },
+    {
+      "label": "paged-step-31",
+      "component": "rms_norm",
+      "max_absolute_error": 0.0,
+      "rms_error": 0.0,
+      "note": "Local staged-FP16 definition with FP64 reductions; diagnostic, not a new acceptance rule",
+      "scaled_error_diagnostic": 0.0
+    },
+    {
+      "label": "paged-step-31",
+      "component": "rms_norm",
+      "max_absolute_error": 0.0,
+      "rms_error": 0.0,
+      "note": "Local staged-FP16 definition with FP64 reductions; diagnostic, not a new acceptance rule",
+      "scaled_error_diagnostic": 0.0
+    },
+    {
+      "label": "paged-step-31",
+      "component": "swiglu",
+      "max_absolute_error": 6.0317042652968667e-05,
+      "rms_error": 7.750940841231717e-06,
+      "note": "Local staged-FP16 definition with FP64 reductions; diagnostic, not a new acceptance rule",
+      "scaled_error_diagnostic": 0.02082509244295403
+    },
+    {
+      "label": "paged-step-31",
+      "component": "rms_norm",
+      "max_absolute_error": 0.0,
+      "rms_error": 0.0,
+      "note": "Local staged-FP16 definition with FP64 reductions; diagnostic, not a new acceptance rule",
+      "scaled_error_diagnostic": 0.0
+    },
+    {
+      "label": "paged-step-31",
+      "component": "rms_norm",
+      "max_absolute_error": 0.0,
+      "rms_error": 0.0,
+      "note": "Local staged-FP16 definition with FP64 reductions; diagnostic, not a new acceptance rule",
+      "scaled_error_diagnostic": 0.0
+    },
+    {
+      "label": "paged-step-31",
+      "component": "swiglu",
+      "max_absolute_error": 5.578858792887331e-05,
+      "rms_error": 8.227967436392687e-06,
+      "note": "Local staged-FP16 definition with FP64 reductions; diagnostic, not a new acceptance rule",
+      "scaled_error_diagnostic": 0.02456425696185539
+    },
+    {
+      "label": "paged-step-31",
+      "component": "rms_norm",
+      "max_absolute_error": 0.0,
+      "rms_error": 0.0,
+      "note": "Local staged-FP16 definition with FP64 reductions; diagnostic, not a new acceptance rule",
+      "scaled_error_diagnostic": 0.0
+    },
+    {
+      "label": "paged-step-31",
+      "component": "rms_norm",
+      "max_absolute_error": 0.0,
+      "rms_error": 0.0,
+      "note": "Local staged-FP16 definition with FP64 reductions; diagnostic, not a new acceptance rule",
+      "scaled_error_diagnostic": 0.0
+    },
+    {
+      "label": "paged-step-31",
+      "component": "swiglu",
+      "max_absolute_error": 5.816815291836974e-05,
+      "rms_error": 1.0762451105422219e-05,
+      "note": "Local staged-FP16 definition with FP64 reductions; diagnostic, not a new acceptance rule",
+      "scaled_error_diagnostic": 0.025636988914462727
+    },
+    {
+      "label": "paged-step-31",
+      "component": "rms_norm",
+      "max_absolute_error": 0.0,
+      "rms_error": 0.0,
+      "note": "Local staged-FP16 definition with FP64 reductions; diagnostic, not a new acceptance rule",
+      "scaled_error_diagnostic": 0.0
+    },
+    {
+      "label": "paged-step-31",
+      "component": "rms_norm",
+      "max_absolute_error": 0.0,
+      "rms_error": 0.0,
+      "note": "Local staged-FP16 definition with FP64 reductions; diagnostic, not a new acceptance rule",
+      "scaled_error_diagnostic": 0.0
+    },
+    {
+      "label": "paged-step-31",
+      "component": "swiglu",
+      "max_absolute_error": 6.0926797942784106e-05,
+      "rms_error": 1.197248014470467e-05,
+      "note": "Local staged-FP16 definition with FP64 reductions; diagnostic, not a new acceptance rule",
+      "scaled_error_diagnostic": 0.026780725239697763
+    },
+    {
+      "label": "paged-step-31",
+      "component": "rms_norm",
+      "max_absolute_error": 0.0,
+      "rms_error": 0.0,
+      "note": "Local staged-FP16 definition with FP64 reductions; diagnostic, not a new acceptance rule",
+      "scaled_error_diagnostic": 0.0
+    },
+    {
+      "label": "paged-step-31",
+      "component": "rms_norm",
+      "max_absolute_error": 0.0,
+      "rms_error": 0.0,
+      "note": "Local staged-FP16 definition with FP64 reductions; diagnostic, not a new acceptance rule",
+      "scaled_error_diagnostic": 0.0
+    },
+    {
+      "label": "paged-step-31",
+      "component": "swiglu",
+      "max_absolute_error": 6.170025017127045e-05,
+      "rms_error": 1.347105222457336e-05,
+      "note": "Local staged-FP16 definition with FP64 reductions; diagnostic, not a new acceptance rule",
+      "scaled_error_diagnostic": 0.026741904703818684
+    },
+    {
+      "label": "paged-step-31",
+      "component": "rms_norm",
+      "max_absolute_error": 0.0,
+      "rms_error": 0.0,
+      "note": "Local staged-FP16 definition with FP64 reductions; diagnostic, not a new acceptance rule",
+      "scaled_error_diagnostic": 0.0
+    },
+    {
+      "label": "paged-step-31",
+      "component": "rms_norm",
+      "max_absolute_error": 0.0,
+      "rms_error": 0.0,
+      "note": "Local staged-FP16 definition with FP64 reductions; diagnostic, not a new acceptance rule",
+      "scaled_error_diagnostic": 0.0
+    },
+    {
+      "label": "paged-step-31",
+      "component": "swiglu",
+      "max_absolute_error": 8.657446517190692e-05,
+      "rms_error": 1.57944313254582e-05,
+      "note": "Local staged-FP16 definition with FP64 reductions; diagnostic, not a new acceptance rule",
+      "scaled_error_diagnostic": 0.032954055551500445
+    },
+    {
+      "label": "paged-step-31",
+      "component": "rms_norm",
+      "max_absolute_error": 0.0,
+      "rms_error": 0.0,
+      "note": "Local staged-FP16 definition with FP64 reductions; diagnostic, not a new acceptance rule",
+      "scaled_error_diagnostic": 0.0
+    },
+    {
+      "label": "paged-step-31",
+      "component": "rms_norm",
+      "max_absolute_error": 0.0,
+      "rms_error": 0.0,
+      "note": "Local staged-FP16 definition with FP64 reductions; diagnostic, not a new acceptance rule",
+      "scaled_error_diagnostic": 0.0
+    },
+    {
+      "label": "paged-step-31",
+      "component": "swiglu",
+      "max_absolute_error": 0.0001203368424285145,
+      "rms_error": 2.442108691984269e-05,
+      "note": "Local staged-FP16 definition with FP64 reductions; diagnostic, not a new acceptance rule",
+      "scaled_error_diagnostic": 0.047344062460256055
+    },
+    {
+      "label": "paged-step-31",
+      "component": "rms_norm",
+      "max_absolute_error": 0.0,
+      "rms_error": 0.0,
+      "note": "Local staged-FP16 definition with FP64 reductions; diagnostic, not a new acceptance rule",
+      "scaled_error_diagnostic": 0.0
+    },
+    {
+      "label": "paged-step-31",
+      "component": "rms_norm",
+      "max_absolute_error": 0.0,
+      "rms_error": 0.0,
+      "note": "Local staged-FP16 definition with FP64 reductions; diagnostic, not a new acceptance rule",
+      "scaled_error_diagnostic": 0.0
+    },
+    {
+      "label": "paged-step-31",
+      "component": "swiglu",
+      "max_absolute_error": 0.0001204393017815164,
+      "rms_error": 2.337701662521335e-05,
+      "note": "Local staged-FP16 definition with FP64 reductions; diagnostic, not a new acceptance rule",
+      "scaled_error_diagnostic": 0.04725728026451164
+    },
+    {
+      "label": "paged-step-31",
+      "component": "rms_norm",
+      "max_absolute_error": 0.0,
+      "rms_error": 0.0,
+      "note": "Local staged-FP16 definition with FP64 reductions; diagnostic, not a new acceptance rule",
+      "scaled_error_diagnostic": 0.0
+    },
+    {
+      "label": "paged-step-31",
+      "component": "rms_norm",
+      "max_absolute_error": 0.0,
+      "rms_error": 0.0,
+      "note": "Local staged-FP16 definition with FP64 reductions; diagnostic, not a new acceptance rule",
+      "scaled_error_diagnostic": 0.0
+    },
+    {
+      "label": "paged-step-31",
+      "component": "swiglu",
+      "max_absolute_error": 0.00024360113820875995,
+      "rms_error": 4.00626508035549e-05,
+      "note": "Local staged-FP16 definition with FP64 reductions; diagnostic, not a new acceptance rule",
+      "scaled_error_diagnostic": 0.07702567566127758
+    },
+    {
+      "label": "paged-step-31",
+      "component": "rms_norm",
+      "max_absolute_error": 0.0,
+      "rms_error": 0.0,
+      "note": "Local staged-FP16 definition with FP64 reductions; diagnostic, not a new acceptance rule",
+      "scaled_error_diagnostic": 0.0
+    },
+    {
+      "label": "paged-step-31",
+      "component": "rms_norm",
+      "max_absolute_error": 0.0,
+      "rms_error": 0.0,
+      "note": "Local staged-FP16 definition with FP64 reductions; diagnostic, not a new acceptance rule",
+      "scaled_error_diagnostic": 0.0
+    },
+    {
+      "label": "paged-step-31",
+      "component": "swiglu",
+      "max_absolute_error": 0.0004318427438931849,
+      "rms_error": 5.625617201498261e-05,
+      "note": "Local staged-FP16 definition with FP64 reductions; diagnostic, not a new acceptance rule",
+      "scaled_error_diagnostic": 0.10777953389187109
+    },
+    {
+      "label": "paged-step-31",
+      "component": "rms_norm",
+      "max_absolute_error": 0.0,
+      "rms_error": 0.0,
+      "note": "Local staged-FP16 definition with FP64 reductions; diagnostic, not a new acceptance rule",
+      "scaled_error_diagnostic": 0.0
+    },
+    {
+      "label": "paged-step-31",
+      "component": "rms_norm",
+      "max_absolute_error": 0.0,
+      "rms_error": 0.0,
+      "note": "Local staged-FP16 definition with FP64 reductions; diagnostic, not a new acceptance rule",
+      "scaled_error_diagnostic": 0.0
+    },
+    {
+      "label": "paged-step-31",
+      "component": "swiglu",
+      "max_absolute_error": 0.00048508878080610884,
+      "rms_error": 8.454998130014586e-05,
+      "note": "Local staged-FP16 definition with FP64 reductions; diagnostic, not a new acceptance rule",
+      "scaled_error_diagnostic": 0.11846652444320555
+    },
+    {
+      "label": "paged-step-31",
+      "component": "rms_norm",
+      "max_absolute_error": 0.0,
+      "rms_error": 0.0,
+      "note": "Local staged-FP16 definition with FP64 reductions; diagnostic, not a new acceptance rule",
+      "scaled_error_diagnostic": 0.0
+    },
+    {
+      "label": "paged-step-31",
+      "component": "rms_norm",
+      "max_absolute_error": 0.0,
+      "rms_error": 0.0,
+      "note": "Local staged-FP16 definition with FP64 reductions; diagnostic, not a new acceptance rule",
+      "scaled_error_diagnostic": 0.0
+    },
+    {
+      "label": "paged-step-31",
+      "component": "swiglu",
+      "max_absolute_error": 0.0010449880262513034,
+      "rms_error": 9.081603917307573e-05,
+      "note": "Local staged-FP16 definition with FP64 reductions; diagnostic, not a new acceptance rule",
+      "scaled_error_diagnostic": 0.12485548611160195
+    },
+    {
+      "label": "paged-step-31",
+      "component": "final_logits",
+      "max_absolute_error": 0.0039050306077115238,
+      "rms_error": 0.0010967649692616513,
+      "note": "Local staged-FP16 definition with FP64 reductions; diagnostic, not a new acceptance rule",
+      "scaled_error_diagnostic": 0.0854486748959544
+    }
+  ],
+  "cleanup": {
+    "baseline": {
+      "total_blocks": 32,
+      "free_blocks": 32,
+      "owned_blocks": 0,
+      "reserved_blocks": 0,
+      "active_slots": 0,
+      "live_cached_token_slots": 0
+    },
+    "audited": {
+      "total_blocks": 32,
+      "free_blocks": 32,
+      "owned_blocks": 0,
+      "reserved_blocks": 0,
+      "active_slots": 0,
+      "live_cached_token_slots": 0
+    }
+  },
+  "limitations": [
+    "K/V ratios were measured during the run but raw K/V is not retained, so they were not independently recomputed from this archive.",
+    "Component input/native/FP64-reference errors were recomputed, but FP64 reference values were not regenerated locally from the real weights.",
+    "The component formula follows staged FP16 boundaries, with FP64 reductions; diagnostic scaled errors are not new acceptance rules.",
+    "Fixed fixture continuation, not free-running greedy generation, perplexity, vLLM comparison, held-out quality or 2048-token context validation.",
+    "Only norm/MLP/head audits; no general independent whole-model oracle."
+  ]
+}

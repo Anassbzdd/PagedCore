@@ -1,0 +1,21 @@
+{
+  "archive": "pagedcore-accuracy-p6ts13rg.zip",
+  "archive_sha256": "e900806e8b8589be425d3a75ffb91b5a837638f60127e34db8d5acb7975c58e6",
+  "runtime_sha256": {
+    "src/pagedcore/__init__.py": "42b1e9884f56caa6de42f8177eedcc2f9b81ae2df2f9db28e45114117e8f3d29",
+    "src/pagedcore/accuracy.py": "e5561ededa3cd1e76fbeaa51d915e89605af90a157f67ad8deeb5d9f4ee1205c",
+    "src/pagedcore/attention.py": "a88a9ed1673c59dd6c1ce2f7f974398a79b5d60a2bb07297b9b95933b60155cd",
+    "src/pagedcore/cli.py": "14394f9024e362da5093959764b56478bc80e9e45d82a610e171566ba424f82b",
+    "src/pagedcore/config.py": "9ad8fceb558dafef9274d6c83bfe9bcf904a97e3df3fa2cec4d08551e490dccb",
+    "src/pagedcore/decoder.py": "95254ffac22988f86a9071287874c05c4e38861b221594f91f68cfe0346ddf95",
+    "src/pagedcore/dense.py": "f323cc6bdbd7d6e6f4b69223db6460832f85707cc9b879dd0accec2fbf0ecf93",
+    "src/pagedcore/determinism.py": "2fdcba5697c59b4f68942fb7d3a14baff46cc4d0d70470c7f23e5c56a437afa2",
+    "src/pagedcore/engine_types.py": "db31cb04b5dd4e127d37f1b3a4b88bc20f2272520893a150428197713c6cae40",
+    "src/pagedcore/kv_cache.py": "b532677340b9f4bf82bbe59dfa615a24fe1351660e93200aa030f1f124d722ec",
+    "src/pagedcore/measurements.py": "760946d8dac98f4a9bfcc182a2426a5b92af62aa23fb859d239895d42ca5c3f0",
+    "src/pagedcore/oracle.py": "6fbc7fe7fdd01eb7cb23055ad3189fad00b733bc1dcd727e091306dcf34f9eb8",
+    "src/pagedcore/verification.py": "4e6b77ea1e88b81ae96047b59b4e5fa859c4237251d9e674a6ee27c2fbd75044",
+    "src/pagedcore/weights.py": "1a0b9f34003ab9ca99ccd00e2f193253071d45b480adce7ed809e65ffa72ec5b"
+  },
+  "scope": "Retained single/step-1 raw logits for exact reproduction control"
+}

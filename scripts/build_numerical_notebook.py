@@ -30,6 +30,10 @@ ACCURACY_RUN = r"""
          "-k", "not legacy and not paired_at_17 and not test_pinned_candidate_paged_decode_on_t4",
          "--junitxml=" + str(evidence / "gpu-tests.xml")])
     run("accuracy-export", [str(python), "-m", "scripts.export_paged_accuracy", str(evidence)])
+    summary_path = evidence / "accuracy-summary.json"
+    if summary_path.exists():
+        summary = json.loads(summary_path.read_text())
+        print("PAGED ACCURACY:", summary["status"], summary.get("reason", ""), flush=True)
 """
 
 BOOTSTRAP = r"""
@@ -166,8 +170,18 @@ finally:
 
 
 def build(
-    output: Path, *, accuracy: bool = False, two_token: bool = False, layer_trace: bool = False
+    output: Path,
+    *,
+    accuracy: bool = False,
+    two_token: bool = False,
+    layer_trace: bool = False,
+    prompt_tokens: int = 1,
+    scalar_control: bool = False,
 ) -> None:
+    if scalar_control:
+        layer_trace, prompt_tokens = True, 15
+    if prompt_tokens not in (1, 15) or (prompt_tokens != 1 and not layer_trace):
+        raise ValueError("15-token mode requires a layer trace")
     two_token = two_token or layer_trace
     if accuracy and two_token:
         raise ValueError("choose one notebook mode")
@@ -201,6 +215,54 @@ def build(
         )
     paths = [path for path in paths if path.name != "AGENTS.md" or path.is_file()]
     contents = {path.relative_to(ROOT).as_posix(): path.read_bytes() for path in sorted(set(paths))}
+    if prompt_tokens == 15:
+        prior_path = ROOT / "results/validation/2026-11-13/pagedcore-accuracy-p6ts13rg.zip"
+        with ZipFile(prior_path) as prior:
+            contents["prior-failure/target.pt"] = prior.read(
+                "evidence/raw-logits/single/step-1-request-0.pt"
+            )
+            with ZipFile(io.BytesIO(prior.read("source-snapshot.zip"))) as prior_source:
+                prior_identity = json.loads(prior_source.read("source-identity.json"))
+        runtime_hashes = {
+            name: digest
+            for name, digest in prior_identity["sha256"].items()
+            if name.startswith("src/")
+        }
+        assert runtime_hashes and all(
+            hashlib.sha256(contents[name]).hexdigest() == digest
+            for name, digest in runtime_hashes.items()
+        ), "runtime differs from the retained T4 failure"
+        contents["prior-failure/metadata.json"] = json.dumps(
+            {
+                "archive": prior_path.name,
+                "archive_sha256": hashlib.sha256(prior_path.read_bytes()).hexdigest(),
+                "runtime_sha256": runtime_hashes,
+                "scope": "Retained single/step-1 raw logits for exact reproduction control",
+            },
+            indent=2,
+        ).encode()
+    if scalar_control:
+        trace_path = ROOT / "results/validation/2026-11-13/pagedcore-layer-trace-iq8cr7k9.zip"
+        with ZipFile(trace_path) as prior:
+            checks = json.loads(prior.read("evidence/checksums.json"))
+            selected = {
+                "trace.json": "layer-trace/trace.json",
+                "layer-01.pt": "layer-trace/raw/layer-01.pt",
+            }
+            for destination, origin in selected.items():
+                data = prior.read("evidence/" + origin)
+                assert hashlib.sha256(data).hexdigest() == checks[origin]
+                contents["prior-trace/" + destination] = data
+        contents["prior-trace/origin.json"] = json.dumps(
+            {
+                "archive": trace_path.name,
+                "archive_sha256": hashlib.sha256(trace_path.read_bytes()).hexdigest(),
+                "evidence_sha256": {
+                    destination: checks[origin] for destination, origin in selected.items()
+                },
+            },
+            indent=2,
+        ).encode()
     identity = {
         "base_revision": subprocess.check_output(
             ["git", "rev-parse", "HEAD"], cwd=ROOT, text=True
@@ -305,17 +367,24 @@ uses `/kaggle/working` and other environments use the current folder.
 
 This runs CPU checks and the required T4 suite, including independent FP64
 attention, owned checkpoint/prefill smoke, and paged decode versus
-independent contiguous FP32 attention at the existing tolerances. Single, mixed,
+independent contiguous FP32 attention under `fp32-paged-v3-fp16-drift`:
+`atol=rtol=0.02` for integrated logits and `0.01` for accumulated K/V drift.
+Independent attention remains `0.002`; exact greedy choices and storage checks
+stay required. These limits were calibrated on prior failures; they are not
+held-out quality evidence. Single, mixed,
 fragmented and held-out layouts are required. The decoder still uses FP16 weights
 and cache. No HF model forward or HF fidelity report is required. Optional HF
 comparisons are deselected by default. No cuBLAS kernel profiling is needed.
 
 Download the final ZIP even when tests fail. `accuracy-summary.json` says passed
 only when CPU/GPU tests and all versioned reports are complete and valid. Setup
-logs, source hashes, target identity, raw logit tensors and failures are retained.
+logs, source hashes, target identity, raw logits, per-page K/V pairs and failures
+are retained. All 45 numerical rows are measured before acceptance; structural
+failures still stop their affected case. The default PyTorch backend is used;
+FlashInfer installation and native JIT compilation are not required.
 This collector covers paged accuracy; end-to-end generation, maximum-active
 workspace, CUDA reuse and service gates remain separate. Read NUMERICAL_POLICY.md
-in the source snapshot for the November 11 independent validation contract. Model quality, full-distribution
+in the source snapshot for the November 16 tolerance decision. Model quality, full-distribution
 KL, and expanded component coverage remain planned and are not certified here.
 """
     if two_token:
@@ -397,6 +466,8 @@ and GPU acceptance tests remain unchanged. This is diagnostic evidence only.
             },
         ],
     }
+    if prompt_tokens == 15:
+        notebook["cells"] = one_page_cells(code, scalar_control=scalar_control)
     output.parent.mkdir(parents=True, exist_ok=True)
     output.write_text(json.dumps(notebook, indent=1) + "\n", encoding="utf-8")
     subprocess.run([sys.executable, "-m", "ruff", "check", "--fix", str(output)], check=True)
@@ -413,25 +484,259 @@ and GPU acceptance tests remain unchanged. This is diagnostic evidence only.
     )
 
 
-if __name__ == "__main__":
+def one_page_cells(code, *, scalar_control=False):
+    start = code.index("try:\n    verify_source()")
+    end = code.index("    target_code =", start)
+    # Keep setup, model download and target verification in the same exception boundary.
+    setup = (
+        code[:start]
+        + "setup_ok = False\n"
+        + code[start:end]
+        + (
+            textwrap.indent(textwrap.dedent(ACCURACY_RUN).split('run("lint"')[0].strip(), "    ")
+            + "\n    setup_ok = True\nexcept BaseException:\n"
+            + '    (evidence / "setup-failure.txt").write_text(traceback.format_exc())\n'
+            + '    print("Setup incomplete. Run the final cell to download its logs.")\n'
+        )
+    )
+    reproduce = r'''
+reproduction_ok = False
+try:
+    assert setup_ok, "Setup did not complete"
+    run("reproduction", [str(python), "-m", "scripts.probe_two_token_decode",
+        "--prompt-tokens", "15", "--single-only",
+        "--output-dir", str(evidence / "reproduction")], required=True)
+    exact_check = """
+import json, sys, torch
+from pathlib import Path
+root, output = map(Path, sys.argv[1:])
+prior = torch.load(root / 'prior-failure/target.pt', map_location='cpu', weights_only=True)
+current = torch.load(output / 'reproduction/single/target.pt', map_location='cpu', weights_only=True)
+controls = {name + '_exact': torch.equal(prior[name], current[name]) for name in prior}
+(output / 'prior-failure-controls.json').write_text(json.dumps(controls, indent=2))
+assert all(controls.values()), 'Raw logits differ from retained T4 failure; inspect environment/source'
+"""
+    run("prior-failure-control", [str(python), "-c", exact_check, str(source), str(evidence)], required=True)
+    result = json.loads((evidence / "reproduction/single/report.json").read_text())
+    print("Attended tokens:", result["attended_tokens"])
+    print("Logit tolerance ratio:", result["owned_reference"]["max_tolerance_ratio"], "(above 1 fails)")
+    print("Greedy choice agrees:", result["owned_reference"]["greedy_matches"])
+    assert result["discrepancy_reproduced"], "The known failure did not reproduce"
+    reproduction_ok = True
+except BaseException:
+    (evidence / "reproduction-failure.txt").write_text(traceback.format_exc())
+    print("Reproduction incomplete. Run the final cell to download its logs.")
+'''
+    trace = r"""
+try:
+    assert reproduction_ok, "The retained failure must reproduce before interpretation"
+    run("layer-trace", [str(python), "-m", "scripts.trace_two_token_decode",
+        "--prompt-tokens", "15", "--baseline-dir", str(evidence / "reproduction/single"),
+        "--output-dir", str(evidence / "layer-trace")], required=True)
+    summary = json.loads((evidence / "layer-trace/summary.json").read_text())
+    result = summary["trace"]
+    for name in ("first_fp32_difference", "first_fp16_difference"):
+        row = result.get(name)
+        print(name, None if row is None else {k: row[k] for k in
+            ("layer", "operation", "max_absolute_error", "first_unequal_index")})
+    print("Instrumentation:", result["instrumentation_controls"])
+    print("Old history unchanged:", result["old_history_unchanged"])
+    print("Positions correct:", result["absolute_positions_correct"])
+    print("K/V measurements:", result["kv_measurement"])
+    print("Native replay exact:", summary["common_input_replay"]["all_native_replays_exact"])
+except BaseException:
+    (evidence / "trace-failure.txt").write_text(traceback.format_exc())
+    print("Trace incomplete. Run the final cell to download its partial evidence.")
+"""
+    finish = r"""
+try:
+    (evidence / "source-after.json").write_text(json.dumps(verify_source(), indent=2))
+except BaseException:
+    (evidence / "source-check-failure.txt").write_text(traceback.format_exc())
+(evidence / "commands.json").write_text(json.dumps(commands, indent=2))
+(evidence / "notebook-run.json").write_text(json.dumps({
+    "snapshot_sha256": SNAPSHOT_SHA256,
+    "base_revision": identity["base_revision"],
+    "scope": "15-token prefill + one decode step; cause localization, not acceptance",
+    "environment_overrides": {k: environment[k] for k in
+        ("CUDA_VISIBLE_DEVICES", "CUBLAS_WORKSPACE_CONFIG", "OMP_NUM_THREADS", "MKL_NUM_THREADS")}
+}, indent=2))
+files = {p.relative_to(evidence).as_posix(): hashlib.sha256(p.read_bytes()).hexdigest()
+         for p in evidence.rglob("*") if p.is_file()}
+(evidence / "checksums.json").write_text(json.dumps(files, indent=2))
+archive_path = working / (run_root.name + ".zip")
+with zipfile.ZipFile(archive_path, "w", compression=zipfile.ZIP_DEFLATED) as archive:
+    archive.writestr("source-snapshot.zip", payload)
+    for p in evidence.rglob("*"):
+        if p.is_file():
+            archive.write(p, "evidence/" + p.relative_to(evidence).as_posix())
+print("Download and send back:", archive_path.name)
+print("If the link fails, download the ZIP from Kaggle's Output file panel.")
+display(FileLink(str(archive_path.relative_to(Path.cwd())) if archive_path.is_relative_to(Path.cwd())
+                 else str(archive_path)))
+"""
+    intro = """# PagedCore: 15-token prefill + one decode step
+
+Enable **Internet** and **T4 GPU**, then **Run All** in a fresh Kaggle session.
+The four code cells contain everything: exact source, frozen Python/dependencies,
+the retained failed logits, reproduction, tracing, shared-input FP64 controls and ZIP export.
+No GitHub push, Input dataset or previous notebook is needed. Only GPU 0 is used.
+
+The prompt is the same **15-ID prefix of `maximum_output`** used in the failed
+acceptance case, including BOS. Prefill chooses a token; one decode step appends
+that token at absolute position 15 and attends to **16 tokens in one page**.
+It computes logits for the following token. This is one decode step, not merely
+requesting one generated token from the API.
+
+1. **Setup:** verify source hashes, frozen environment, checkpoint and one T4.
+2. **Reproduce:** compare both raw logit tensors exactly with the retained failure.
+   A ratio above 1 fails the unchanged logit rule. A mismatch in the reproduction
+   control stops tracing so a different failure is not mistaken for this one.
+3. **Trace and replay:** find the earliest FP32 difference and earliest difference
+   surviving FP16. Check actual KV views, positions, old history, rotated K and
+   unrotated V, and exact instrumented-versus-baseline logits. Replay only those
+   first differing layers on shared Q/K/V and compare independent CPU FP64 math.
+   Shared P/V controls isolate the value product. CPU FP64 is a diagnostic reference;
+   the decoder paths and native replay run on T4. Native replay must match before
+   interpreting its errors. Layers are numbered **0-21**.
+4. **Export:** always retain logs, raw tensors, source hashes and partial failures.
+   Download the final ZIP, including on failure, and send it back for analysis.
+
+Why this helps: wrong KV values point toward storage or indexing; equal operands
+with different outputs point toward arithmetic. FP64 measures each path's error.
+Small primitive differences alone do not justify changing the integrated comparator.
+This notebook collects evidence; it does not guess a repair, change thresholds,
+close P5.3 or replace the full required T4 suite. The source snapshot records the
+base commit plus exact working files, rather than claiming a new clean commit.
+"""
+    if scalar_control:
+        setup = setup.replace("pagedcore-layer-trace-", "pagedcore-scalar-control-")
+        trace = r"""
+try:
+    assert reproduction_ok, "The retained failure must reproduce first"
+    run("scalar-control", [str(python), "-m", "scripts.intervene_decode_scalar",
+        "--baseline-dir", str(evidence / "reproduction/single"),
+        "--trace-dir", str(source / "prior-trace"),
+        "--output-dir", str(evidence / "scalar-control")], required=True)
+    result = json.loads((evidence / "scalar-control/report.json").read_text())
+    print("Control valid:", result["valid_control"])
+    print("Baseline/trace checks:", result["controls"])
+    for name, arm in result["arms"].items():
+        print(name, "logit ratio:", arm["logits"]["max_tolerance_ratio"],
+              "failing logits:", arm["failing_logit_elements"],
+              "K/V ratio:", arm["trace"]["kv_measurement"]["max_kv_tolerance_ratio"])
+    print("Target layer output now matches reference:",
+          result["arms"]["single_scalar"]["target_hidden_out_equals_reference"])
+    print("First remaining FP16 difference:", result["remaining_first_fp16_difference"])
+except BaseException:
+    (evidence / "scalar-control-failure.txt").write_text(traceback.format_exc())
+    print("Control incomplete. Run the final cell to download partial evidence.")
+"""
+        finish = finish.replace(
+            "15-token prefill + one decode step; cause localization, not acceptance",
+            "Single-scalar intervention; causal diagnostic, never a serving repair or acceptance",
+        )
+        intro = """# PagedCore: does one FP16 value explain the final drift?
+
+Enable **Internet** and **T4 GPU**, then **Run All** in a fresh Kaggle session.
+The exact source, frozen setup, retained failed logits, target tensor and export
+are embedded. No dataset, Git push or previous session is required. Only GPU 0 is used.
+
+Keep the same 15-token prompt plus one decode step. The previous trace found the
+first FP16 difference in the **second decoder layer (index 1), head 21, channel 60**.
+The experiment has two arms with fresh caches and the same weights and inputs:
+
+- **Sham:** clone the attention output and write back its original scalar.
+  It must reproduce the retained baseline logits and all 440 stage comparisons.
+- **Single-scalar intervention:** perform the same clone/write, replacing only
+  that scalar with the captured contiguous-reference FP16 value. Every other
+  element must remain exact, and all stages before the target must match the sham.
+
+The four cells install/verify, reproduce the original failure, run both arms,
+and export one ZIP. The run retains both complete layer traces, full logits,
+K/V checks, unchanged history, exact local writes, positions and cleanup.
+Numerical failures are results, not reasons to discard the experiment.
+
+**How to interpret it:** if the final error shrinks, the first value contributes
+to the drift. If later FP16 differences remain, this value does not explain all
+of it. More error is also a valid observation. Inspect the first remaining
+difference and all control flags before drawing a conclusion. Two arms on this
+one input do not establish broader model accuracy or a general error bound.
+
+This is a diagnostic override in a separate script. It never changes serving
+code, thresholds or the comparator, and an intervention passing is not a P5.3 pass.
+Download the ZIP even on failure and return it for analysis. If its link fails,
+use Kaggle's Output file panel. No whole-suite rerun is needed for this experiment.
+"""
+    cells = [
+        {
+            "id": "instructions",
+            "cell_type": "markdown",
+            "metadata": {},
+            "source": intro.splitlines(True),
+        }
+    ]
+    for name, body in (
+        ("setup", setup),
+        ("reproduce", reproduce),
+        ("trace", trace),
+        ("download", finish),
+    ):
+        compile(body, name, "exec")
+        cells.append(
+            {
+                "id": name,
+                "cell_type": "code",
+                "execution_count": None,
+                "metadata": {},
+                "outputs": [],
+                "source": body.lstrip().splitlines(True),
+            }
+        )
+    return cells
+
+
+def main(argv: list[str] | None = None) -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--output", type=Path)
     modes = parser.add_mutually_exclusive_group()
     modes.add_argument(
-        "--accuracy", action="store_true", help="build the revised accuracy collector"
+        "--accuracy",
+        action="store_true",
+        help="build the accuracy collector in results/local/ unless --output is set",
     )
     modes.add_argument("--two-token", action="store_true", help="build the minimal decode probe")
     modes.add_argument(
         "--layer-trace", action="store_true", help="trace all two-token decoder layers"
     )
-    args = parser.parse_args()
-    output = args.output or ROOT / "notebooks" / (
-        "two_token_layer_trace.ipynb"
-        if args.layer_trace
-        else "two_token_decode.ipynb"
-        if args.two_token
-        else "paged_decode_accuracy.ipynb"
-        if args.accuracy
-        else "p53_numerical_evidence.ipynb"
+    modes.add_argument(
+        "--scalar-control", action="store_true", help="test the first differing scalar"
     )
-    build(output, accuracy=args.accuracy, two_token=args.two_token, layer_trace=args.layer_trace)
+    parser.add_argument("--prompt-tokens", type=int, choices=(1, 15), default=1)
+    args = parser.parse_args(argv)
+    output = args.output
+    if output is None:
+        notebooks = ROOT / "notebooks"
+        if args.accuracy:
+            output = ROOT / "results/local/paged_decode_accuracy.ipynb"
+        elif args.scalar_control:
+            output = notebooks / "sixteen_token_scalar_control.ipynb"
+        elif args.layer_trace:
+            prefix = "sixteen" if args.prompt_tokens == 15 else "two"
+            output = notebooks / f"{prefix}_token_layer_trace.ipynb"
+        elif args.two_token:
+            output = notebooks / "two_token_decode.ipynb"
+        else:
+            output = notebooks / "p53_numerical_evidence.ipynb"
+    build(
+        output,
+        accuracy=args.accuracy,
+        two_token=args.two_token,
+        layer_trace=args.layer_trace,
+        prompt_tokens=args.prompt_tokens,
+        scalar_control=args.scalar_control,
+    )
+
+
+if __name__ == "__main__":
+    main()

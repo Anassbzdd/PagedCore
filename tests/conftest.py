@@ -24,16 +24,35 @@ TEST_SEED = 0
 
 def pytest_addoption(parser: pytest.Parser) -> None:
     parser.addoption(
+        "--decode-backend",
+        choices=("pagedcore", "flashinfer"),
+        default="pagedcore",
+        help="explicit backend for the frozen paged decoder accuracy cases",
+    )
+    parser.addoption(
         "--run-hf-diagnostics", action="store_true", help="include optional HF comparisons"
     )
 
 
 def pytest_collection_modifyitems(config: pytest.Config, items: list[pytest.Item]) -> None:
+    if config.getoption("--decode-backend") != "flashinfer":
+        external = [item for item in items if item.get_closest_marker("flashinfer")]
+        items[:] = [item for item in items if item not in external]
+        config.hook.pytest_deselected(items=external)
     if config.getoption("--run-hf-diagnostics"):
         return
     optional = [item for item in items if item.get_closest_marker("hf_diagnostic")]
     items[:] = [item for item in items if item not in optional]
     config.hook.pytest_deselected(items=optional)
+
+
+@pytest.fixture(scope="module")
+def decode_attention_backend(request: pytest.FixtureRequest):
+    if request.config.getoption("--decode-backend") == "flashinfer":
+        from pagedcore.flashinfer_backend import FlashInferAttention
+
+        return FlashInferAttention(device="cuda:0")
+    return None
 
 
 @pytest.fixture(autouse=True)

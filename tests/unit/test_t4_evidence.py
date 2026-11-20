@@ -8,6 +8,8 @@ from pathlib import Path
 
 import pytest
 
+from pagedcore.accuracy import ACCURACY_POLICY, accuracy_tolerances
+
 pytestmark = pytest.mark.unit
 
 ROOT = Path(__file__).parents[2]
@@ -39,7 +41,8 @@ def _accuracy_report(lengths):
         "greedy_matches": True,
     }
     return {
-        "policy": "fp32-paged-v2-independent",
+        "policy": ACCURACY_POLICY,
+        "tolerances": accuracy_tolerances(),
         "lengths": list(lengths),
         "steps": 3,
         "comparisons": [
@@ -49,6 +52,7 @@ def _accuracy_report(lengths):
                 "attended_tokens": length + step,
                 "owned_reference": metrics.copy(),
                 "max_kv_tolerance_ratio": 0.0,
+                "kv_measurement_complete": True,
             }
             for step in range(1, 4)
             for request, length in enumerate(lengths)

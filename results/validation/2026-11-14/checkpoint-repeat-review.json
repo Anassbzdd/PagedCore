@@ -1,0 +1,14 @@
+{
+  "date": "2026-11-14",
+  "scope": "Repeat execution of the same fixed checkpoint trajectory; not new quality coverage",
+  "repeat_archive_library_id": "libfile_86112a647f1481919019fc3928c22c97",
+  "repeat_archive_name": "pagedcore-checkpoint-93pnlb3l.zip",
+  "repeat_archive_sha256": "c5f8f00c3c33c29e4fb75daf6836890e6f3d3b2f315f0f647706ee909b383da0",
+  "evidence_hashes_verified": 482,
+  "source_hashes_verified": 112,
+  "source_snapshot_byte_identical": true,
+  "raw_tensor_files_compared": 466,
+  "raw_tensors_exact": 1334,
+  "baseline_and_audited_reports_exact": true,
+  "scope_limit": "Same source, fixture and histories. This supports repeatability only; previous numerical failures and P5.3 remain unchanged."
+}

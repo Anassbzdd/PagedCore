@@ -1,0 +1,52 @@
+{
+  "date": "2026-11-13",
+  "scope": "CPU diagnostic-tooling validation; no new T4 result or serving repair",
+  "gate": "P5.3 remains open",
+  "environment": {
+    "python": "3.11.15",
+    "torch": "2.7.1+cpu",
+    "cuda_available": false
+  },
+  "checks": {
+    "ruff check .": "passed",
+    "ruff format --check .": "passed",
+    "mypy --strict src/pagedcore": "passed",
+    "git diff --check": "passed"
+  },
+  "runs": [
+    {
+      "scope": "full non-GPU suite",
+      "junit": "sixteen-token-trace-cpu.xml",
+      "sha256": "ecb76fa3379d567a5e55eb343ebe8676513483f88eeb2c335302fcd2cd86c9a5",
+      "selected": 776,
+      "passed": 775,
+      "failures": [
+        {
+          "name": "test_validation_provenance_does_not_guess_outside_a_checkout",
+          "message": "AssertionError: assert '5ded0a31f2182584827aecc7cfbc0d6b7da3868c' is None"
+        }
+      ]
+    },
+    {
+      "scope": "external-temp retry plus notebook regressions",
+      "junit": "sixteen-token-trace-focused.xml",
+      "sha256": "9f755bd46e6dcc9c67d43a229691eb37e21c432d4f957e7accf5b927e11ec8e6",
+      "selected": 23,
+      "passed": 23,
+      "failures": []
+    }
+  ],
+  "focused_trace_and_probe": {
+    "command": "python -m pytest tests/unit/test_layer_trace.py tests/unit/test_two_token_probe.py -q",
+    "passed": 16
+  },
+  "explanation": "Full run used a temporary directory inside the checkout, violating the outside-checkout provenance test fixture. That test and notebook regressions pass with TEMP/TMP outside the checkout. The failed full run is retained unchanged. All 776 selected CPU cases have passing evidence across the full run and retry; there is no single fully passing 776-case run.",
+  "source_sha256": {
+    "scripts/build_numerical_notebook.py": "f3d032b2407fe494d699b124f7bf59e019c6a96a2711e730217ccd3491206c73",
+    "scripts/probe_two_token_decode.py": "ac7c91b72f4e8d230c8d38e0fb26c5e201050995ad4471ea2b960cdfe68f3aa2",
+    "scripts/trace_two_token_decode.py": "1ad9e11a79764a2ac900ea1fd7d8358004626f3bae5d422ecd783d19a269574e",
+    "scripts/replay_one_page.py": "57f154f56bfb4b34deba0dd215f6276fb8d8cc199ace48646c9e0abd20b7daa6",
+    "tests/unit/test_layer_trace.py": "b52f2f576f70aadbe36b20bfedda5c80f3af5da65855b99a0f1f53e55f25feab",
+    "tests/unit/test_numerical_evidence.py": "c64733840bd9457d47f9e75ac8fe7d0d850f7fdefc6243583496a145ec62dce3"
+  }
+}

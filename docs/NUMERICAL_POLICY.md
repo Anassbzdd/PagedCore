@@ -10,8 +10,8 @@ Historical HF results retain their original conclusions; optional comparisons us
 
 | Area | Required evidence | Current boundary |
 |---|---|---|
-| Attention mathematics | Independent FP64 on identical Q/K/V: masks, GQA, difficult scores, boundaries and long context | Standalone T4 evidence at `3401406`; revised integrated evidence still fails |
-| Paging | Shuffled pages, poisoned unrelated pages, exact old slots, correct writes, isolation, rollback/retry, stable pool, cleanup and no full-history gather | Allocator/standalone evidence retained; integrated gate open |
+| Attention mathematics | Independent FP64 on identical Q/K/V: masks, GQA, difficult scores, boundaries and long context | Current FP64 component and frozen v3 integration suite pass in the complete November 16 T4 review |
+| Paging | Shuffled pages, poisoned unrelated pages, exact old slots, correct writes, isolation, rollback/retry, stable pool, cleanup and no full-history gather | P5.3/P5.4 complete under v3; end-to-end generation and workspace/stream ordering remain open |
 | Model implementation | Independent normalization, RoPE, projections, masking, positions and cache semantics | Partial CPU coverage; gaps below remain release work |
 | Model quality | Held-out next-token loss/perplexity and fixed tasks against the same checkpoint in established vLLM | Planned: no evaluator, frozen data, margins or result yet |
 | Distribution fidelity | KL and top-1 agreement on identical histories with complete aligned probabilities | Planned; existing logit metrics are not KL or quality evidence |
@@ -33,7 +33,29 @@ projections and integrated reference, isolation, staged rollback/retry, pool poi
 ownership, credits and active slots after transitions and cleanup. GPU reuse also
 needs stream-ordering evidence; synchronous retry does not prove device-fault recovery.
 
-## Integrated comparison remains blocking
+## Integrated comparison and current acceptance
+
+November 16, 2026: the owner explicitly authorized a tolerance revision to finish
+the paging integration gate. Policy `fp32-paged-v3-fp16-drift` freezes integrated
+logit `atol=rtol=2e-2` and accumulated K/V `atol=rtol=1e-2` before a fresh complete
+T4 run. Independent attention remains `2e-3`; prefill, exact stored-history checks,
+transactional writes, isolation, cleanup and exact greedy choices retain their
+existing rules. This is a finite-suite engineering budget, not a model-quality
+bound or a universal FP16 error guarantee. The [decision and evidence](validation/2026-11-16-integrated-tolerance.md)
+explain calibration and limitations. Old v2 failures stay failed under v2;
+changing this policy does not close P5.3 without a new T4 pass.
+
+The [complete November 16 T4 review](validation/2026-11-16-v3-complete-t4-review.md) now satisfies that frozen suite: all 45 numerical/greedy comparisons, 830 CPU tests and ten required GPU tests pass. P5.3/P5.4 are complete for this source and policy. P5.6 generation, P5.7 workspace/ordering and independent quality/model coverage remain separate open gates.
+
+November 14 implementation experiment, authorized by the owner: an explicit
+FlashInfer 0.2.5 decode adapter may be evaluated with the same independent FP64,
+paging invariants and integrated thresholds below. Its native fused reductions
+are an experimental arithmetic path, not a claim to reproduce the default's
+FP32 operation schedule or to satisfy acceptance. The owned decoder, RoPE, K/V
+pool and transactional writes stay in PagedCore. The default implementation and
+all old failures remain. No comparator redesign or threshold change is approved
+by selecting this backend. Candidate T4 compilation, accuracy, long-context and
+workspace evidence are pending; see [scope](validation/2026-11-14-flashinfer-backend.md).
 
 Compare paged decode with contiguous FP32 attention using full matrix products,
 softmax and weighted values with one final FP16 cast, without shared page traversal
@@ -45,7 +67,8 @@ replacing online normalize-last arithmetic. It changes no limits, comparator or
 thresholds. [Source study and rationale](validation/2026-11-13-vllm-implementation.md)
 distinguish this adaptation from vLLM's FP16 probability conversion and epsilon.
 
-Keep `atol=rtol=5e-3` for logits, `2e-3` for K/V and exact greedy choices against
+Use `atol=rtol=2e-2` for integrated logits, `1e-2` for accumulated K/V drift and
+exact greedy choices against
 the owned reference on the frozen paging suite. This finite-suite check is not
 universal token identity with vLLM or across arbitrary inputs. The reference shares
 non-attention components and orchestration; it cannot independently prove the model.
@@ -55,20 +78,29 @@ The November 10 integrated T4 failure remains real: two-token logit tolerance ra
 [layer-5 replay](validation/2026-11-10-layer5-replay.md#returned-t4-replay) isolates
 normalization-placement sensitivity. Normalize-last is closer to full FP64 under
 that one call's measured maximum-error and rounded-mismatch metrics. This does
-not prove the whole decoder accurate or invalidate failed assertions. P5.3 stays
-open. Do not start an indefinite search for one implementation's addition order.
+not prove the whole decoder accurate or invalidate failed assertions. That failure blocked P5.3 under v2; current v3 acceptance is separately recorded above. Do not start an indefinite search for one implementation's addition order.
 
-A comparator redesign requires a separate documented justification: retain raw
+Any future comparator redesign requires a separate documented justification: retain raw
 failures, measure the numerical cause on shared operands across layers/histories,
 explain the replacement's scope, and provide independent FP64/component and
-held-out quality evidence before freezing a new rule. Quality alone cannot override
-a paging defect. Until then the current integrated assertions remain blocking.
+held-out quality evidence before freezing a new rule. The November 16 tolerance
+recalibration keeps the same comparator and separates finite-suite integration
+from the held-out quality release gate. Quality alone cannot override a paging
+defect. The versioned integrated assertions remain blocking.
 
 Required cases are `single` (15), `mixed` and `fragmented` (1/15/16/17/49), and
 `held_out` (37/73/111/145), each with three cached steps following owned-reference
 tokens. Held-out lengths are layout coverage, not natural-language quality data.
-Report policy `fp32-paged-v2-independent` requires complete finite owned-reference
-metrics and K/V ratios; no HF field is required. Keep old v1 evidence unchanged.
+The November 16 [fixture review](validation/2026-11-16-v3-accuracy-t4-review.md)
+finds the first v3 run silently truncated requested long prefixes to 49 IDs.
+The corrected fixture repeats its public token body with one initial BOS,
+preserves all existing prefixes through 49 IDs, and asserts actual input/cache
+lengths before decode. The same requested lengths and numerical rules remain.
+Report policy `fp32-paged-v3-fp16-drift` requires explicit frozen tolerances,
+complete finite owned-reference metrics and completed K/V measurements; no HF
+field is required. Collect every row before applying numerical acceptance, retain
+raw logits and per-page K/V pairs, and reject incomplete measurements. Keep old
+v1/v2 evidence unchanged. Diagnostic scripts retain the old `5e-3` logit scale.
 Maximum error, RMS, normalized RMS (`RMS(error)/max(RMS(reference),1)`), tolerance
 ratio and top-1 margin are diagnostics alongside the existing hard assertions.
 
@@ -85,8 +117,13 @@ names/shapes, config fields, BF16 storage and finite FP16 conversion. See
 Removing required HF comparisons leaves no independent full 22-layer checkpoint
 oracle. Some synthetic fixtures are constructed with Transformers; that is not
 correctness evidence. Shared components can hide common errors in MLP/residual
-composition, embedding/LM mapping and prefill arithmetic. Independent full-component
-and MLP coverage, real-checkpoint long cached trajectories, paged EOS/maximum-output
+composition, embedding/LM mapping and prefill arithmetic. The November 14
+[independent scalar checks](validation/2026-11-14-independent-decoder-math.md)
+add sparse MLP, residual, embedding/head and prefill/cached composition coverage
+without Transformers-derived expectations; ten new cases pass on CPU. Reduced
+MLP width and one active block among 22 synthetic layers do not establish a
+general checkpoint oracle. Broader full-component/MLP coverage,
+real-checkpoint long cached trajectories, paged EOS/maximum-output
 generation and quality evaluation remain release gaps. Historical dense HF passes
 support only their recorded revisions and do not close these independent gaps.
 
@@ -169,12 +206,8 @@ Reviewed November 11, 2026. These inform the protocol, not PagedCore thresholds.
   This project adopts explicit reproducibility and separate quality checks; it
   does not claim MLPerf compliance or borrow another model's targets.
 
-## Next T4 action and limits
+## T4 paging runs
 
-Open [paged_decode_accuracy.ipynb](../notebooks/paged_decode_accuracy.ipynb) in a
-fresh Kaggle session, enable Internet and T4 GPU, and Run All. Download the final
-ZIP even on failure. It embeds exact working source and records setup/environment,
-CPU checks, ten required GPU cases, raw logits and versioned reports. Passing can
-establish only those mathematical/paging comparisons. The known failure may persist.
-It cannot close P5.6/P5.7, component gaps, quality, service or performance gates.
-No new GPU validation accompanies this revision.
+Use the [focused T4 procedure](../results/README.md#retaining-a-new-run) to replay
+the reviewed source or generate a notebook from a changed checkout. The notebook
+records the ten required GPU cases and versioned comparisons under the policy above.

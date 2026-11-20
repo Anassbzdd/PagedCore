@@ -1,0 +1,36 @@
+{
+  "date": "2026-11-14",
+  "scope": "CPU-only diagnostic preparation; no T4 causal result, serving repair or gate advancement",
+  "gate": "P5.3 remains open",
+  "runs": [
+    {
+      "command": "python -m pytest tests/unit/test_layer_trace.py tests/unit/test_numerical_evidence.py tests/unit/test_two_token_probe.py -xq",
+      "passed": 46,
+      "junit": "scalar-control-cpu.xml",
+      "sha256": "a6fa6fa0532c34f532a5e895423e05ee314c9f2016c033f3b32d5defce2aa81a"
+    },
+    {
+      "command": "python -m pytest tests/unit/test_layer_trace.py::test_real_decoder_scalar_control_proves_sham_and_prefix_controls -q",
+      "passed": 2,
+      "junit": "scalar-control-accounting-cpu.xml",
+      "sha256": "d95aabc62a6da9fede1f7263a1fe7452246afd572601beb62ca4eea2e3b425ca"
+    }
+  ],
+  "checks": {
+    "python -m ruff check .": "passed",
+    "python -m ruff format --check .": "passed",
+    "python -m mypy --strict src/pagedcore": "passed"
+  },
+  "environment": {
+    "python": "3.11.15",
+    "torch": "2.7.1+cpu",
+    "cuda_available": false
+  },
+  "source_sha256": {
+    "scripts/intervene_decode_scalar.py": "75b8c8c25c6d4c01bcf89fc9f8525e20f91bf7ae72928308322f19d59ec2cbcf",
+    "scripts/build_numerical_notebook.py": "96e08b970c7aa08d2bc15ba57a124d8f825815c278e513de29c8d3220e1c7405",
+    "tests/unit/test_layer_trace.py": "a444ea98e5f79df76ccea1108bbc8acddb67ba3830f731e0e92b82b8d5a12947",
+    "tests/unit/test_numerical_evidence.py": "d4863f52be4866919abdef0327aa555f8c8dd22f04b2f8cc73529cc3f37d2a33"
+  },
+  "note": "The two integration cases were rerun after adding explicit block-table/ownership/reservation/active-slot controls; the second run overlaps the first. No full CPU or T4 accuracy rerun was claimed."
+}
